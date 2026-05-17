@@ -15,6 +15,7 @@ export class Clock {
   private _loop: Loop | null = null;
   private changeListeners = new Set<() => void>();
   private loopListeners = new Set<() => void>();
+  private seekListeners = new Set<() => void>();
 
   constructor(public readonly duration: number) {}
 
@@ -54,6 +55,7 @@ export class Clock {
   seek(seconds: number): void {
     this._position = Math.min(Math.max(seconds, 0), this.duration);
     this.emitChange();
+    this.seekListeners.forEach((fn) => fn());
   }
 
   setRate(rate: number): void {
@@ -76,8 +78,10 @@ export class Clock {
 
     const loop = this._loop;
     if (loop && loop.end > loop.start && next >= loop.end) {
-      const span = loop.end - loop.start;
-      next = loop.start + ((next - loop.start) % span);
+      // Land exactly on loop.start (drop the sub-frame remainder) so every loop
+      // pass begins at the same point and a note or beat sitting exactly on
+      // loop.start is never skipped.
+      next = loop.start;
       this._position = next;
       this.emitChange();
       this.loopListeners.forEach((fn) => fn());
@@ -105,6 +109,12 @@ export class Clock {
   onLoop(fn: () => void): () => void {
     this.loopListeners.add(fn);
     return () => this.loopListeners.delete(fn);
+  }
+
+  /** Subscribe to seek events. Returns an unsubscribe function. */
+  onSeek(fn: () => void): () => void {
+    this.seekListeners.add(fn);
+    return () => this.seekListeners.delete(fn);
   }
 
   private emitChange(): void {

@@ -48,9 +48,20 @@ describe("Clock", () => {
     c.play();
     const looped = vi.fn();
     c.onLoop(looped);
-    c.tick(2.5); // 2 -> 4.5, wraps: 4.5-4=0.5 past loop.start
-    expect(c.position).toBeCloseTo(2.5, 6);
+    c.tick(2.5); // 2 -> 4.5, wraps: lands exactly on loop.start (2)
+    expect(c.position).toBe(2);
     expect(looped).toHaveBeenCalledTimes(1);
+  });
+
+  it("notifies seek listeners on seek but not on tick", () => {
+    const c = new Clock(10);
+    const seeked = vi.fn();
+    c.onSeek(seeked);
+    c.seek(5);
+    expect(seeked).toHaveBeenCalledTimes(1);
+    c.play();
+    c.tick(1);
+    expect(seeked).toHaveBeenCalledTimes(1);
   });
 
   it("notifies change listeners and supports unsubscribe", () => {

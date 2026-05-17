@@ -97,6 +97,14 @@ export class Metronome {
     return 1 - clamp(elapsed / PULSE_DECAY, 0, 1);
   }
 
+  /**
+   * Reset the high-water mark so beats can fire again after a loop wrap or
+   * seek. Leaves `lastBeatTime` alone so the visual pulse keeps working.
+   */
+  resync(): void {
+    this.lastFiredTime = -Infinity;
+  }
+
   /** Register a click listener; returns an unsubscribe function. */
   onClick(fn: ClickListener): () => void {
     this.listeners.add(fn);

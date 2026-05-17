@@ -55,6 +55,18 @@ describe("Metronome", () => {
     expect(click).toHaveBeenCalledTimes(5);
   });
 
+  it("resync re-enables beats already fired so they fire again", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    const click = vi.fn();
+    m.onClick(click);
+    m.update(-0.01, 1.0); // beats at 0,0.5,1.0 fire
+    expect(click).toHaveBeenCalledTimes(3);
+    m.resync();
+    m.update(-0.01, 1.0); // same range: with resync the beats fire again
+    expect(click).toHaveBeenCalledTimes(6);
+  });
+
   it("pulse is high right after a beat and lower later", () => {
     const m = new Metronome(score);
     m.enabled = true;

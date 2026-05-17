@@ -72,6 +72,38 @@ describe("AudioEngine", () => {
     expect(click.count).toBe(3);
   });
 
+  it("replays notes on later passes of an A-B loop", () => {
+    const t = new Transport(score);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    t.clock.setLoop({ start: 0, end: 1 }); // covers notes at 0.1 and 0.6
+    t.clock.play();
+    t.clock.tick(0.8); // 0 -> 0.8 : first pass, notes 0.1 and 0.6 fire
+    engine.update();
+    t.clock.tick(0.5); // 0.8 -> 1.3, wraps to loop.start (0)
+    engine.update();
+    t.clock.tick(0.8); // 0 -> 0.8 : second pass, notes fire again
+    engine.update();
+    expect(piano.calls.filter((m) => m === 60).length).toBeGreaterThan(1);
+    expect(piano.calls.filter((m) => m === 64).length).toBeGreaterThan(1);
+  });
+
+  it("keeps the metronome clicking on later loop passes", () => {
+    const t = new Transport(score);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    engine.metronome.enabled = true;
+    t.clock.setLoop({ start: 0, end: 1 }); // beats at 0, 0.5
+    t.clock.play();
+    t.clock.tick(0.9); // 0 -> 0.9 : first pass, beats 0 and 0.5
+    engine.update();
+    t.clock.tick(0.5); // 0.9 -> 1.4, wraps to loop.start (0)
+    engine.update();
+    t.clock.tick(0.9); // 0 -> 0.9 : second pass, beats 0 and 0.5 again
+    engine.update();
+    expect(click.count).toBe(4); // 2 beats per pass, 2 passes
+  });
+
   it("plays a note sitting exactly at the playback start position", () => {
     // A note at time 0 must sound when playback starts from 0, even though
     // the trigger window (prev, cur] would otherwise exclude the boundary.

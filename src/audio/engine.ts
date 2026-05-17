@@ -12,21 +12,24 @@ export interface ClickSink {
   playClick(accent: boolean): void;
 }
 
-/** Largest clock advance (seconds) still treated as normal playback; a bigger
- *  jump is a seek and must not trigger every note in between. The Clock does
- *  not flag seeks, so the engine infers them from the size of the advance:
- *  a render frame (even a slow one, or a catch-up tick) advances well under
- *  a measure, whereas a seek lands an arbitrary distance away. */
-const SEEK_THRESHOLD = 2.0;
-
 /**
  * Drives audio output from the transport clock. Call `update()` once per frame,
  * after the clock has been ticked. Pure wiring — the two sinks do the sound.
+ *
+ * Discontinuities are deterministic, not guessed: the engine no longer infers
+ * seeks from the size of the position jump. The Clock tells it about seeks
+ * (`onSeek`) and loop wraps (`onLoop`); both trigger a `resync()` so playback
+ * never bursts every note between an old and new position.
+ *
+ * The render loop (a later feature) is responsible for clamping the per-frame
+ * `dt` it passes to `clock.tick()`, so a backgrounded tab resuming does not
+ * produce one enormous tick that the engine would treat as ordinary playback.
  */
 export class AudioEngine {
   readonly metronome: Metronome;
   private prevPosition: number;
   private wasPlaying = false;
+  private firePrevBoundary = false;
 
   constructor(
     private readonly transport: Transport,
@@ -36,6 +39,15 @@ export class AudioEngine {
     this.metronome = new Metronome(transport.score);
     this.prevPosition = transport.clock.position;
     this.metronome.onClick((_t, accent) => this.click.playClick(accent));
+    this.transport.clock.onSeek(() => this.resync());
+    this.transport.clock.onLoop(() => this.resync());
+  }
+
+  /** Re-anchor to the clock's current position after a seek or loop wrap. */
+  private resync(): void {
+    this.prevPosition = this.transport.clock.position;
+    this.firePrevBoundary = true;
+    this.metronome.resync();
   }
 
   /** Trigger notes and metronome clicks for the clock advance since last call. */
@@ -45,8 +57,9 @@ export class AudioEngine {
     const playing = this.transport.clock.playing;
     const advance = cur - prev;
 
-    // Backward or large jumps are seeks, not playback: resync silently.
-    if (advance <= 0 || advance > SEEK_THRESHOLD) {
+    // No forward advance: paused, or the loop-wrap frame where the clock
+    // jumped back. The wrap was already handled by onLoop -> resync.
+    if (advance <= 0) {
       this.prevPosition = cur;
       this.wasPlaying = playing;
       return;
@@ -56,15 +69,16 @@ export class AudioEngine {
     for (const note of notesToTrigger(notes, prev, cur)) {
       this.piano.playNote(note.midi, note.duration, note.velocity);
     }
-    // notesToTrigger's window is half-open (prev, cur]; on the first frame after
-    // playback starts, also fire any note sitting exactly on the start point so
-    // the very first note of a piece (or a seek target) is not skipped.
-    if (playing && !this.wasPlaying) {
+    // notesToTrigger's window is half-open (prev, cur]; a note sitting exactly
+    // on `prev` would be missed. Fire it when `prev` is a play-start, seek
+    // target, or loop start.
+    if (this.firePrevBoundary || (playing && !this.wasPlaying)) {
       for (const note of notes) {
         if (note.start === prev) {
           this.piano.playNote(note.midi, note.duration, note.velocity);
         }
       }
+      this.firePrevBoundary = false;
     }
     this.metronome.update(prev, cur);
 
