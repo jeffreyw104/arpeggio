@@ -55,6 +55,11 @@ export function midiToNoteName(midi: number): string {
  * Compute the pixel layout for a keyboard range. White keys tile the width
  * edge-to-edge; black keys overlay, narrower and centred on the boundary of
  * their lower white neighbour.
+ *
+ * For a normal piano appearance the range should begin and end on white keys,
+ * as `autoFitRange` guarantees. A black-key bound still lays out without error
+ * but may look slightly off (the edge black key is anchored to the leftmost
+ * white key's position).
  */
 export function keyLayout(range: KeyRange, width: number): KeyboardLayout {
   // Collect white-key MIDI numbers in ascending order.
@@ -63,6 +68,25 @@ export function keyLayout(range: KeyRange, width: number): KeyboardLayout {
     if (!isBlack(m)) whiteMidis.push(m);
   }
   const whiteCount = whiteMidis.length;
+
+  // Degenerate case: no white keys in the range (e.g. a single black key or an
+  // all-black range). Fall back to tiling all keys edge-to-edge as equal-width
+  // rectangles so we never produce NaN/Infinity and never crash.
+  if (whiteCount === 0) {
+    const allMidis: number[] = [];
+    for (let m = range.low; m <= range.high; m++) allMidis.push(m);
+    const keyWidth = width / allMidis.length;
+    const keys: KeyRect[] = allMidis.map((midi, i) => ({
+      midi,
+      x: i * keyWidth,
+      width: keyWidth,
+      black: isBlack(midi),
+    }));
+    const byMidiMap = new Map<number, KeyRect>();
+    for (const k of keys) byMidiMap.set(k.midi, k);
+    return { keys, width, byMidi: (midi: number) => byMidiMap.get(midi) };
+  }
+
   const whiteWidth = width / whiteCount;
   const blackWidth = whiteWidth * 0.62;
 
@@ -81,7 +105,18 @@ export function keyLayout(range: KeyRange, width: number): KeyboardLayout {
   for (let m = range.low; m <= range.high; m++) {
     if (!isBlack(m)) continue;
     const wi = whiteIndex.get(m - 1);
-    if (wi === undefined) continue; // no white key below in range — skip.
+    if (wi === undefined) {
+      // The lower white neighbour is outside the range (e.g. range.low is a
+      // black key). Anchor to the left edge of the lowest white key so we
+      // still emit a KeyRect rather than silently dropping the key.
+      blackKeys.push({
+        midi: m,
+        x: -blackWidth / 2,
+        width: blackWidth,
+        black: true,
+      });
+      continue;
+    }
     blackKeys.push({
       midi: m,
       x: (wi + 1) * whiteWidth - blackWidth / 2,

@@ -68,10 +68,26 @@ describe("FalldownRenderer", () => {
 
   it("draws falling-note rectangles when notes are visible", () => {
     const { transport, ctx, renderer } = makeRenderer();
-    transport.clock.seek(0.4); // note at 0.5 is just above the hit line
+
+    // Render at a far-future time (no notes visible) to capture the
+    // keyboard-only fillRect count (keys + background).
+    transport.clock.seek(100);
     renderer.renderFrame();
-    const before = ctx.calls.length;
-    expect(before).toBeGreaterThan(0);
+    const keyboardOnlyFillRects = ctx.calls.filter((c) =>
+      c.startsWith("fillRect"),
+    ).length;
+
+    // Reset and render at t=0.4: the note at start=0.5 is 0.1 s above the
+    // hit line and clearly inside the falldown area, so at least one extra
+    // fillRect is emitted for the falling note rectangle.
+    ctx.calls.length = 0;
+    transport.clock.seek(0.4);
+    renderer.renderFrame();
+    const withNotesFillRects = ctx.calls.filter((c) =>
+      c.startsWith("fillRect"),
+    ).length;
+
+    expect(withNotesFillRects).toBeGreaterThan(keyboardOnlyFillRects);
   });
 
   it("toggles the full-88 key range", () => {

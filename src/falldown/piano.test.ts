@@ -28,6 +28,24 @@ describe("keyLayout", () => {
     expect(layout.byMidi(64)).toBeDefined();
     expect(layout.byMidi(999)).toBeUndefined();
   });
+
+  it("full-88 layout has 52 white keys, all positive width, starting at x≈0", () => {
+    // Standard 88-key piano: MIDI 21 (A0) to MIDI 108 (C8).
+    const layout = keyLayout({ low: 21, high: 108 }, 5200);
+    const whites = layout.keys.filter((k) => !k.black);
+    expect(whites).toHaveLength(52);
+    for (const key of whites) {
+      expect(key.width).toBeGreaterThan(0);
+    }
+    // White keys are emitted in ascending MIDI order (ascending x). The first
+    // white key should start at x≈0.
+    const sorted = [...whites].sort((a, b) => a.x - b.x);
+    expect(sorted[0].x).toBeCloseTo(0, 6);
+    // Each subsequent white key should be contiguous with the previous one.
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i].x).toBeCloseTo(sorted[i - 1].x + sorted[i - 1].width, 6);
+    }
+  });
 });
 
 describe("midiToNoteName", () => {

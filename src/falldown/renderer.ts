@@ -63,8 +63,9 @@ export class FalldownRenderer {
   /** Draw one complete frame for the clock's current position. */
   renderFrame(): void {
     const { ctx } = this;
-    ctx.fillStyle = BG;
     ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, this.width, this.height);
 
     const layout = keyLayout(this.range(), this.width);
     const t = this.transport.clock.position;
