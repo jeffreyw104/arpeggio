@@ -2,8 +2,8 @@ import type { Note } from "../model/score";
 
 /**
  * Notes whose onset falls in the half-open window (prevPosition, curPosition].
- * Empty when the clock did not advance forward. The caller is responsible for
- * not passing a huge window after a seek (see AudioEngine's seek guard).
+ * Empty when the clock did not advance forward. The caller resyncs on seek and
+ * loop discontinuities, so this is only ever passed a normal playback advance.
  */
 export function notesToTrigger(
   notes: Note[],
