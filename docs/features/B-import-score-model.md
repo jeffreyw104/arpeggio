@@ -1,8 +1,8 @@
 # Feature B: Import & Score Model
 
-**Status:** Not started
+**Status:** Done
 **Owner:** subagent
-**Detailed plan:** _(write before build)_
+**Detailed plan:** docs/superpowers/plans/2026-05-17-feature-b-import-score-model.md
 
 ## Scope
 
@@ -18,6 +18,14 @@ A (Scaffold & Deploy).
 ## Changes log
 
 - 2026-05-17 — Feature defined.
+- 2026-05-18 — Built (Tasks 1-8): Score model types + `@tonejs/midi`; file-type
+  detection; test fixtures (hand-written MusicXML + generated MIDI); MIDI parser;
+  MusicXML parser; approximate MIDI→MusicXML converter; live-performance quality
+  heuristic; `importFile` orchestrator.
+- 2026-05-18 — Post-review fixes: `midiToMusicXml` reworked so a staff's emitted
+  durations always sum to the bar length (overlapping notes in one hand no longer
+  overflow the measure); added parseMidi tests for the polyrhythm fixture,
+  single-track hand split, and sustain-pedal scan.
 
 ## Keywords
 
@@ -27,8 +35,22 @@ src/import/midi/quality.ts, Score, Measure, Note, PedalEvent, TempoMap.
 
 ## Testing
 
-- Unit: parse fixture MusicXML and MIDI; assert Score model contents.
-- Unit: MIDI→MusicXML on cleanly-sequenced fixture; MIDI quality detection on
-  clean vs performance fixtures.
-- Manual checklist: converted score is readable for a clean MIDI.
-- Current status: not started.
+Test files (Vitest, 31 tests across the feature; run `npm test`):
+
+- `src/import/detectType.test.ts` — MIDI/MusicXML/unknown detection.
+- `src/import/midi/parseMidi.test.ts` — MIDI → Score: notes, hands (2-track and
+  single-track), tempo, measures, polyrhythm fixture, sustain-pedal pairing.
+- `src/import/musicxml/parseMusicXml.test.ts` — MusicXML → Score: pitches,
+  timing, staves/hands, time signature, tempo, verbatim XML.
+- `src/import/midi/midiToMusicXml.test.ts` — well-formed `score-partwise` output,
+  two staves, round-trips through `parseMusicXml`, never overflows a bar.
+- `src/import/midi/quality.test.ts` — clean MIDI not flagged; performance flagged.
+- `src/import/importFile.test.ts` — end-to-end MIDI + MusicXML import, rejection.
+
+Manual checklist (revisit during Feature F):
+
+- [ ] Converted score from `clean.mid` is readable when rendered by Verovio.
+- [ ] The live-performance warning copy reads sensibly to a user.
+
+Automated status (verified 2026-05-18): `npm run lint`, `npm run typecheck`,
+`npm test` (31/31), `npm run build` all pass.
