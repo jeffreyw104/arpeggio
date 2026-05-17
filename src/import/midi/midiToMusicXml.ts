@@ -97,30 +97,42 @@ function buildStaffXml(
     return noteXml(null, measureLenUnits, voice, staff, false);
   }
 
-  // Group notes that share a quantized onset so they engrave as a chord.
-  const byOnset = new Map<number, GridNote[]>();
-  for (const note of notes) {
-    const bucket = byOnset.get(note.startUnits);
-    if (bucket) bucket.push(note);
-    else byOnset.set(note.startUnits, [note]);
-  }
-  const onsets = Array.from(byOnset.keys()).sort((a, b) => a - b);
+  // Walk notes in onset order. Any note whose onset has fallen at or behind
+  // the cursor (e.g. an overlapping note in the same hand) is folded into the
+  // current chord, so an onset can never be emitted before the cursor and the
+  // emitted durations always sum to exactly measureLenUnits.
+  const ordered = [...notes].sort((a, b) => a.startUnits - b.startUnits);
 
   let xml = "";
   let cursor = 0;
-  for (const onset of onsets) {
+  let next = 0;
+  while (next < ordered.length && cursor < measureLenUnits) {
+    const onset = ordered[next].startUnits;
     if (onset > cursor) {
-      // Fill the gap before this onset with a rest.
-      xml += noteXml(null, onset - cursor, voice, staff, false);
-      cursor = onset;
+      // Fill the gap before this onset with a rest, clipped to the bar.
+      const restLen = Math.min(onset - cursor, measureLenUnits - cursor);
+      xml += noteXml(null, restLen, voice, staff, false);
+      cursor += restLen;
+      continue;
     }
-    const chordNotes = byOnset.get(onset) ?? [];
-    // The chord's notated length is its longest member, clipped to the bar.
-    const chordLen = Math.min(
-      Math.max(...chordNotes.map((n) => n.durationUnits)),
+
+    // Gather every not-yet-emitted note whose onset is at or behind the cursor.
+    const chordNotes: GridNote[] = [];
+    while (
+      next < ordered.length &&
+      ordered[next].startUnits <= cursor
+    ) {
+      chordNotes.push(ordered[next]);
+      next += 1;
+    }
+
+    // The chord's notated length is the shortest member, clamped to >= 1 and
+    // to the remaining bar space so it never crosses the barline.
+    const minDuration = Math.min(...chordNotes.map((n) => n.durationUnits));
+    const len = Math.min(
+      Math.max(minDuration, 1),
       measureLenUnits - cursor,
     );
-    const len = Math.max(chordLen, 1);
     chordNotes.forEach((note, i) => {
       xml += noteXml(midiToPitch(note.midi), len, voice, staff, i > 0);
     });
