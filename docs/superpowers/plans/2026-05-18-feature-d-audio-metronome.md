@@ -455,6 +455,25 @@ describe("AudioEngine", () => {
     engine.update();
     expect(click.count).toBe(3);
   });
+
+  it("plays a note sitting exactly at the playback start position", () => {
+    // A note at time 0 must sound when playback starts from 0, even though
+    // the trigger window (prev, cur] would otherwise exclude the boundary.
+    const withStartNote = {
+      ...score,
+      notes: [
+        { midi: 48, start: 0, duration: 0.5, velocity: 0.7, hand: "left" },
+        ...score.notes,
+      ],
+    } satisfies Score;
+    const t = new Transport(withStartNote);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    t.clock.play();
+    t.clock.tick(0.2); // 0 -> 0.2 : the note at 0 and the note at 0.1 both fire
+    engine.update();
+    expect(piano.calls.sort((a, b) => a - b)).toEqual([48, 60]);
+  });
 });
 ```
 
@@ -491,6 +510,7 @@ const SEEK_THRESHOLD = 0.5;
 export class AudioEngine {
   readonly metronome: Metronome;
   private prevPosition: number;
+  private wasPlaying = false;
 
   constructor(
     private readonly transport: Transport,
@@ -506,16 +526,34 @@ export class AudioEngine {
   update(): void {
     const cur = this.transport.clock.position;
     const prev = this.prevPosition;
-    this.prevPosition = cur;
-
+    const playing = this.transport.clock.playing;
     const advance = cur - prev;
-    // Backward or large jumps are seeks, not playback: resync silently.
-    if (advance <= 0 || advance > SEEK_THRESHOLD) return;
 
-    for (const note of notesToTrigger(this.transport.score.notes, prev, cur)) {
+    // Backward or large jumps are seeks, not playback: resync silently.
+    if (advance <= 0 || advance > SEEK_THRESHOLD) {
+      this.prevPosition = cur;
+      this.wasPlaying = playing;
+      return;
+    }
+
+    const notes = this.transport.score.notes;
+    for (const note of notesToTrigger(notes, prev, cur)) {
       this.piano.playNote(note.midi, note.duration, note.velocity);
     }
+    // notesToTrigger's window is half-open (prev, cur]; on the first frame after
+    // playback starts, also fire any note sitting exactly on the start point so
+    // the very first note of a piece (or a seek target) is not skipped.
+    if (playing && !this.wasPlaying) {
+      for (const note of notes) {
+        if (note.start === prev) {
+          this.piano.playNote(note.midi, note.duration, note.velocity);
+        }
+      }
+    }
     this.metronome.update(prev, cur);
+
+    this.prevPosition = cur;
+    this.wasPlaying = playing;
   }
 }
 
