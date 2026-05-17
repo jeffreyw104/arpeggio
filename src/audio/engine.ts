@@ -137,3 +137,12 @@ export async function createAudioEngine(
 
   return new AudioEngine(transport, piano, click);
 }
+
+/**
+ * Resume the Web Audio context. Browsers keep it suspended until a user
+ * gesture, so the UI calls this from the play-button click handler.
+ */
+export async function startAudioContext(): Promise<void> {
+  const Tone = await import("tone");
+  await Tone.start();
+}
