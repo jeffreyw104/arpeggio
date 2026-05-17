@@ -24,6 +24,7 @@
 ## Task 1: package.json and dependencies
 
 **Files:**
+
 - Create: `package.json`
 
 - [ ] **Step 1: Create `package.json`**
@@ -51,19 +52,23 @@
 - [ ] **Step 2: Install runtime dependencies**
 
 Run:
+
 ```bash
 npm install react react-dom
 ```
+
 Expected: packages added under `dependencies`, `node_modules/` created.
 
 - [ ] **Step 3: Install dev dependencies**
 
 Run:
+
 ```bash
 npm install -D vite @vitejs/plugin-react typescript @types/react @types/react-dom \
   vitest @testing-library/react @testing-library/jest-dom jsdom \
   @playwright/test eslint prettier vite-plugin-pwa
 ```
+
 Expected: all packages added under `devDependencies`.
 
 - [ ] **Step 4: Verify install**
@@ -83,6 +88,7 @@ git commit -m "chore: add package.json and dependencies"
 ## Task 2: TypeScript and Vite configuration
 
 **Files:**
+
 - Create: `tsconfig.json`, `tsconfig.node.json`, `vite.config.ts`
 
 - [ ] **Step 1: Create `tsconfig.json`**
@@ -163,6 +169,7 @@ they are exercised by `npm run build` in Task 3, Step 6.
 ## Task 3: App shell, entry point, and theme
 
 **Files:**
+
 - Create: `index.html`, `src/main.tsx`, `src/App.tsx`, `src/styles/theme.css`
 
 - [ ] **Step 1: Create `index.html`**
@@ -197,9 +204,13 @@ they are exercised by `npm run build` in Task 3, Step 6.
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
 }
@@ -261,6 +272,7 @@ git commit -m "feat: add React app shell and dark theme tokens"
 ## Task 4: Vitest setup and App smoke test
 
 **Files:**
+
 - Create: `src/test/setup.ts`, `src/App.test.tsx`
 
 - [ ] **Step 1: Create `src/test/setup.ts`**
@@ -306,11 +318,13 @@ git commit -m "test: add Vitest harness and App smoke test"
 ## Task 5: ESLint and Prettier
 
 **Files:**
+
 - Create: `eslint.config.js`, `.prettierrc`, `.prettierignore`
 
 - [ ] **Step 1: Install ESLint plugins**
 
 Run:
+
 ```bash
 npm install -D @eslint/js typescript-eslint eslint-plugin-react-hooks \
   eslint-plugin-react-refresh globals
@@ -388,6 +402,7 @@ git commit -m "chore: add ESLint and Prettier config"
 ## Task 6: Playwright end-to-end harness
 
 **Files:**
+
 - Create: `playwright.config.ts`, `tests/e2e/smoke.spec.ts`
 
 - [ ] **Step 1: Install Playwright browsers**
@@ -419,9 +434,7 @@ import { test, expect } from "@playwright/test";
 
 test("app loads and shows the Arpeggio heading", async ({ page }) => {
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: /arpeggio/i }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /arpeggio/i })).toBeVisible();
 });
 ```
 
@@ -442,6 +455,7 @@ git commit -m "test: add Playwright e2e harness and smoke test"
 ## Task 7: Installable PWA
 
 **Files:**
+
 - Modify: `vite.config.ts`
 - Create: `public/icons/icon.svg`
 
@@ -476,7 +490,8 @@ export default defineConfig({
       manifest: {
         name: "Arpeggio",
         short_name: "Arpeggio",
-        description: "Piano practice tool — falldown notes and interactive sheet music.",
+        description:
+          "Piano practice tool — falldown notes and interactive sheet music.",
         theme_color: "#15151a",
         background_color: "#15151a",
         display: "standalone",
@@ -529,6 +544,7 @@ git commit -m "feat: add installable PWA support"
 ## Task 8: GitHub Actions CI
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Create `.github/workflows/ci.yml`**
@@ -560,9 +576,11 @@ jobs:
 - [ ] **Step 2: Verify the workflow locally**
 
 Run each CI command in order and confirm all pass:
+
 ```bash
 npm run lint && npm run typecheck && npm test && npm run build
 ```
+
 Expected: all four succeed.
 
 - [ ] **Step 3: Commit**
@@ -577,6 +595,7 @@ git commit -m "ci: add GitHub Actions lint/typecheck/test/build workflow"
 ## Task 9: Vercel deploy configuration
 
 **Files:**
+
 - Create: `vercel.json`
 
 - [ ] **Step 1: Create `vercel.json`**

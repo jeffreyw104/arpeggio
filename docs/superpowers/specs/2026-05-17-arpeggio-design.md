@@ -43,9 +43,9 @@ aids), optimized for practicing piano rather than recording or transcription.
 
 Arpeggio accepts two input formats, treated as a quality spectrum:
 
-- **MIDI** — abundant and easy to find. The falldown is always *exact* from MIDI:
+- **MIDI** — abundant and easy to find. The falldown is always _exact_ from MIDI:
   pitch, timing, sustain-pedal (CC64), and per-note velocity/dynamics. The
-  engraved score is *auto-generated* via MIDI→MusicXML conversion and is
+  engraved score is _auto-generated_ via MIDI→MusicXML conversion and is
   approximate — quality tracks the quality of the source MIDI (cleanly-sequenced
   MIDI converts well; live-performance MIDI converts roughly). This is expected
   and accepted.
@@ -122,44 +122,53 @@ Each feature gets a `docs/features/<name>.md` file and a subagent owner. Listed 
 build order (later features depend on earlier ones).
 
 ### A. Scaffold & Deploy
+
 Vite + TS + React project; dark, modern, minimal base styling; Vercel auto-deploy;
 installable PWA (offline, dock icon); CI checks.
 
 ### B. Import & Score Model
+
 File drop and type detection; MusicXML parser; MIDI parser (`@tonejs/midi`) +
 MIDI→MusicXML converter; the unified Score model; MIDI quality-detection warning.
 
 ### C. Transport & Playback
+
 The master clock; play/pause/seek; tempo in absolute BPM; A-B loop (including a
 single-beat loop); gradual speed-up (loop starts slow, increases a few % per pass
 to a target); tempo-map toggle (preserve scaled vs. flatten to constant BPM).
 
 ### D. Audio & Metronome
+
 Tone.js sampled acoustic piano; note scheduling off the clock; metronome with an
 audible click on/off toggle, subdivisions, and a visual beat pulse.
 
 ### E. Falldown View
+
 Canvas2D falling notes color-coded by hand; piano keyboard with auto-fit key range
 (renders only the keys the piece uses, plus a full-88 toggle); beat-grid overlay;
 toggleable note-name labels; live key highlighting.
 
 ### F. Score View
+
 Verovio engraving; continuous scroll with the current measure tracked; live
 current-note highlight; click-measure-to-jump; drag-select across measures to set
 the A-B loop directly on the score.
 
 ### G. Layout & View Modes
+
 Side-by-side layout — left column is the falldown locked on top of the piano
 (same width, aligned); right column is the score panel. Resizable divider with a
 piano-favoring default split (~65/35). View toggle: Both / Falldown-only /
 Score-only (single-view modes expand to full width).
 
 ### H. Practice Controls
+
 Hands-separate — mute and/or hide the left or right hand independently. The
 control-panel UI surfacing tempo (BPM), loop controls, gradual speed-up, and
 the note-label toggle.
 
 ### I. Library
+
 IndexedDB storage of uploaded files; searchable library browser; per-piece
 practice state remembered across sessions (last tempo, loop points, hand
 mute/hide settings). No progress/time tracking.
@@ -201,6 +210,7 @@ build-order/dependency graph, and links to every feature doc.
 ### `docs/features/<x>.md` (owned by the feature's subagent)
 
 Fixed template:
+
 - **Status** — Not started / In progress / Blocked / Done
 - **Scope** — what the feature covers and what it does not
 - **Dependencies** — features that must come first
