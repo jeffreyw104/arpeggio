@@ -1,0 +1,67 @@
+import type { Note } from "../model/score";
+import type { KeyboardLayout } from "./piano";
+
+/** Geometry/style configuration for the falldown. */
+export interface FalldownConfig {
+  /** Y of the keyboard top — where a note's onset edge lands. */
+  hitLineY: number;
+  /** Fall speed in pixels per second. */
+  pixelsPerSecond: number;
+  rightColor: string;
+  leftColor: string;
+}
+
+/** A falling note's drawn rectangle. `bottom` is the onset (lower) edge. */
+export interface NoteRect {
+  midi: number;
+  x: number;
+  width: number;
+  bottom: number;
+  top: number;
+  height: number;
+  color: string;
+}
+
+/**
+ * The drawable rectangle of every note visible at clock time `t`. A note's
+ * onset edge sits at `hitLineY` when `t === note.start`, rising above it before
+ * and passing below it after. Notes fully outside the falldown area are omitted.
+ */
+export function noteRects(
+  notes: Note[],
+  layout: KeyboardLayout,
+  t: number,
+  config: FalldownConfig,
+): NoteRect[] {
+  const rects: NoteRect[] = [];
+  for (const note of notes) {
+    const key = layout.byMidi(note.midi);
+    if (!key) continue;
+    const bottom = config.hitLineY - (note.start - t) * config.pixelsPerSecond;
+    const height = note.duration * config.pixelsPerSecond;
+    const top = bottom - height;
+    // Visible if the rect overlaps the falldown area [0, hitLineY].
+    if (top > config.hitLineY || bottom < 0) continue;
+    rects.push({
+      midi: note.midi,
+      x: key.x,
+      width: key.width,
+      bottom,
+      top,
+      height,
+      color: note.hand === "right" ? config.rightColor : config.leftColor,
+    });
+  }
+  return rects;
+}
+
+/** MIDI numbers of every note sounding at time `t` (start <= t < start+dur). */
+export function activeKeys(notes: Note[], t: number): Set<number> {
+  const active = new Set<number>();
+  for (const note of notes) {
+    if (t >= note.start && t < note.start + note.duration) {
+      active.add(note.midi);
+    }
+  }
+  return active;
+}
