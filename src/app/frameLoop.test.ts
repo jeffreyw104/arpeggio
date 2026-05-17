@@ -16,9 +16,12 @@ describe("FrameLoop", () => {
     const cb = raf.mock.calls[0][0];
     cb(now); // first frame: establishes the baseline, no advance
     expect(clock.position).toBeCloseTo(0, 6);
-    now = 1500;
-    cb(now); // 0.5 s later
-    expect(clock.position).toBeCloseTo(0.5, 6);
+    now = 1100;
+    cb(now); // 0.1 s later — a realistic frame gap, under the clamp
+    expect(clock.position).toBeCloseTo(0.1, 6);
+    now = 1200;
+    cb(now); // another 0.1 s
+    expect(clock.position).toBeCloseTo(0.2, 6);
     raf.mockRestore();
   });
 

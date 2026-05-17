@@ -4,21 +4,16 @@ import type { Clock } from "../transport/clock";
 export type FrameConsumer = () => void;
 
 /**
- * Largest per-frame delta in seconds; caps catch-up after a stalled tab.
- * Applied only when the inter-frame gap exceeds BACKGROUND_THRESHOLD.
+ * Largest per-frame delta in seconds. A real frame is ~0.016 s even on slow
+ * hardware; capping at 0.25 s prevents a backgrounded/stalled tab from
+ * producing one enormous catch-up tick (which would burst-play audio).
  */
 const MAX_DELTA = 0.25;
 
 /**
- * Inter-frame gap (in seconds) above which we treat the tab as having been
- * backgrounded and clamp the advance to MAX_DELTA.
- */
-const BACKGROUND_THRESHOLD = 1.0;
-
-/**
  * The single requestAnimationFrame loop. Advances the master clock by the real
- * inter-frame delta (clamped for backgrounded tabs) and invokes every
- * registered consumer in order.
+ * inter-frame delta (clamped to MAX_DELTA) and invokes every registered
+ * consumer in order.
  */
 export class FrameLoop {
   private consumers: FrameConsumer[] = [];
@@ -38,8 +33,7 @@ export class FrameLoop {
     this.lastTime = null;
     const frame = (time: number): void => {
       if (this.lastTime !== null) {
-        const raw = (time - this.lastTime) / 1000;
-        const delta = raw > BACKGROUND_THRESHOLD ? MAX_DELTA : raw;
+        const delta = Math.min((time - this.lastTime) / 1000, MAX_DELTA);
         if (delta > 0) this.clock.tick(delta);
       }
       this.lastTime = time;
