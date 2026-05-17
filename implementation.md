@@ -21,7 +21,7 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 
 | Feature | Name                 | Status      | Detailed plan                                                    | Tracking doc                            |
 | ------- | -------------------- | ----------- | ---------------------------------------------------------------- | --------------------------------------- |
-| A       | Scaffold & Deploy    | In progress | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md` | `docs/features/A-scaffold-deploy.md`    |
+| A       | Scaffold & Deploy    | Done        | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md` | `docs/features/A-scaffold-deploy.md`    |
 | B       | Import & Score Model | Not started | _(write before build)_                                           | `docs/features/B-import-score-model.md` |
 | C       | Transport & Playback | Not started | _(write before build)_                                           | `docs/features/C-transport-playback.md` |
 | D       | Audio & Metronome    | Not started | _(write before build)_                                           | `docs/features/D-audio-metronome.md`    |
