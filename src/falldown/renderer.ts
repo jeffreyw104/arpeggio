@@ -3,6 +3,8 @@ import { keyLayout, drawPiano, midiToNoteName, type KeyboardLayout } from "./pia
 import { noteRects, activeKeys } from "./notes";
 import { beatGridLines } from "./beatGrid";
 import type { Transport } from "../transport/transport";
+import type { Note } from "../model/score";
+import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
 const RIGHT = "#4a90d9";
 const LEFT = "#e08a3c";
@@ -40,6 +42,8 @@ export class FalldownRenderer {
   showLabels = false;
   /** Draw the horizontal beat-grid overlay. */
   showBeatGrid = true;
+  /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
+  handState: HandFilter = NO_HAND_FILTER;
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -70,13 +74,17 @@ export class FalldownRenderer {
     const layout = keyLayout(this.range(), this.width);
     const t = this.transport.clock.position;
 
+    const visible = this.transport.score.notes.filter(
+      (n) => !this.handState.isHidden(n.hand),
+    );
+
     if (this.showBeatGrid) this.drawBeatGrid(t);
-    this.drawNotes(layout, t);
+    this.drawNotes(layout, t, visible);
 
     drawPiano(ctx, layout, {
       y: this.hitLineY,
       height: this.pianoHeight,
-      activeKeys: activeKeys(this.transport.score.notes, t),
+      activeKeys: activeKeys(visible, t),
       activeColor: ACTIVE,
       whiteColor: WHITE,
       blackColor: BLACK,
@@ -101,9 +109,9 @@ export class FalldownRenderer {
   }
 
   /** Draw the falling-note rectangles (and optional labels) at time `t`. */
-  private drawNotes(layout: KeyboardLayout, t: number): void {
+  private drawNotes(layout: KeyboardLayout, t: number, notes: Note[]): void {
     const { ctx } = this;
-    const rects = noteRects(this.transport.score.notes, layout, t, {
+    const rects = noteRects(notes, layout, t, {
       hitLineY: this.hitLineY,
       pixelsPerSecond: this.pixelsPerSecond,
       rightColor: RIGHT,

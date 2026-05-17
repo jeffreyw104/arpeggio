@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { FalldownRenderer } from "./renderer";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
+import { HandState } from "../practice/hands";
 
 const score = {
   source: "midi",
@@ -119,5 +120,27 @@ describe("FalldownRenderer", () => {
     expect(caf).toHaveBeenCalled();
     raf.mockRestore();
     caf.mockRestore();
+  });
+});
+
+describe("FalldownRenderer hand hide", () => {
+  it("draws fewer note rects when a hand is hidden", () => {
+    const { transport, ctx, renderer } = makeRenderer();
+    transport.clock.seek(0.5);
+    renderer.renderFrame();
+    const fullCount = ctx.calls.filter((c) => c.startsWith("fillRect")).length;
+
+    const { transport: t2, ctx: ctx2, renderer: r2 } = makeRenderer();
+    const hands = new HandState();
+    hands.setHidden("left", true);
+    r2.handState = hands;
+    t2.clock.seek(0.5);
+    r2.renderFrame();
+    const hiddenCount = ctx2.calls.filter((c) =>
+      c.startsWith("fillRect"),
+    ).length;
+
+    // Hiding a hand removes that hand's falling-note rects, so fewer fillRects.
+    expect(hiddenCount).toBeLessThan(fullCount);
   });
 });
