@@ -3,6 +3,7 @@
 **Status:** Done
 **Owner:** subagent
 **Detailed plan:** docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md
+**Production URL:** https://arpeggio-piano.vercel.app/
 
 ## Scope
 
@@ -66,7 +67,9 @@ Manual checklist (needs a human with Chrome DevTools):
 - [ ] PWA install icon appears in the browser address bar
 - [ ] App loads offline after one visit (DevTools → Network → Offline → reload)
 
-Owner action remaining:
+Deployment:
 
-- [ ] Connect the GitHub repo to Vercel (dashboard "Add New Project"); record the
-      production URL here.
+- [x] GitHub repo connected to Vercel; auto-deploys on push to `main`, preview
+      URL per branch/PR.
+- [x] Production URL live: https://arpeggio-piano.vercel.app/ (verified HTTP 200,
+      serves the app and `manifest.webmanifest`).
