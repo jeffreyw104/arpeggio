@@ -13,6 +13,8 @@ import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
 import { TransportBar } from "../ui/TransportBar";
+import { HandState } from "../practice/hands";
+import { ControlPanel } from "../practice/ControlPanel";
 
 interface PracticeViewProps {
   score: Score;
@@ -30,6 +32,9 @@ export function PracticeView({ score }: PracticeViewProps) {
   // exactly once, and unlike a ref it is safe to read during render.
   const [transport] = useState(() => new Transport(score));
 
+  // Stable per-hand mute/hide state shared by the audio engine and renderer.
+  const [handState] = useState(() => new HandState());
+
   const engineRef = useRef<AudioEngine | null>(null);
   const scoreViewRef = useRef<ScoreView | null>(null);
   const audioStartedRef = useRef(false);
@@ -37,6 +42,11 @@ export function PracticeView({ score }: PracticeViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.65);
   const [scoreReady, setScoreReady] = useState(false);
+
+  // The falldown renderer and audio engine are built inside the mount effect;
+  // exposing them as state lets the ControlPanel render against them in JSX.
+  const [falldown, setFalldown] = useState<FalldownRenderer | null>(null);
+  const [audioEngine, setAudioEngine] = useState<AudioEngine | null>(null);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -51,11 +61,13 @@ export function PracticeView({ score }: PracticeViewProps) {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        const falldown = new FalldownRenderer(ctx, transport, {
+        const falldownInstance = new FalldownRenderer(ctx, transport, {
           width,
           height,
         });
-        loop.onFrame(() => falldown.renderFrame());
+        falldownInstance.handState = handState;
+        loop.onFrame(() => falldownInstance.renderFrame());
+        setFalldown(falldownInstance);
       }
     }
 
@@ -65,8 +77,10 @@ export function PracticeView({ score }: PracticeViewProps) {
       try {
         const engine = await createAudioEngine(transport);
         if (cancelled) return;
+        engine.handState = handState;
         engineRef.current = engine;
         loop.onFrame(() => engine.update());
+        setAudioEngine(engine);
       } catch {
         // Audio is non-essential for the visual practice view; ignore failures.
       }
@@ -92,7 +106,7 @@ export function PracticeView({ score }: PracticeViewProps) {
       loop.stop();
       scoreViewRef.current?.destroy();
     };
-  }, [transport]);
+  }, [transport, handState]);
 
   // Resume the Web Audio context on the first user-driven play.
   useEffect(() => {
@@ -111,6 +125,14 @@ export function PracticeView({ score }: PracticeViewProps) {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
+      {falldown && (
+        <ControlPanel
+          transport={transport}
+          handState={handState}
+          falldown={falldown}
+          audioEngine={audioEngine}
+        />
+      )}
       <Layout
         viewMode={viewMode}
         split={split}
