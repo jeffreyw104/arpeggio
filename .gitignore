@@ -6,3 +6,4 @@ dist/
 .vercel/
 playwright-report/
 test-results/
+dev-dist/
