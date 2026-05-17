@@ -1,0 +1,62 @@
+import { describe, it, expect } from "vitest";
+import { Transport } from "./transport";
+import type { Score } from "../model/score";
+
+const score = {
+  source: "midi",
+  notes: [],
+  measures: [
+    { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+    { index: 1, start: 2, end: 4, numerator: 4, denominator: 4 },
+  ],
+  pedalEvents: [],
+  timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
+  tempoMap: [{ start: 0, bpm: 120 }],
+  durationSeconds: 4,
+  musicXml: "",
+  qualityWarning: null,
+} satisfies Score;
+
+describe("Transport", () => {
+  it("exposes a clock and the score's reference BPM", () => {
+    const t = new Transport(score);
+    expect(t.referenceBpm).toBeCloseTo(120, 0);
+    expect(t.bpm).toBeCloseTo(120, 0);
+    expect(t.clock.position).toBe(0);
+  });
+
+  it("setBpm scales the clock rate against the reference tempo", () => {
+    const t = new Transport(score);
+    t.setBpm(60); // half the reference 120
+    expect(t.clock.rate).toBeCloseTo(0.5, 6);
+    t.setBpm(180);
+    expect(t.clock.rate).toBeCloseTo(1.5, 6);
+  });
+
+  it("loops a measure range via the clock", () => {
+    const t = new Transport(score);
+    t.loopMeasures(1, 1);
+    expect(t.clock.loop).toEqual({ start: 2, end: 4 });
+    t.clearLoop();
+    expect(t.clock.loop).toBeNull();
+  });
+
+  it("applies gradual speed-up on each loop pass", () => {
+    const t = new Transport(score);
+    t.loopMeasures(0, 0); // loop [0,2]
+    t.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.25 });
+    expect(t.clock.rate).toBeCloseTo(0.5, 6); // start slow
+    t.clock.seek(0);
+    t.clock.play();
+    t.clock.tick(5); // long tick -> crosses loop end at least once
+    expect(t.clock.rate).toBeGreaterThan(0.5); // sped up after the pass
+  });
+
+  it("flatten mode swaps in a re-timed score", () => {
+    const t = new Transport(score);
+    t.setTempoMode("flatten");
+    expect(t.tempoMode).toBe("flatten");
+    // constant-tempo score: flattening keeps the duration
+    expect(t.score.durationSeconds).toBeCloseTo(4, 3);
+  });
+});
