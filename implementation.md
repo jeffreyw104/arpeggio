@@ -27,7 +27,7 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 | D       | Audio & Metronome    | Done        | `docs/superpowers/plans/2026-05-18-feature-d-audio-metronome.md`    | `docs/features/D-audio-metronome.md`    |
 | E       | Falldown View        | Done        | `docs/superpowers/plans/2026-05-18-feature-e-falldown-view.md`      | `docs/features/E-falldown-view.md`      |
 | F       | Score View           | Done        | `docs/superpowers/plans/2026-05-18-feature-f-score-view.md`         | `docs/features/F-score-view.md`         |
-| G       | Layout & View Modes  | In progress | `docs/superpowers/plans/2026-05-18-feature-g-layout-view-modes.md`  | `docs/features/G-layout-view-modes.md`  |
+| G       | Layout & View Modes  | Done        | `docs/superpowers/plans/2026-05-18-feature-g-layout-view-modes.md`  | `docs/features/G-layout-view-modes.md`  |
 | H       | Practice Controls    | Not started | _(write before build)_                                              | `docs/features/H-practice-controls.md`  |
 | I       | Library              | Not started | _(write before build)_                                              | `docs/features/I-library.md`            |
 
