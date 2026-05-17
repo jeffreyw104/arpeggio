@@ -25,7 +25,7 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 | B       | Import & Score Model | Done        | `docs/superpowers/plans/2026-05-17-feature-b-import-score-model.md` | `docs/features/B-import-score-model.md` |
 | C       | Transport & Playback | Done        | `docs/superpowers/plans/2026-05-18-feature-c-transport-playback.md` | `docs/features/C-transport-playback.md` |
 | D       | Audio & Metronome    | Done        | `docs/superpowers/plans/2026-05-18-feature-d-audio-metronome.md`    | `docs/features/D-audio-metronome.md`    |
-| E       | Falldown View        | Not started | _(write before build)_                                              | `docs/features/E-falldown-view.md`      |
+| E       | Falldown View        | In progress | `docs/superpowers/plans/2026-05-18-feature-e-falldown-view.md`      | `docs/features/E-falldown-view.md`      |
 | F       | Score View           | Not started | _(write before build)_                                              | `docs/features/F-score-view.md`         |
 | G       | Layout & View Modes  | Not started | _(write before build)_                                              | `docs/features/G-layout-view-modes.md`  |
 | H       | Practice Controls    | Not started | _(write before build)_                                              | `docs/features/H-practice-controls.md`  |
