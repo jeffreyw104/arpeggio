@@ -258,9 +258,9 @@ v1 is complete when all are true:
 - Unit + component + E2E tests pass in CI.
 
 **Golden-path acceptance test:** Load a Chopin Ballade MIDI → see falldown +
-score → set tempo to 60% → drag-select measures 8–12 on the score to loop them →
-mute the left hand → practice → click measure 20 → playback, falldown, and score
-all jump there together.
+score → set the tempo to a slower practice BPM → drag-select measures 8–12 on the
+score to loop them → mute the left hand → practice → click measure 20 → playback,
+falldown, and score all jump there together.
 
 ## 11. Backlog (explicitly not v1)
 
