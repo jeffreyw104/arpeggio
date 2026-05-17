@@ -388,7 +388,9 @@ const out: Array<[string, Midi]> = [
   ["polyrhythm.mid", buildPolyrhythm()],
 ];
 for (const [name, midi] of out) {
-  writeFileSync(join(dir, name), Buffer.from(midi.toArray()));
+  // midi.toArray() is a Uint8Array; writeFileSync accepts it directly.
+  // (Avoid the Buffer global — tsconfig restricts ambient types.)
+  writeFileSync(join(dir, name), new Uint8Array(midi.toArray()));
   console.log("wrote", name);
 }
 ```
