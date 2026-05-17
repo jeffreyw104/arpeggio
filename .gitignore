@@ -4,3 +4,6 @@ dist/
 .DS_Store
 *.log
 .vercel/
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
