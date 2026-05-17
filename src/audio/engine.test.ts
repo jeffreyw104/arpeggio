@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { AudioEngine, type PianoSink, type ClickSink } from "./engine";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
+import { HandState } from "../practice/hands";
 
 const score = {
   source: "midi",
@@ -121,5 +122,21 @@ describe("AudioEngine", () => {
     t.clock.tick(0.2); // 0 -> 0.2 : the note at 0 and the note at 0.1 both fire
     engine.update();
     expect(piano.calls.sort((a, b) => a - b)).toEqual([48, 60]);
+  });
+});
+
+describe("AudioEngine hand mute", () => {
+  it("does not trigger notes whose hand is muted", () => {
+    const t = new Transport(score);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    const hands = new HandState();
+    hands.setMuted("left", true);
+    engine.handState = hands;
+    t.clock.play();
+    t.clock.tick(1.0); // advance past both notes (0.1 right, 0.6 left)
+    engine.update();
+    expect(piano.calls).toContain(60); // right hand still sounds
+    expect(piano.calls).not.toContain(64); // left hand is muted
   });
 });

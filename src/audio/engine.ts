@@ -1,6 +1,7 @@
 import type { Transport } from "../transport/transport";
 import { notesToTrigger } from "./scheduler";
 import { Metronome } from "./metronome";
+import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
 /** Plays piano notes. Real implementation uses a Tone.js sampler. */
 export interface PianoSink {
@@ -27,6 +28,7 @@ export interface ClickSink {
  */
 export class AudioEngine {
   readonly metronome: Metronome;
+  handState: HandFilter = NO_HAND_FILTER;
   private prevPosition: number;
   private wasPlaying = false;
   private firePrevBoundary = false;
@@ -67,14 +69,16 @@ export class AudioEngine {
 
     const notes = this.transport.score.notes;
     for (const note of notesToTrigger(notes, prev, cur)) {
-      this.piano.playNote(note.midi, note.duration, note.velocity);
+      if (!this.handState.isMuted(note.hand)) {
+        this.piano.playNote(note.midi, note.duration, note.velocity);
+      }
     }
     // notesToTrigger's window is half-open (prev, cur]; a note sitting exactly
     // on `prev` would be missed. Fire it when `prev` is a play-start, seek
     // target, or loop start.
     if (this.firePrevBoundary || (playing && !this.wasPlaying)) {
       for (const note of notes) {
-        if (note.start === prev) {
+        if (note.start === prev && !this.handState.isMuted(note.hand)) {
           this.piano.playNote(note.midi, note.duration, note.velocity);
         }
       }
