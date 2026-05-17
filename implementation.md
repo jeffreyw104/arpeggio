@@ -19,17 +19,17 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 
 ## Progress Dashboard
 
-| Feature | Name                 | Status      | Detailed plan                                                    | Tracking doc                            |
-| ------- | -------------------- | ----------- | ---------------------------------------------------------------- | --------------------------------------- |
-| A       | Scaffold & Deploy    | Done        | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md` | `docs/features/A-scaffold-deploy.md`    |
-| B       | Import & Score Model | Not started | _(write before build)_                                           | `docs/features/B-import-score-model.md` |
-| C       | Transport & Playback | Not started | _(write before build)_                                           | `docs/features/C-transport-playback.md` |
-| D       | Audio & Metronome    | Not started | _(write before build)_                                           | `docs/features/D-audio-metronome.md`    |
-| E       | Falldown View        | Not started | _(write before build)_                                           | `docs/features/E-falldown-view.md`      |
-| F       | Score View           | Not started | _(write before build)_                                           | `docs/features/F-score-view.md`         |
-| G       | Layout & View Modes  | Not started | _(write before build)_                                           | `docs/features/G-layout-view-modes.md`  |
-| H       | Practice Controls    | Not started | _(write before build)_                                           | `docs/features/H-practice-controls.md`  |
-| I       | Library              | Not started | _(write before build)_                                           | `docs/features/I-library.md`            |
+| Feature | Name                 | Status      | Detailed plan                                                       | Tracking doc                            |
+| ------- | -------------------- | ----------- | ------------------------------------------------------------------- | --------------------------------------- |
+| A       | Scaffold & Deploy    | Done        | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md`    | `docs/features/A-scaffold-deploy.md`    |
+| B       | Import & Score Model | In progress | `docs/superpowers/plans/2026-05-17-feature-b-import-score-model.md` | `docs/features/B-import-score-model.md` |
+| C       | Transport & Playback | Not started | _(write before build)_                                              | `docs/features/C-transport-playback.md` |
+| D       | Audio & Metronome    | Not started | _(write before build)_                                              | `docs/features/D-audio-metronome.md`    |
+| E       | Falldown View        | Not started | _(write before build)_                                              | `docs/features/E-falldown-view.md`      |
+| F       | Score View           | Not started | _(write before build)_                                              | `docs/features/F-score-view.md`         |
+| G       | Layout & View Modes  | Not started | _(write before build)_                                              | `docs/features/G-layout-view-modes.md`  |
+| H       | Practice Controls    | Not started | _(write before build)_                                              | `docs/features/H-practice-controls.md`  |
+| I       | Library              | Not started | _(write before build)_                                              | `docs/features/I-library.md`            |
 
 Statuses: Not started / In progress / Blocked / Done.
 
