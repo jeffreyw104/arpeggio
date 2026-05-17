@@ -26,3 +26,124 @@ body {
   color: var(--text);
   font-family: var(--font);
 }
+
+/* --- Practice view --- */
+
+.practice-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.transport-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.transport-bar input[type="range"] {
+  flex: 1;
+}
+
+.transport-bar button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.transport-bar button:hover {
+  border-color: var(--accent);
+}
+
+.transport-bar button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+/* --- Layout --- */
+
+.layout {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+}
+
+.layout-panel {
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.divider {
+  width: 6px;
+  background: var(--border);
+  cursor: col-resize;
+  flex: 0 0 auto;
+}
+
+.divider:hover {
+  background: var(--accent);
+}
+
+.falldown-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.score-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #f4f4f2;
+  padding: 1rem;
+}
+
+/* --- Import view --- */
+
+.import-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 0.75rem;
+  padding: 2rem;
+}
+
+/* --- Status overlays --- */
+
+.score-loading {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.quality-warning {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--hand-left);
+  background: rgba(224, 138, 60, 0.12);
+  border-top: 1px solid var(--border);
+}
+
+/* --- Score-view highlighting --- */
+
+.current-note {
+  fill: var(--accent) !important;
+}
+
+.current-measure {
+  /* Faint cue only — robust SVG measure highlighting is out of scope for v1. */
+  opacity: 1;
+}

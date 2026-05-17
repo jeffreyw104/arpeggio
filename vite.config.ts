@@ -8,6 +8,11 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icons/icon.svg"],
+      workbox: {
+        // The Verovio WASM toolkit is ~8 MB; raise the precache size limit
+        // above Workbox's 2 MiB default so it is cached for offline use.
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+      },
       manifest: {
         name: "Arpeggio",
         short_name: "Arpeggio",

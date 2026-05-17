@@ -1,8 +1,13 @@
+import { useState } from "react";
+import type { Score } from "./model/score";
+import { ImportView } from "./ui/ImportView";
+import { PracticeView } from "./app/PracticeView";
+
 export default function App() {
-  return (
-    <main>
-      <h1>Arpeggio</h1>
-      <p>Piano practice tool — scaffold ready.</p>
-    </main>
+  const [score, setScore] = useState<Score | null>(null);
+  return score ? (
+    <PracticeView score={score} />
+  ) : (
+    <ImportView onLoaded={setScore} />
   );
 }
