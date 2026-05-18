@@ -13,6 +13,7 @@ export class Clock {
   private _playing = false;
   private _rate = 1;
   private _loop: Loop | null = null;
+  private _holdAt: number | null = null;
   private changeListeners = new Set<() => void>();
   private loopListeners = new Set<() => void>();
   private seekListeners = new Set<() => void>();
@@ -38,6 +39,9 @@ export class Clock {
   }
   get loop(): Loop | null {
     return this._loop;
+  }
+  get holdAt(): number | null {
+    return this._holdAt;
   }
 
   play(): void {
@@ -82,6 +86,11 @@ export class Clock {
     this.emitChange();
   }
 
+  /** Clamp clock advancement at `seconds`; null lifts the hold. */
+  setHold(seconds: number | null): void {
+    this._holdAt = seconds;
+  }
+
   /**
    * Advance the clock by real elapsed seconds. No-op while paused. Applies rate,
    * wraps inside an active loop (firing onLoop), and stops at the piece end.
@@ -89,6 +98,14 @@ export class Clock {
   tick(realElapsedSeconds: number): void {
     if (!this._playing || realElapsedSeconds <= 0) return;
     let next = this._position + realElapsedSeconds * this._rate;
+
+    if (this._holdAt != null && next >= this._holdAt) {
+      if (this._position !== this._holdAt) {
+        this._position = this._holdAt;
+        this.emitChange();
+      }
+      return;
+    }
 
     const loop = this._loop;
     if (loop && loop.end > loop.start && next >= loop.end) {

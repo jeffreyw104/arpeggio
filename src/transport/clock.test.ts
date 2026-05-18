@@ -86,4 +86,32 @@ describe("Clock", () => {
     c.pause();
     expect(fn.mock.calls.length).toBe(before);
   });
+
+  it("clamps position at holdAt and keeps playing", () => {
+    const clock = new Clock(10);
+    clock.setHold(2);
+    clock.play();
+    clock.tick(5);
+    expect(clock.position).toBe(2);
+    expect(clock.playing).toBe(true);
+  });
+
+  it("stays clamped across further ticks while held", () => {
+    const clock = new Clock(10);
+    clock.setHold(2);
+    clock.play();
+    clock.tick(5);
+    clock.tick(5);
+    expect(clock.position).toBe(2);
+  });
+
+  it("advances past a cleared hold", () => {
+    const clock = new Clock(10);
+    clock.setHold(2);
+    clock.play();
+    clock.tick(5);
+    clock.setHold(null);
+    clock.tick(3);
+    expect(clock.position).toBeCloseTo(5);
+  });
 });
