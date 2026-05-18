@@ -202,25 +202,7 @@ textarea {
   border-radius: 18px;
   box-shadow: var(--glass-shadow);
   transition: opacity 0.4s ease;
-}
-
-/* Play HUD: top-left, just below the top bar. */
-.floating-hud--play {
-  top: 70px;
-  left: 10px;
-}
-
-/* Practice HUD: top-center, below the extended bar. 124px clears the top bar
-   (top 10 + height 50) and the extended bar (top 68 + ~44 height). */
-.floating-hud--practice {
-  top: 124px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* When the extended bar is collapsed the Practice HUD rises under the bar. */
-.floating-hud--practice.floating-hud--raised {
-  top: 70px;
+  cursor: grab;
 }
 
 /* The extended control bar, flush below the top bar (Practice mode). */
