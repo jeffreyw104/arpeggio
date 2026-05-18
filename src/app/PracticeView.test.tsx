@@ -47,6 +47,6 @@ describe("PracticeView", () => {
 
   it("renders the practice control panel once the renderer mounts", () => {
     render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
-    expect(screen.getByLabelText(/tempo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/tempo \(bpm\)/i)).toBeInTheDocument();
   });
 });

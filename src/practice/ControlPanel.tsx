@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { HandState } from "./hands";
 import type { FalldownRenderer } from "../falldown/renderer";
@@ -28,6 +28,11 @@ export function ControlPanel({
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
   const [full88, setFull88] = useState(falldown.full88);
   const [metronome, setMetronome] = useState(false);
+  const [subdivision, setSubdivision] = useState(1);
+  const [flattenTempo, setFlattenTempo] = useState(
+    transport.tempoMode === "flatten",
+  );
+  const pulseRef = useRef<HTMLSpanElement>(null);
   const [muteLeft, setMuteLeft] = useState(handState.isMuted("left"));
   const [muteRight, setMuteRight] = useState(handState.isMuted("right"));
   const [hideLeft, setHideLeft] = useState(handState.isHidden("left"));
@@ -63,6 +68,35 @@ export function ControlPanel({
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.enabled = checked;
   }
+
+  function handleSubdivision(value: string): void {
+    const next = Number(value);
+    setSubdivision(next);
+    // The audio engine is an imperative object the panel writes through to.
+    // eslint-disable-next-line react-hooks/immutability
+    if (audioEngine) audioEngine.metronome.subdivision = next;
+  }
+
+  function handleFlattenTempo(checked: boolean): void {
+    setFlattenTempo(checked);
+    transport.setTempoMode(checked ? "flatten" : "preserve");
+  }
+
+  // Self-contained rAF loop driving the metronome pulse indicator's opacity
+  // from the live `metronome.pulse` value. Does not touch the main FrameLoop.
+  useEffect(() => {
+    let frame = 0;
+    const tick = (): void => {
+      if (pulseRef.current) {
+        pulseRef.current.style.opacity = String(
+          audioEngine?.metronome.pulse ?? 0,
+        );
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [audioEngine]);
 
   // The falldown renderer exposes plain mutable fields as its API (Task H-T3);
   // the panel writes through to them, mirroring local state for the inputs.
@@ -146,6 +180,27 @@ export function ControlPanel({
             onChange={(e) => handleMetronome(e.target.checked)}
           />{" "}
           Metronome
+        </label>
+        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
+        <label>
+          Subdivision{" "}
+          <select
+            value={subdivision}
+            onChange={(e) => handleSubdivision(e.target.value)}
+          >
+            <option value={1}>Beat</option>
+            <option value={2}>Eighths</option>
+            <option value={3}>Triplets</option>
+            <option value={4}>Sixteenths</option>
+          </select>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={flattenTempo}
+            onChange={(e) => handleFlattenTempo(e.target.checked)}
+          />{" "}
+          Flatten tempo changes
         </label>
       </fieldset>
 

@@ -5,6 +5,7 @@ import { Transport } from "../transport/transport";
 import { HandState } from "./hands";
 import { FalldownRenderer } from "../falldown/renderer";
 import type { Score } from "../model/score";
+import type { AudioEngine } from "../audio/engine";
 
 const score = {
   source: "midi",
@@ -29,7 +30,7 @@ function fakeCtx() {
   } as unknown as CanvasRenderingContext2D;
 }
 
-function setup() {
+function setup(audioEngine: AudioEngine | null = null) {
   const transport = new Transport(score);
   const handState = new HandState();
   const falldown = new FalldownRenderer(fakeCtx(), transport, {
@@ -41,7 +42,7 @@ function setup() {
       transport={transport}
       handState={handState}
       falldown={falldown}
-      audioEngine={null}
+      audioEngine={audioEngine}
     />,
   );
   return { transport, handState, falldown };
@@ -50,7 +51,7 @@ function setup() {
 describe("ControlPanel", () => {
   it("changes the tempo via the BPM input", () => {
     const { transport } = setup();
-    const bpm = screen.getByLabelText(/tempo/i);
+    const bpm = screen.getByLabelText(/tempo \(bpm\)/i);
     fireEvent.change(bpm, { target: { value: "90" } });
     expect(transport.bpm).toBeCloseTo(90, 3);
   });
@@ -93,5 +94,27 @@ describe("ControlPanel", () => {
     fireEvent.click(screen.getByLabelText(/gradual speed-up/i));
     // with speed-up enabled the clock rate starts below 1
     expect(transport.clock.rate).toBeLessThan(1);
+  });
+
+  it("sets the metronome subdivision on the audio engine", () => {
+    const fakeEngine = {
+      metronome: { enabled: false, subdivision: 1, pulse: 0 },
+    } as unknown as AudioEngine;
+    setup(fakeEngine);
+    fireEvent.change(screen.getByLabelText(/subdivision/i), {
+      target: { value: "4" },
+    });
+    expect(fakeEngine.metronome.subdivision).toBe(4);
+  });
+
+  it("flattens tempo changes on the transport", () => {
+    const { transport } = setup();
+    fireEvent.click(screen.getByLabelText(/flatten tempo/i));
+    expect(transport.tempoMode).toBe("flatten");
+  });
+
+  it("renders the metronome pulse indicator", () => {
+    setup();
+    expect(document.querySelector(".metronome-pulse")).toBeInTheDocument();
   });
 });

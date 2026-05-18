@@ -189,6 +189,14 @@ body {
   border-color: var(--accent);
 }
 
+.metronome-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.15;
+}
+
 /* --- Score-view highlighting --- */
 
 .current-note {
