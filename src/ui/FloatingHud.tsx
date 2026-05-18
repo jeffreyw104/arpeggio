@@ -244,6 +244,7 @@ export function FloatingHud({
         {formatTime(position)} / {formatTime(duration)}
       </span>
       <div className="hud-metronome" ref={metronomeRef}>
+        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         <label>
           <input
             type="checkbox"
@@ -260,7 +261,6 @@ export function FloatingHud({
         >
           ▾
         </button>
-        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         {metronomeMenuOpen && (
           <MetronomeMenu
             transport={transport}
