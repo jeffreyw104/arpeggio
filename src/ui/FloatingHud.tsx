@@ -143,9 +143,9 @@ function useDraggable(): {
 }
 
 /**
- * The floating transport HUD: a compact overlay carrying every playback
- * control. Replaces the old fixed header band. Drag and idle-fade behavior
- * are layered on in later tasks.
+ * The floating transport HUD: a compact, draggable, idle-fading overlay
+ * carrying play/seek/time and the metronome control. Navigation controls
+ * live in the TopBar.
  */
 export function FloatingHud({
   transport,
