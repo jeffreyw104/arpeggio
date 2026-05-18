@@ -287,11 +287,7 @@ export function PracticeView({
         falldown={falldown}
       />
       {falldown && practiceReady && settingsOpen && (
-        <ControlPanel
-          transport={transport}
-          handState={handState}
-          falldown={falldown}
-        />
+        <ControlPanel transport={transport} falldown={falldown} />
       )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (
