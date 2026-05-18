@@ -225,6 +225,7 @@ export function FloatingHud({
     >
       <button
         type="button"
+        className="hud-play-btn"
         aria-label={playing ? "Pause" : "Play"}
         disabled={countingIn}
         onClick={handlePlayToggle}
@@ -233,13 +234,19 @@ export function FloatingHud({
       </button>
       <input
         type="range"
+        className="hud-scrubber"
         min={0}
         max={duration}
         step={0.01}
         value={position}
         onChange={(e) => clock.seek(Number(e.target.value))}
+        style={
+          {
+            "--pct": `${duration > 0 ? (position / duration) * 100 : 0}%`,
+          } as React.CSSProperties
+        }
       />
-      <span>
+      <span className="hud-time">
         {formatTime(position)} / {formatTime(duration)}
       </span>
 
