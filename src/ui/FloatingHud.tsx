@@ -14,7 +14,7 @@ interface FloatingHudProps {
 }
 
 /** Milliseconds of pointer inactivity before the HUD fades. */
-const IDLE_MS = 2500;
+export const IDLE_MS = 2500;
 
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
 function formatTime(seconds: number): string {
@@ -42,24 +42,19 @@ function clamp(v: number, min: number, max: number): number {
 /**
  * Returns whether the HUD should be faded: true after `IDLE_MS` with no
  * pointer movement, reset to false on any movement. Never fades while
- * `disabled` is true (e.g. the settings drawer is open).
+ * `disabled` is true (e.g. the settings drawer is open) — the disabled
+ * override is applied at render time so the idle state is pure tracking.
  */
 function useIdleFade(disabled: boolean): boolean {
-  const [faded, setFaded] = useState(false);
+  const [idle, setIdle] = useState(false);
 
   useEffect(() => {
-    // When disabled, ensure faded is cleared and skip the idle timer entirely.
-    // We call setFaded inside a no-op timeout so it is not synchronous in the
-    // effect body (satisfies react-hooks/set-state-in-effect).
-    if (disabled) {
-      const id = window.setTimeout(() => setFaded(false), 0);
-      return () => window.clearTimeout(id);
-    }
-    let timer = window.setTimeout(() => setFaded(true), IDLE_MS);
+    if (disabled) return;
+    let timer = window.setTimeout(() => setIdle(true), IDLE_MS);
     function onMove(): void {
-      setFaded(false);
+      setIdle(false);
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => setFaded(true), IDLE_MS);
+      timer = window.setTimeout(() => setIdle(true), IDLE_MS);
     }
     window.addEventListener("pointermove", onMove);
     return () => {
@@ -68,7 +63,7 @@ function useIdleFade(disabled: boolean): boolean {
     };
   }, [disabled]);
 
-  return faded;
+  return disabled ? false : idle;
 }
 
 /**

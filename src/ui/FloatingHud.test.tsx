@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { FloatingHud } from "./FloatingHud";
+import { FloatingHud, IDLE_MS } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 
@@ -102,7 +102,7 @@ describe("FloatingHud", () => {
       renderHud();
       const hud = document.querySelector(".floating-hud") as HTMLElement;
       expect(hud.className).not.toContain("faded");
-      act(() => { vi.advanceTimersByTime(3000); });
+      act(() => { vi.advanceTimersByTime(IDLE_MS + 500); });
       expect(hud.className).toContain("faded");
       fireEvent.pointerMove(window, { clientX: 5, clientY: 5 });
       expect(hud.className).not.toContain("faded");
@@ -116,7 +116,7 @@ describe("FloatingHud", () => {
     try {
       renderHud({ settingsOpen: true });
       const hud = document.querySelector(".floating-hud") as HTMLElement;
-      act(() => { vi.advanceTimersByTime(3000); });
+      act(() => { vi.advanceTimersByTime(IDLE_MS + 500); });
       expect(hud.className).not.toContain("faded");
     } finally {
       vi.useRealTimers();
