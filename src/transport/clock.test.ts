@@ -33,6 +33,17 @@ describe("Clock", () => {
     expect(c.position).toBe(10);
   });
 
+  it("setDuration updates duration and clamps a now-too-large position", () => {
+    const c = new Clock(10);
+    c.seek(8);
+    c.setDuration(20);
+    expect(c.duration).toBe(20);
+    expect(c.position).toBe(8);
+    c.setDuration(5);
+    expect(c.duration).toBe(5);
+    expect(c.position).toBe(5); // clamped down from 8
+  });
+
   it("stops at the end of the piece", () => {
     const c = new Clock(10);
     c.play();

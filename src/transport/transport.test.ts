@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Transport } from "./transport";
+import { secondsToBeats } from "./tempoMap";
 import type { Score } from "../model/score";
 
 const score = {
@@ -58,5 +59,27 @@ describe("Transport", () => {
     expect(t.tempoMode).toBe("flatten");
     // constant-tempo score: flattening keeps the duration
     expect(t.score.durationSeconds).toBeCloseTo(4, 3);
+  });
+
+  it("keeps the musical position when toggling tempo mode", () => {
+    // A score with a tempo change: 120 BPM for [0,2), then 60 BPM after.
+    // The flatten and preserve timelines genuinely differ here.
+    const tempoScore = {
+      ...score,
+      tempoMap: [
+        { start: 0, bpm: 120 },
+        { start: 2, bpm: 60 },
+      ],
+    } satisfies Score;
+    const t = new Transport(tempoScore);
+
+    t.clock.seek(3); // 4 beats by t=2, then +1 beat over [2,3] -> 5 beats
+    const beatsBefore = secondsToBeats(t.score.tempoMap, t.clock.position);
+    expect(beatsBefore).toBeCloseTo(5, 6);
+
+    t.setTempoMode("flatten");
+
+    const beatsAfter = secondsToBeats(t.score.tempoMap, t.clock.position);
+    expect(beatsAfter).toBeCloseTo(beatsBefore, 6);
   });
 });

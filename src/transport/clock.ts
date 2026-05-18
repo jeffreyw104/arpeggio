@@ -17,7 +17,15 @@ export class Clock {
   private loopListeners = new Set<() => void>();
   private seekListeners = new Set<() => void>();
 
-  constructor(public readonly duration: number) {}
+  private _duration: number;
+
+  constructor(duration: number) {
+    this._duration = duration;
+  }
+
+  get duration(): number {
+    return this._duration;
+  }
 
   get position(): number {
     return this._position;
@@ -56,6 +64,12 @@ export class Clock {
     this._position = Math.min(Math.max(seconds, 0), this.duration);
     this.emitChange();
     this.seekListeners.forEach((fn) => fn());
+  }
+
+  /** Update the total duration; re-clamps the current position into range. */
+  setDuration(duration: number): void {
+    this._duration = duration;
+    this.seek(this._position);
   }
 
   setRate(rate: number): void {

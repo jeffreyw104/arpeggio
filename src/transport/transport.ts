@@ -2,7 +2,13 @@ import type { Score } from "../model/score";
 import { Clock } from "./clock";
 import { measureLoop } from "./loop";
 import { SpeedUp, type SpeedUpConfig } from "./speedUp";
-import { applyTempoMode, averageBpm, type TempoMode } from "./tempoMap";
+import {
+  applyTempoMode,
+  averageBpm,
+  beatsToSeconds,
+  secondsToBeats,
+  type TempoMode,
+} from "./tempoMap";
 
 /**
  * The public playback API. Composes the master Clock with loop building,
@@ -77,11 +83,21 @@ export class Transport {
     this.clock.setRate(this._bpm / this.referenceBpm);
   }
 
-  /** Switch preserve/flatten; rebuilds the score from the original import. */
+  /**
+   * Switch preserve/flatten; rebuilds the score from the original import.
+   * The clock position is converted through musical beats — invariant across
+   * tempo modes — so playback stays at the same musical point.
+   */
   setTempoMode(mode: TempoMode): void {
+    const oldScore = this._score;
+    const oldPosition = this.clock.position;
+    const beats = secondsToBeats(oldScore.tempoMap, oldPosition);
+
     this._tempoMode = mode;
     this._score = applyTempoMode(this._baseScore, mode);
-    const pos = this.clock.position;
-    this.clock.seek(Math.min(pos, this._score.durationSeconds));
+
+    const newPosition = beatsToSeconds(this._score.tempoMap, beats);
+    this.clock.setDuration(this._score.durationSeconds);
+    this.clock.seek(Math.min(newPosition, this._score.durationSeconds));
   }
 }
