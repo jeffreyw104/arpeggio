@@ -11,8 +11,6 @@ interface TopBarProps {
   onToggleSettings: () => void;
   mode: PracticeMode;
   onModeChange: (m: PracticeMode) => void;
-  extendedCollapsed: boolean;
-  onToggleExtended: () => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -27,10 +25,9 @@ function displayName(fileName: string): string {
 }
 
 /**
- * The fixed top bar. Left: the arpeggio wordmark and the Library button.
- * Center: the now-playing piece name. Right: the Play/Practice switch, the
- * view-mode switch, the settings gear, and — in Practice mode — the toggle
- * that collapses the extended control bar. Purely presentational.
+ * The fixed top bar. Left: the arpeggio wordmark, the Library button, and the
+ * Play/Practice toggle. Center: the now-playing piece name. Right: the
+ * view-mode switch and the settings gear. Purely presentational.
  */
 export function TopBar({
   pieceName,
@@ -41,8 +38,6 @@ export function TopBar({
   onToggleSettings,
   mode,
   onModeChange,
-  extendedCollapsed,
-  onToggleExtended,
 }: TopBarProps): React.JSX.Element {
   return (
     <div className="top-bar">
@@ -50,9 +45,9 @@ export function TopBar({
       <button type="button" onClick={onOpenLibrary}>
         Library
       </button>
+      <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <span className="top-bar-piece">{displayName(pieceName)}</span>
       <span className="top-bar-spacer" />
-      <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <div className="top-bar-views">
         {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
           <button
@@ -73,19 +68,6 @@ export function TopBar({
       >
         ⚙
       </button>
-      {mode === "practice" && (
-        <button
-          type="button"
-          className="top-bar-extended-toggle"
-          aria-label={
-            extendedCollapsed ? "Expand control bar" : "Collapse control bar"
-          }
-          aria-expanded={!extendedCollapsed}
-          onClick={onToggleExtended}
-        >
-          {extendedCollapsed ? "▾" : "▴"}
-        </button>
-      )}
     </div>
   );
 }

@@ -424,8 +424,6 @@ export function PracticeView({
         onToggleSettings={() => setSettingsOpen((o) => !o)}
         mode={mode}
         onModeChange={handleModeChange}
-        extendedCollapsed={hudCollapsed}
-        onToggleExtended={() => setHudCollapsed((c) => !c)}
       />
       <FloatingHud
         transport={transport}
