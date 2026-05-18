@@ -14,7 +14,7 @@ interface FloatingHudProps {
 }
 
 /** Milliseconds of pointer inactivity before the HUD fades. */
-export const IDLE_MS = 2500;
+const IDLE_MS = 2500;
 
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
 function formatTime(seconds: number): string {
