@@ -11,7 +11,7 @@
   --hand-left: #e08a3c;
   --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Liquid-glass surface — shared by the top bar and the floating HUD.
+  /* Liquid-glass surface — shared by the top bar and the accordion bar.
      A near-black tint keeps the chrome dark and sleek while the blur still
      reads as frosted glass. */
   --glass-bg: linear-gradient(
