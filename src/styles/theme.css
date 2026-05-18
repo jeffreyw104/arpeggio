@@ -786,3 +786,58 @@ textarea {
 .hud-collapse {
   margin-left: auto;
 }
+
+/* One accordion section: a chip plus a width-animated body. */
+.accordion-section {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.accordion-section.open {
+  border-color: rgba(122, 162, 255, 0.5);
+  background: rgba(122, 162, 255, 0.1);
+}
+
+.accordion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.accordion-caret {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+/* The body animates its width via a 0fr/1fr grid column — a smooth slide
+   from zero to content width without needing a measured pixel value. */
+.accordion-body {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.22s ease;
+}
+
+.accordion-section.open .accordion-body {
+  grid-template-columns: 1fr;
+}
+
+.accordion-body-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding-right: 0.4rem;
+}
