@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { PracticeView } from "./PracticeView";
 import type { Score } from "../model/score";
 
@@ -41,19 +41,22 @@ beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     clearRect: vi.fn(), fillRect: vi.fn(), strokeRect: vi.fn(),
     beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(),
-    fillText: vi.fn(),
+    fillText: vi.fn(), fill: vi.fn(), roundRect: vi.fn(),
+    save: vi.fn(), restore: vi.fn(),
+    createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
   })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 });
 
 describe("PracticeView", () => {
-  it("renders the transport bar and the falldown canvas", () => {
+  it("renders the transport HUD and the falldown canvas", () => {
     render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
     expect(screen.getByRole("button", { name: /play/i })).toBeInTheDocument();
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
-  it("renders the practice control panel once the renderer mounts", async () => {
+  it("renders the practice control panel when the settings drawer opens", async () => {
     render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
     expect(await screen.findByLabelText(/tempo \(bpm\)/i)).toBeInTheDocument();
   });
 });

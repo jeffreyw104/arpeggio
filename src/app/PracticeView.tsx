@@ -12,7 +12,7 @@ import { renderScore } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
-import { TransportBar } from "../ui/TransportBar";
+import { FloatingHud } from "../ui/FloatingHud";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
@@ -65,6 +65,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   // The practice-state restore is async; gate the ControlPanel on this so its
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -219,48 +220,20 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
     });
   }, [transport]);
 
+  function zoomIn(): void {
+    const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
+    setScoreZoom(next);
+    scoreViewRef.current?.setZoom(next);
+  }
+
+  function zoomOut(): void {
+    const next = Math.max(0.5, Math.round((scoreZoom - 0.25) * 100) / 100);
+    setScoreZoom(next);
+    scoreViewRef.current?.setZoom(next);
+  }
+
   return (
     <div className="practice-view">
-      <div className="practice-header">
-        <button type="button" onClick={onExit}>
-          Library
-        </button>
-        <button
-          type="button"
-          aria-label="Zoom out"
-          onClick={() => {
-            const next = Math.max(0.5, Math.round((scoreZoom - 0.25) * 100) / 100);
-            setScoreZoom(next);
-            scoreViewRef.current?.setZoom(next);
-          }}
-        >
-          −
-        </button>
-        <button
-          type="button"
-          aria-label="Zoom in"
-          onClick={() => {
-            const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
-            setScoreZoom(next);
-            scoreViewRef.current?.setZoom(next);
-          }}
-        >
-          +
-        </button>
-        <TransportBar
-          transport={transport}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
-      </div>
-      {falldown && practiceReady && (
-        <ControlPanel
-          transport={transport}
-          handState={handState}
-          falldown={falldown}
-          audioEngine={audioEngine}
-        />
-      )}
       <Layout
         viewMode={viewMode}
         split={split}
@@ -277,6 +250,24 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
           />
         }
       />
+      <FloatingHud
+        transport={transport}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onExit={onExit}
+        settingsOpen={settingsOpen}
+        onToggleSettings={() => setSettingsOpen((o) => !o)}
+      />
+      {falldown && practiceReady && settingsOpen && (
+        <ControlPanel
+          transport={transport}
+          handState={handState}
+          falldown={falldown}
+          audioEngine={audioEngine}
+        />
+      )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (
         <div className="quality-warning">{score.qualityWarning}</div>
