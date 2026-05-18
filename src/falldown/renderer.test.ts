@@ -47,9 +47,9 @@ function fakeCtx() {
     set lineWidth(_v: number) {},
     set font(_v: string) {},
     set textAlign(_v: string) {},
-    set globalAlpha(_v: number) {},
-    set shadowBlur(_v: number) {},
-    set shadowColor(_v: string) {},
+    set globalAlpha(v: number) { calls.push(`globalAlpha=${v}`); },
+    set shadowBlur(v: number) { calls.push(`shadowBlur=${v}`); },
+    set shadowColor(v: string) { calls.push(`shadowColor=${v}`); },
   };
   return ctx;
 }
@@ -120,6 +120,26 @@ describe("FalldownRenderer", () => {
     raf.mockRestore();
     caf.mockRestore();
   });
+
+  it("applies velocity-driven opacity and glow while a note is sounding", () => {
+    // score note: midi 60, start 0.5, duration 0.5, velocity 0.7, hand right
+    // At t=0.75 the note is visible and sounding → alpha ≈ 0.85, shadowBlur=12
+    const { transport, ctx, renderer } = makeRenderer();
+    transport.clock.seek(0.75);
+    renderer.renderFrame();
+
+    // globalAlpha should have been set to 0.5 + 0.5*0.7 = 0.85
+    const alphaEntries = ctx.calls
+      .filter((c) => c.startsWith("globalAlpha="))
+      .map((c) => parseFloat(c.split("=")[1]));
+    expect(alphaEntries.length).toBeGreaterThan(0);
+    expect(alphaEntries.some((a) => a < 1)).toBe(true);
+    // velocity 0.7 → MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * 0.7 = 0.85
+    expect(alphaEntries.some((a) => Math.abs(a - 0.85) < 0.001)).toBe(true);
+
+    // Note is sounding at t=0.75 → shadowBlur=12 must be recorded
+    expect(ctx.calls).toContain("shadowBlur=12");
+  });
 });
 
 describe("FalldownRenderer resize", () => {
@@ -152,7 +172,7 @@ describe("FalldownRenderer hand hide", () => {
       c.startsWith("roundRect"),
     ).length;
 
-    // Hiding a hand removes that hand's falling-note rects, so fewer fillRects.
+    // Hiding a hand removes that hand's falling-note rects, so fewer roundRects.
     expect(hiddenCount).toBeLessThan(fullCount);
   });
 });

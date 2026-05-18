@@ -13,6 +13,8 @@ const ACTIVE = "#4aa988";
 const NOTE_RADIUS = 4;
 /** Shadow blur applied to a note while it is sounding. */
 const GLOW_BLUR = 12;
+/** Opacity of a zero-velocity note; velocity scales linearly up to 1.0. */
+const MIN_NOTE_ALPHA = 0.5;
 const WHITE = "#e6e6ea";
 const BLACK = "#15151a";
 const BG = "#15151a";
@@ -145,7 +147,7 @@ export class FalldownRenderer {
     for (const rect of rects) {
       const radius = Math.min(NOTE_RADIUS, rect.width / 3, rect.height / 2);
       ctx.save();
-      ctx.globalAlpha = 0.5 + 0.5 * rect.velocity;
+      ctx.globalAlpha = MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity;
       if (rect.playing) {
         ctx.shadowColor = rect.color;
         ctx.shadowBlur = GLOW_BLUR;
