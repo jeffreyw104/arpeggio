@@ -466,6 +466,14 @@ Replace the white-key and black-key loops in `drawPiano` (the version from Task 
     ctx.restore();
   };
 
+  // The white-key depth gradient is geometry-identical for every key, so
+  // build it once per call rather than once per key.
+  const grad = ctx.createLinearGradient(0, opts.y, 0, opts.y + opts.height);
+  grad.addColorStop(0, "rgba(255,255,255,0.35)");
+  grad.addColorStop(0.12, "rgba(255,255,255,0)");
+  grad.addColorStop(0.85, "rgba(0,0,0,0)");
+  grad.addColorStop(1, "rgba(0,0,0,0.22)");
+
   // White keys first.
   for (const key of layout.keys) {
     if (key.black) continue;
@@ -474,12 +482,6 @@ Replace the white-key and black-key loops in `drawPiano` (the version from Task 
     ctx.fillStyle = active ?? opts.whiteColor;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
     ctx.strokeRect(key.x, opts.y, key.width, opts.height);
-
-    const grad = ctx.createLinearGradient(0, opts.y, 0, opts.y + opts.height);
-    grad.addColorStop(0, "rgba(255,255,255,0.35)");
-    grad.addColorStop(0.12, "rgba(255,255,255,0)");
-    grad.addColorStop(0.85, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.22)");
     ctx.fillStyle = grad;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
   }
