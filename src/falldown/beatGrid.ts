@@ -1,4 +1,3 @@
-import type { Score } from "../model/score";
 import { metronomeBeats } from "../audio/beats";
 
 export interface BeatGridConfig {
@@ -6,31 +5,36 @@ export interface BeatGridConfig {
   pixelsPerSecond: number;
 }
 
-/** A horizontal beat-grid line. `downbeat` marks the first beat of a measure. */
+/** A horizontal beat-grid line. `downbeat` marks the first beat of a bar. */
 export interface BeatLine {
   y: number;
   downbeat: boolean;
 }
 
 /**
- * Y positions of every beat line visible in the falldown area at clock time
- * `t`. A beat at time `b` sits at `y = hitLineY - (b - t) * pixelsPerSecond`;
- * lines outside `[0, hitLineY]` are dropped. A line is a `downbeat` when its
- * time coincides with a measure start.
+ * Y positions of every beat line visible in the falldown at clock time `t`,
+ * for a regular grid of `numerator`/`denominator` beats at `bpm`. A beat at
+ * time `b` sits at `y = hitLineY - (b - t) * pixelsPerSecond`; lines outside
+ * `[0, hitLineY]` are dropped. A line is a `downbeat` when it is a bar start.
  */
 export function beatGridLines(
-  score: Score,
+  numerator: number,
+  denominator: number,
+  bpm: number,
+  durationSeconds: number,
   t: number,
   config: BeatGridConfig,
 ): BeatLine[] {
-  const beats = metronomeBeats(score, 1);
-  const measureStarts = new Set(score.measures.map((m) => m.start));
+  const beats = metronomeBeats(
+    { numerator, denominator, subdivision: 1 },
+    bpm,
+    durationSeconds,
+  );
   const lines: BeatLine[] = [];
-  for (const b of beats) {
-    const y = config.hitLineY - (b - t) * config.pixelsPerSecond;
+  for (const beat of beats) {
+    const y = config.hitLineY - (beat.time - t) * config.pixelsPerSecond;
     if (y < 0 || y > config.hitLineY) continue;
-    const downbeat = [...measureStarts].some((s) => Math.abs(s - b) < 1e-6);
-    lines.push({ y, downbeat });
+    lines.push({ y, downbeat: beat.accent });
   }
   return lines;
 }

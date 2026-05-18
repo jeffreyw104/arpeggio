@@ -75,4 +75,15 @@ describe("Metronome", () => {
     m.update(0.0, 0.3); // 0.3 s later, no beat until 0.5
     expect(m.pulse).toBeLessThan(right);
   });
+
+  it("setTimeSignature(6, 4) accents every 6 beats", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.setTimeSignature(6, 4);
+    expect(m.timeSignature).toEqual({ numerator: 6, denominator: 4 });
+    const accents: { time: number; accent: boolean }[] = [];
+    m.onClick((time, accent) => accents.push({ time, accent }));
+    m.update(-0.01, 4); // beats at 0,0.5,...,4 — accents every 6 beats (0, 3.0)
+    expect(accents.filter((a) => a.accent).map((a) => a.time)).toEqual([0, 3]);
+  });
 });

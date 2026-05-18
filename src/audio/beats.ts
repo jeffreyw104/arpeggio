@@ -1,20 +1,44 @@
-import type { Score } from "../model/score";
+/** The metric grid: a bar of `numerator` beats, each beat a `denominator`-note,
+ *  each beat split into `subdivision` ticks. */
+export interface BeatGridSpec {
+  numerator: number;
+  denominator: number;
+  subdivision: number;
+}
+
+/** One position on the metric grid. */
+export interface MetronomeBeat {
+  /** Time in seconds from the start of the piece. */
+  time: number;
+  /** True on the first beat of a bar (the downbeat). */
+  accent: boolean;
+  /** True on a counted beat (not an in-between subdivision tick). */
+  mainBeat: boolean;
+}
 
 /**
- * Every metronome click time (seconds) across the piece. `subdivision` divides
- * each beat: 1 = on the beat, 2 = eighths, 3 = triplets, 4 = sixteenths.
+ * A perfectly regular metric grid from t=0 through `durationSeconds`.
+ * beatLen = (60 / bpm) * (4 / denominator) seconds; a bar is `numerator` beats;
+ * each beat is divided into `subdivision` ticks.
  */
-export function metronomeBeats(score: Score, subdivision: number): number[] {
-  const sub = Math.max(1, Math.floor(subdivision));
-  const bpm = score.tempoMap[0]?.bpm ?? 120;
-  const times: number[] = [];
-  for (const m of score.measures) {
-    const beatLen = (60 / bpm) * (4 / m.denominator);
-    for (let beat = 0; beat < m.numerator; beat++) {
-      for (let s = 0; s < sub; s++) {
-        times.push(m.start + beat * beatLen + s * (beatLen / sub));
-      }
-    }
+export function metronomeBeats(
+  spec: BeatGridSpec,
+  bpm: number,
+  durationSeconds: number,
+): MetronomeBeat[] {
+  const numerator = Math.max(1, Math.floor(spec.numerator));
+  const denominator = Math.max(1, Math.floor(spec.denominator));
+  const subdivision = Math.max(1, Math.floor(spec.subdivision));
+
+  const beatLen = (60 / bpm) * (4 / denominator);
+  const tick = beatLen / subdivision;
+
+  const beats: MetronomeBeat[] = [];
+  for (let k = 0; k * tick <= durationSeconds + 1e-9; k++) {
+    const time = k * tick;
+    const mainBeat = k % subdivision === 0;
+    const accent = mainBeat && (k / subdivision) % numerator === 0;
+    beats.push({ time, accent, mainBeat });
   }
-  return times;
+  return beats;
 }

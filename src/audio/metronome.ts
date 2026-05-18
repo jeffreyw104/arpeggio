@@ -1,11 +1,8 @@
-import { metronomeBeats } from "./beats";
+import { metronomeBeats, type BeatGridSpec, type MetronomeBeat } from "./beats";
 import type { Score } from "../model/score";
 
 /** A metronome click listener: receives the beat time and whether it's accented. */
 export type ClickListener = (time: number, accent: boolean) => void;
-
-/** Tolerance (seconds) for matching a beat time to a measure start. */
-const ACCENT_EPSILON = 1e-6;
 
 /** Linear pulse decay time (seconds) after a beat. */
 const PULSE_DECAY = 0.15;
@@ -17,16 +14,18 @@ function clamp(value: number, min: number, max: number): number {
 /**
  * Tracks which metronome beats have been crossed as the clock advances. Drives
  * clicks via registered listeners and exposes a 0-1 `pulse` for a visual cue.
+ * The beat grid is a perfectly regular metric grid derived from a time
+ * signature + the score's reference tempo, independent of `score.measures`.
  * Pure logic — the actual click sound is wired by the AudioEngine.
  */
 export class Metronome {
   /** Whether the metronome fires clicks. */
   enabled = false;
 
-  private readonly score: Score;
-  private subdivisionValue = 1;
-  private beatTimes: number[] = [];
-  private accentSet = new Set<number>();
+  private readonly bpm: number;
+  private readonly durationSeconds: number;
+  private spec: BeatGridSpec;
+  private beats: MetronomeBeat[] = [];
   private readonly listeners = new Set<ClickListener>();
   private curPosition = 0;
   private lastBeatTime: number | null = null;
@@ -34,30 +33,42 @@ export class Metronome {
   private lastFiredTime = -Infinity;
 
   constructor(score: Score) {
-    this.score = score;
+    const ts = score.timeSignatures[0];
+    this.spec = {
+      numerator: ts?.numerator ?? 4,
+      denominator: ts?.denominator ?? 4,
+      subdivision: 1,
+    };
+    this.bpm = score.tempoMap[0]?.bpm ?? 120;
+    this.durationSeconds = score.durationSeconds;
     this.recompute();
   }
 
   /** Beat subdivision: 1 = on the beat, 2 = eighths, 4 = sixteenths. */
   get subdivision(): number {
-    return this.subdivisionValue;
+    return this.spec.subdivision;
   }
 
   set subdivision(value: number) {
-    this.subdivisionValue = Math.max(1, Math.floor(value));
+    this.spec = { ...this.spec, subdivision: Math.max(1, Math.floor(value)) };
     this.recompute();
   }
 
-  /** Recompute cached beat times and accent set for the current subdivision. */
+  /** The current time signature (counted beats per bar). */
+  get timeSignature(): { numerator: number; denominator: number } {
+    return { numerator: this.spec.numerator, denominator: this.spec.denominator };
+  }
+
+  /** Set the time signature, recompute the grid, and re-align immediately. */
+  setTimeSignature(numerator: number, denominator: number): void {
+    this.spec = { ...this.spec, numerator, denominator };
+    this.recompute();
+    this.resync();
+  }
+
+  /** Recompute the cached beat grid for the current spec. */
   private recompute(): void {
-    this.beatTimes = metronomeBeats(this.score, this.subdivisionValue);
-    this.accentSet = new Set();
-    for (const t of this.beatTimes) {
-      const accented = this.score.measures.some(
-        (m) => Math.abs(m.start - t) <= ACCENT_EPSILON,
-      );
-      if (accented) this.accentSet.add(t);
-    }
+    this.beats = metronomeBeats(this.spec, this.bpm, this.durationSeconds);
   }
 
   /**
@@ -69,23 +80,30 @@ export class Metronome {
       // Beats in [prevPosition, curPosition] not already fired. A closed lower
       // bound catches a beat sitting exactly on prevPosition; lastFiredTime
       // guards against firing the same beat twice across consecutive calls.
-      const crossed = this.beatTimes
+      const crossed = this.beats
         .filter(
-          (t) =>
-            t >= prevPosition && t <= curPosition && t > this.lastFiredTime,
+          (b) =>
+            b.time >= prevPosition &&
+            b.time <= curPosition &&
+            b.time > this.lastFiredTime,
         )
-        .sort((a, b) => a - b);
-      for (const t of crossed) {
-        const accent = this.accentSet.has(t);
-        for (const listener of this.listeners) listener(t, accent);
-        this.lastFiredTime = t;
+        .sort((a, b) => a.time - b.time);
+      for (const beat of crossed) {
+        for (const listener of this.listeners) listener(beat.time, beat.accent);
+        this.lastFiredTime = beat.time;
       }
     }
 
     this.curPosition = curPosition;
     let last: number | null = null;
-    for (const t of this.beatTimes) {
-      if (t <= curPosition && (last === null || t > last)) last = t;
+    for (const beat of this.beats) {
+      if (
+        beat.mainBeat &&
+        beat.time <= curPosition &&
+        (last === null || beat.time > last)
+      ) {
+        last = beat.time;
+      }
     }
     if (last !== null) this.lastBeatTime = last;
   }

@@ -44,6 +44,8 @@ export class FalldownRenderer {
   showBeatGrid = true;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
+  /** The time signature driving the beat grid; settable by the ControlPanel. */
+  beatMeter: { numerator: number; denominator: number };
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -57,6 +59,11 @@ export class FalldownRenderer {
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
     this.pixelsPerSecond = this.hitLineY / 2.5;
+    const ts = transport.score.timeSignatures[0];
+    this.beatMeter = {
+      numerator: ts?.numerator ?? 4,
+      denominator: ts?.denominator ?? 4,
+    };
   }
 
   /** Re-size the renderer to a new canvas pixel size (after a layout change). */
@@ -103,10 +110,19 @@ export class FalldownRenderer {
   /** Draw the horizontal beat/downbeat lines visible at time `t`. */
   private drawBeatGrid(t: number): void {
     const { ctx } = this;
-    const lines = beatGridLines(this.transport.score, t, {
-      hitLineY: this.hitLineY,
-      pixelsPerSecond: this.pixelsPerSecond,
-    });
+    const bpm = this.transport.score.tempoMap[0]?.bpm ?? 120;
+    const durationSeconds = this.transport.score.durationSeconds;
+    const lines = beatGridLines(
+      this.beatMeter.numerator,
+      this.beatMeter.denominator,
+      bpm,
+      durationSeconds,
+      t,
+      {
+        hitLineY: this.hitLineY,
+        pixelsPerSecond: this.pixelsPerSecond,
+      },
+    );
     for (const line of lines) {
       ctx.beginPath();
       ctx.moveTo(0, line.y);
