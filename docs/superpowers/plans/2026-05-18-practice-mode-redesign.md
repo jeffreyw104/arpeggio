@@ -1526,10 +1526,29 @@ Wire the `TopBar` collapse props — replace the Task-4 placeholders with:
         onToggleExtended={() => setHudCollapsed((c) => !c)}
 ```
 
-Render `ExtendedTopBar` — add it after the `<FloatingHud>` element, before the `ControlPanel` block:
+Render `ExtendedTopBar` and mark the root when the extended bar is showing.
+Add a derived flag near the other render-time values (before the `return`):
 
 ```tsx
-      {mode === "practice" && !hudCollapsed && practiceReady && (
+  const extendedBarShown = mode === "practice" && !hudCollapsed && practiceReady;
+```
+
+Change the root element's className so the score panel can clear the extended
+bar — replace `<div className="practice-view">` with:
+
+```tsx
+    <div
+      className={
+        extendedBarShown ? "practice-view practice-view--extended" : "practice-view"
+      }
+    >
+```
+
+Render `ExtendedTopBar` after the `<FloatingHud>` element, before the
+`ControlPanel` block:
+
+```tsx
+      {extendedBarShown && (
         <ExtendedTopBar transport={transport} handState={handState} />
       )}
 ```
@@ -1714,7 +1733,29 @@ Remove the old `cursor: grab;` from `.floating-hud` (drag is gone). Keep `.float
 }
 ```
 
-- [ ] **Step 4: Score panel top padding.** The score panel already has top padding so the music clears the floating bar. In Practice mode the extended bar adds height; if the engraved score collides with the extended bar, increase the `.score-container` top padding. Search `theme.css` for the existing `.score-container` padding rule and confirm a comfortable clearance (~120px when the extended bar can show). If a rule sets `padding-top`, raise it to `120px`; if the falldown/score layout already scrolls independently, leave it. This step is a visual judgement — verify in Task 9.
+- [ ] **Step 4: Keep the extended bar off the sheet music (Practice mode).** The
+engraved score panel must not be hidden behind the extended top bar when it is
+shown. `PracticeView` puts `practice-view--extended` on the root whenever the
+extended bar is visible (Task 7). Add a CSS rule that gives the score container
+extra top clearance only in that state — Play mode is unaffected:
+
+```css
+/* In Practice mode the extended bar reaches ~112px down; push the engraved
+   score below it so the music is never covered. Play mode is unchanged. */
+.practice-view--extended .score-container {
+  padding-top: 120px;
+}
+```
+
+First read the existing `.score-container` rule(s) in `theme.css` to see its
+current `padding-top` (set for the floating bar). The new rule above is a
+more-specific override that applies only when `practice-view--extended` is on
+the root. If the existing base `.score-container` padding is already ≥ 120px,
+this override is harmless; if the score panel scrolls, the padding still keeps
+the first system clear of the bar. Verify visually in Step 5 of Task 9:
+in Practice mode, with the extended bar expanded, the top system of the
+engraved score is fully visible below the extended bar; collapsing the bar and
+switching to Play mode both still look correct.
 
 - [ ] **Step 5: Build check** — `npm run build` — Expected: clean.
 
@@ -1785,6 +1826,7 @@ npm run e2e
   - Top bar: `arpeggio` wordmark + Library on the left; piece name centered; Play/Practice + view modes + ⚙ on the right.
   - Play mode: HUD at top-left with transport + Speed stepper.
   - Practice mode: extended bar appears under the top bar with Loop / Tempo / Speed-up / Hands boxes; HUD at top-center with transport + Metronome.
+  - In Practice mode with the extended bar expanded, the engraved score's top system is fully visible below the extended bar — not covered by it. Play mode looks unchanged.
   - The top-bar `▴/▾` collapses/expands the extended bar; the Practice HUD rises when collapsed.
   - Loop measure loops one bar; Set start/Set end build a range; Tempo accepts an exact typed BPM and the ± buttons step it; Flatten toggles tempo mode.
   - ⚙ drawer: Note labels, Beat grid, Full 88, Metronome sound — switching the sound changes the click.
