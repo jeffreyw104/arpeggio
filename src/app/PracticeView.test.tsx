@@ -86,7 +86,7 @@ describe("PracticeView", () => {
     expect(screen.getByText("moonlight-sonata")).toBeInTheDocument();
   });
 
-  it("switching to Play suspends the loop and restores it on switching back", async () => {
+  it("loop readout survives the Play-mode suspend/restore round-trip", async () => {
     render(
       <PracticeView
         score={score}
@@ -95,17 +95,34 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
+
+    // Switch to Practice mode (ModeSwitch button; pressed:false targets the
+    // not-yet-active button, disambiguating from the transport Play button).
     const practiceBtn = await screen.findByRole("button", {
       name: /^practice$/i,
       pressed: false,
     });
     fireEvent.click(practiceBtn);
+
+    // Set a loop: Set start then Set end both snap to the playhead measure
+    // (position 0 → measure 1).  The readout becomes m.1–1.
     fireEvent.click(await screen.findByRole("button", { name: /set start/i }));
     fireEvent.click(screen.getByRole("button", { name: /set end/i }));
+
+    // Confirm a loop is now shown in the readout.
+    expect(screen.getByText(/m\.\d/)).toBeInTheDocument();
+
+    // Switch to Play mode — PracticeHudControls unmounts, loop is suspended.
     fireEvent.click(screen.getByRole("button", { name: /^play$/i, pressed: false }));
-    fireEvent.click(screen.getByRole("button", { name: /^practice$/i, pressed: false }));
-    expect(
-      await screen.findByRole("button", { name: /set start/i }),
-    ).toBeInTheDocument();
+
+    // Switch back to Practice mode — PracticeHudControls remounts with the
+    // restored loop; wait for it to appear.
+    fireEvent.click(
+      await screen.findByRole("button", { name: /^practice$/i, pressed: false }),
+    );
+
+    // The readout must show a measure range again — proving the loop was
+    // restored.  If suspend/restore dropped the loop it would show "—" instead.
+    expect(await screen.findByText(/m\.\d/)).toBeInTheDocument();
   });
 });
