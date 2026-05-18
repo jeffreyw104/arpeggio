@@ -133,6 +133,58 @@ describe("PracticeView", () => {
     expect(document.querySelector(".practice-view")).toBeInTheDocument();
   });
 
+  it("spacebar toggles play/pause on the transport clock", async () => {
+    const { Clock } = await import("../transport/clock");
+    const toggleSpy = vi.spyOn(Clock.prototype, "toggle");
+
+    render(
+      <PracticeView
+        score={score}
+        pieceId="spacebar-toggle"
+        pieceName="test.mid"
+        onExit={() => {}}
+      />,
+    );
+
+    await screen.findByRole("button", { name: "MIDI Practice" });
+
+    expect(toggleSpy).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: " " });
+    expect(toggleSpy).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(window, { key: " " });
+    expect(toggleSpy).toHaveBeenCalledTimes(2);
+
+    toggleSpy.mockRestore();
+  });
+
+  it("spacebar does not toggle when a form field is focused", async () => {
+    const { Clock } = await import("../transport/clock");
+    const toggleSpy = vi.spyOn(Clock.prototype, "toggle");
+
+    render(
+      <PracticeView
+        score={score}
+        pieceId="spacebar-guard"
+        pieceName="test.mid"
+        onExit={() => {}}
+      />,
+    );
+
+    await screen.findByRole("button", { name: "MIDI Practice" });
+
+    // Add a text input, append to body, and dispatch keydown on it so e.target
+    // is the input when the event bubbles up to the window listener.
+    const input = document.createElement("input");
+    input.type = "text";
+    document.body.appendChild(input);
+
+    fireEvent.keyDown(input, { key: " ", bubbles: true });
+    expect(toggleSpy).not.toHaveBeenCalled();
+
+    document.body.removeChild(input);
+    toggleSpy.mockRestore();
+  });
+
   it("reading-lane strip is present after switching to MIDI mode", async () => {
     render(
       <PracticeView

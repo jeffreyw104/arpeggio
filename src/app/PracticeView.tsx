@@ -259,13 +259,19 @@ export function PracticeView({
   }, [mode]);
 
   // Arrow keys jump the playhead one measure back/forward, in both modes.
-  // Ignored while a form control is focused (so typing a tempo is not stolen).
+  // Spacebar toggles play/pause.
+  // Both are ignored while a form control is focused (so typing is not stolen).
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== " ")
+        return;
       const t = e.target as HTMLElement | null;
       if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
       e.preventDefault();
+      if (e.key === " ") {
+        transport.clock.toggle();
+        return;
+      }
       const target = measureJumpTarget(
         transport.score.measures,
         transport.clock.position,
