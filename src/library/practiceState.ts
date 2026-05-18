@@ -8,7 +8,7 @@ export function capturePracticeState(
   transport: Transport,
   hands: HandState,
   beat?: { numerator: number; denominator: number; subdivision: number },
-  session?: { mode: TabMode; hudCollapsed?: boolean },
+  session?: { mode: TabMode },
 ): StoredPracticeState {
   const loop = transport.clock.loop;
   return {
@@ -25,7 +25,6 @@ export function capturePracticeState(
     }),
     ...(session && {
       mode: session.mode,
-      hudCollapsed: session.hudCollapsed,
     }),
   };
 }

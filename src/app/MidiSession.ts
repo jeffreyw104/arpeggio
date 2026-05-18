@@ -182,6 +182,7 @@ export class MidiSession {
       for (const pitch of result.accepted) highlights.set(pitch, "correct");
       for (const pitch of result.blocking) highlights.set(pitch, "wrong");
     }
+    falldown.pedalDown = this.liveNotes.pedalDown;
   }
 
   dispose(): void {

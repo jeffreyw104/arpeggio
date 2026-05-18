@@ -191,6 +191,30 @@ describe("FalldownRenderer inputHighlights", () => {
   });
 });
 
+describe("FalldownRenderer pedalDown", () => {
+  it("does not throw when pedalDown is true", () => {
+    const { renderer } = makeRenderer();
+    renderer.pedalDown = true;
+    expect(() => renderer.renderFrame()).not.toThrow();
+  });
+
+  it("draws the 'Ped.' label when pedalDown is true", () => {
+    const { ctx, renderer } = makeRenderer();
+    renderer.pedalDown = true;
+    ctx.calls.length = 0;
+    renderer.renderFrame();
+    expect(ctx.calls.some((c) => c.includes("Ped."))).toBe(true);
+  });
+
+  it("does not draw the 'Ped.' label when pedalDown is false", () => {
+    const { ctx, renderer } = makeRenderer();
+    renderer.pedalDown = false;
+    ctx.calls.length = 0;
+    renderer.renderFrame();
+    expect(ctx.calls.some((c) => c.includes("Ped."))).toBe(false);
+  });
+});
+
 describe("FalldownRenderer hand hide", () => {
   it("draws dimmed notes at reduced alpha", () => {
     // score note: midi 64, start 1.0, duration 0.5, velocity 0.7, hand left

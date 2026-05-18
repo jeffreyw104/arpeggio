@@ -32,8 +32,6 @@ export interface StoredPracticeState {
   subdivision?: number;
   /** The last-used session mode (optional for records saved before this). */
   mode?: TabMode;
-  /** The HUD collapse state (optional for records saved before this). */
-  hudCollapsed?: boolean;
 }
 
 const DB_NAME = "arpeggio";

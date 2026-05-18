@@ -199,7 +199,7 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
-      setMode(state?.mode ?? "play");
+      setMode(state?.mode === "midi" ? "midi" : "play");
       setPracticeReady(true);
     })();
 

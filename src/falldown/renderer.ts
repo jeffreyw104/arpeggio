@@ -66,6 +66,8 @@ export class FalldownRenderer {
   beatMeter: { numerator: number; denominator: number };
   /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
   inputHighlights = new Map<number, "correct" | "wrong">();
+  /** Whether the sustain pedal is currently depressed; shows a pedal indicator. */
+  pedalDown = false;
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -137,6 +139,10 @@ export class FalldownRenderer {
       blackColor: BLACK,
     });
 
+    if (this.pedalDown) {
+      this.drawPedalIndicator();
+    }
+
     // Brighten the hit line on each beat while the metronome is enabled.
     const pulse =
       this.transport.clock.playing && this.showBeatPulse
@@ -148,6 +154,20 @@ export class FalldownRenderer {
           )
         : 0;
     this.drawHitLinePulse(pulse);
+  }
+
+  /** Draw a small "Ped." indicator in the bottom-left corner of the keyboard. */
+  private drawPedalIndicator(): void {
+    const { ctx } = this;
+    const PAD = 6;
+    const text = "Ped.";
+    ctx.save();
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = PULSE_COLOR;
+    ctx.globalAlpha = 0.85;
+    ctx.fillText(text, PAD, this.hitLineY + this.pianoHeight - PAD);
+    ctx.restore();
   }
 
   /** Brighten the hit line on each beat. */

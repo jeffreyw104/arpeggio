@@ -115,23 +115,20 @@ describe("applyPracticeState", () => {
 });
 
 describe("practice-mode persistence", () => {
-  it("round-trips mode and hudCollapsed", () => {
+  it("round-trips mode", () => {
     const t = new Transport(score);
     const hands = new HandState();
     const captured = capturePracticeState(t, hands, undefined, {
       mode: "midi",
-      hudCollapsed: true,
     });
     expect(captured.mode).toBe("midi");
-    expect(captured.hudCollapsed).toBe(true);
     expect(TAB_MODES).toContain(captured.mode);
   });
 
-  it("omits mode and hudCollapsed when not given", () => {
+  it("omits mode when not given", () => {
     const t = new Transport(score);
     const hands = new HandState();
     const captured = capturePracticeState(t, hands);
     expect(captured.mode).toBeUndefined();
-    expect(captured.hudCollapsed).toBeUndefined();
   });
 });
