@@ -57,6 +57,25 @@ describe("ScoreView", () => {
     expect(measures[2].getAttribute("data-measure-index")).toBe("2");
   });
 
+  it("adds a transparent .measure-hit rect to every measure", () => {
+    const { container } = setup();
+    const measures = container.querySelectorAll("[data-measure-index]");
+    measures.forEach((m) => {
+      const hit = m.querySelector("rect.measure-hit");
+      expect(hit).not.toBeNull();
+    });
+  });
+
+  it("draws a measure-hover rect when hovering the measure-hit area (not a note)", () => {
+    const { container } = setup();
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    const hit = m1.querySelector("rect.measure-hit")!;
+    hit.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    const rect = container.querySelector("rect.measure-hover");
+    expect(rect).not.toBeNull();
+    expect(rect!.parentElement).toBe(m1);
+  });
+
   it("draws a green measure-highlight rect inside the current measure", () => {
     const { container, transport, view } = setup();
     transport.clock.seek(2.5); // measure index 1

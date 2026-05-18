@@ -55,6 +55,23 @@ export class ScoreView {
     const measures = container.querySelectorAll("g.measure");
     measures.forEach((el, i) => {
       el.setAttribute("data-measure-index", String(i));
+      // Give each measure an invisible, full-measure hit area so hovering or
+      // clicking anywhere inside the measure — over notes OR whitespace —
+      // registers as that measure. SVG pointer hit-testing only fires on
+      // painted geometry, so without this an empty gap between notes hits no
+      // measure element. Appended last (on top) to reliably catch events; the
+      // app only does measure-level interaction so this never steals a needed
+      // per-note event.
+      const box = this.measureBox(el);
+      const hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("class", "measure-hit");
+      hit.setAttribute("x", String(box.x));
+      hit.setAttribute("y", String(box.y));
+      hit.setAttribute("width", String(box.width));
+      hit.setAttribute("height", String(box.height));
+      hit.setAttribute("fill", "transparent");
+      hit.setAttribute("pointer-events", "all");
+      el.appendChild(hit);
     });
 
     this.onMouseDown = (e) => {
