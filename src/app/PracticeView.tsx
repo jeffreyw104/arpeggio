@@ -386,20 +386,19 @@ export function PracticeView({
             </div>
           )}
 
-          {/* MIDI-mode reading-lane toggle */}
-          {isMidi && (
+          {/* MIDI-mode reading-lane toggle — only shown when expanded.
+               When collapsed, the lane has overflow:hidden so this button
+               would be geometrically clipped and unclickable. Re-expanding
+               is done via the TopBar "Reading lane" toggle instead. */}
+          {isMidi && !laneCollapsed && (
             <button
               type="button"
               className="reading-lane-toggle"
-              aria-label={
-                laneCollapsed
-                  ? "Expand reading lane"
-                  : "Collapse reading lane"
-              }
-              aria-expanded={!laneCollapsed}
-              onClick={() => setLaneCollapsed((c) => !c)}
+              aria-label="Collapse reading lane"
+              aria-expanded={true}
+              onClick={() => setLaneCollapsed(true)}
             >
-              {laneCollapsed ? "▸ Reading lane" : "▾ Reading lane"}
+              ▾ Reading lane
             </button>
           )}
         </div>

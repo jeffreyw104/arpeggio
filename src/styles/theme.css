@@ -574,19 +574,7 @@ textarea {
   border-color: var(--accent);
 }
 
-/* When the lane is collapsed, show the toggle just below the top bar so the
-   user can expand it again. The collapsed state class is on the parent wrapper
-   (.practice-content--lane-collapsed), which brings the toggle into view. */
-.practice-content--lane-collapsed .reading-lane-toggle {
-  pointer-events: auto;
-  opacity: 1;
-}
-
 /* --- MidiTools popover content --- */
-
-.midi-tools {
-  /* Reuses .play-tools layout (flex column of accordion sections). */
-}
 
 /* The disabled MIDI-input placeholder block. */
 .midi-tools-placeholder {

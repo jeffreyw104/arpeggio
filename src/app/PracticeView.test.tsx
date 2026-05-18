@@ -132,4 +132,60 @@ describe("PracticeView", () => {
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(document.querySelector(".practice-view")).toBeInTheDocument();
   });
+
+  it("reading-lane strip is present after switching to MIDI mode", async () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="reading-lane-present"
+        pieceName="moonlight.mid"
+        onExit={() => {}}
+      />,
+    );
+    // Switch to MIDI Practice tab.
+    const midiBtn = await screen.findByRole("button", { name: "MIDI Practice" });
+    fireEvent.click(midiBtn);
+
+    // The reading-lane element is rendered (score panel gets the reading-lane class).
+    expect(screen.getByTestId("reading-lane")).toBeInTheDocument();
+  });
+
+  it("in-lane collapse button collapses the reading lane, and TopBar toggle re-expands it", async () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="reading-lane-toggle"
+        pieceName="moonlight.mid"
+        onExit={() => {}}
+      />,
+    );
+    // Switch to MIDI Practice tab.
+    const midiBtn = await screen.findByRole("button", { name: "MIDI Practice" });
+    fireEvent.click(midiBtn);
+
+    // The in-lane collapse button is present when the lane is expanded.
+    const collapseBtn = screen.getByRole("button", { name: /collapse reading lane/i });
+    expect(collapseBtn).toBeInTheDocument();
+    expect(collapseBtn).toHaveAttribute("aria-expanded", "true");
+
+    // Collapse via the in-lane button.
+    fireEvent.click(collapseBtn);
+
+    // After collapsing the in-lane button is gone (it would be clipped).
+    expect(screen.queryByRole("button", { name: /collapse reading lane/i })).toBeNull();
+
+    // The lane wrapper now has the collapsed modifier class.
+    expect(screen.getByTestId("reading-lane")).toHaveClass("reading-lane--collapsed");
+
+    // The TopBar "Reading lane" button now shows aria-pressed=false.
+    const topBarToggle = screen.getByRole("button", { name: /toggle reading lane/i });
+    expect(topBarToggle).toHaveAttribute("aria-pressed", "false");
+
+    // Click the TopBar toggle to re-expand.
+    fireEvent.click(topBarToggle);
+
+    // The in-lane collapse button is visible again.
+    expect(screen.getByRole("button", { name: /collapse reading lane/i })).toBeInTheDocument();
+    expect(screen.getByTestId("reading-lane")).not.toHaveClass("reading-lane--collapsed");
+  });
 });

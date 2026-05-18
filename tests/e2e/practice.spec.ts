@@ -148,18 +148,19 @@ test("MIDI Practice tab: reading lane is visible and can be toggled", async ({
 
   // Collapse via the in-lane toggle.
   await collapseBtn.click();
-  const expandBtn = page.getByRole("button", {
-    name: /expand reading lane/i,
+
+  // After collapsing, the in-lane toggle is not rendered (it would be clipped
+  // by overflow:hidden on the collapsed lane). The TopBar "Reading lane" toggle
+  // is the only control for re-expanding — verify it shows the lane is collapsed.
+  const topBarToggle = page.locator(".top-bar").getByRole("button", {
+    name: /reading lane/i,
   });
-  await expect(expandBtn).toHaveAttribute("aria-expanded", "false");
+  await expect(topBarToggle).toHaveAttribute("aria-pressed", "false");
 
   // The falldown canvas must still be present and visible.
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
   // Expand via the TopBar "Reading lane" button (always accessible in the bar).
-  const topBarToggle = page.locator(".top-bar").getByRole("button", {
-    name: /reading lane/i,
-  });
   await topBarToggle.click();
   await expect(
     page.getByRole("button", { name: /collapse reading lane/i }),
