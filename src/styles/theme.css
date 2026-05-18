@@ -8,6 +8,16 @@
   --hand-right: #4a90d9;
   --hand-left: #e08a3c;
   --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Liquid-glass surface — shared by the top bar and the floating HUD. */
+  --glass-bg: linear-gradient(
+    rgba(48, 50, 64, 0.5),
+    rgba(22, 22, 28, 0.62)
+  );
+  --glass-blur: blur(16px) saturate(180%);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -50,33 +60,36 @@ textarea {
 
 .top-bar {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 30;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  height: 42px;
+  height: 50px;
   padding: 0 0.75rem;
-  background: rgba(28, 28, 34, 0.74);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--glass-shadow);
 }
 
 .top-bar button {
   font-family: inherit;
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
 }
 
 .top-bar button:hover {
-  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .top-bar button[aria-pressed="true"] {
@@ -113,11 +126,13 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   max-width: calc(100% - 32px);
-  padding: 0.4rem 0.6rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  padding: 0.5rem 0.7rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--glass-shadow);
   cursor: grab;
   transition: opacity 0.4s ease;
 }
@@ -146,16 +161,17 @@ textarea {
 
 .floating-hud button {
   font-family: inherit;
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
 }
 
 .floating-hud button:hover {
-  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .floating-hud button[aria-pressed="true"] {
@@ -172,8 +188,8 @@ textarea {
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
 }
 
 /* The dropdown caret is a bare glyph, not its own boxed button. */
@@ -232,7 +248,7 @@ textarea {
    the falldown panel. */
 .score-zoom {
   position: absolute;
-  top: 54px;
+  top: 70px;
   right: 12px;
   z-index: 5;
   display: flex;
@@ -296,7 +312,8 @@ textarea {
   overflow-x: auto;
   overflow-y: auto;
   background: #f4f4f2;
-  padding: 1rem;
+  /* Extra top padding so the engraved music clears the floating top bar. */
+  padding: 66px 1rem 1rem;
 }
 
 /* The zoom wrapper; `zoom` is set in JS (ScoreView.setZoom). */
