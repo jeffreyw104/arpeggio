@@ -49,12 +49,12 @@ export function TopBar({
         <ModeSwitch mode={mode} onModeChange={onModeChange} />
       </div>
       <div className="top-bar-views">
-        {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
+        {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
           <button
-            key={mode}
+            key={viewModeOption}
             type="button"
-            aria-pressed={viewMode === mode}
-            onClick={() => onViewModeChange(mode)}
+            aria-pressed={viewMode === viewModeOption}
+            onClick={() => onViewModeChange(viewModeOption)}
           >
             {label}
           </button>

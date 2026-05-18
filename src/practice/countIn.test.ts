@@ -56,7 +56,7 @@ describe("startCountIn", () => {
         onClick: (accent) => clicks.push(accent),
         onComplete: complete,
       });
-      vi.advanceTimersByTime(600); // one click fired (t=0), next at t=500
+      vi.advanceTimersByTime(600); // two clicks fired (t=0 and t=500); next would be t=1000
       handle.cancel();
       vi.advanceTimersByTime(5000);
       expect(clicks).toHaveLength(2);

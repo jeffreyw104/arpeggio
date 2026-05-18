@@ -290,7 +290,6 @@ export function PracticeHudControls({
         <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         {metronomeMenuOpen && (
           <MetronomeMenu
-            transport={transport}
             falldown={falldown}
             audioEngine={audioEngine}
             countInBars={countInBars}

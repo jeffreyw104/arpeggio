@@ -315,6 +315,8 @@ export function PracticeView({
     if (!s) return;
     transport.clock.setLoop(s.loop ? { ...s.loop } : null);
     if (s.speedUp) {
+      // Speed-up is a ramping process, not a stored value: restoring it restarts
+      // the ramp from startRate. Mid-ramp progress across a mode switch is lost.
       transport.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.05 });
     }
     if (engineRef.current) {

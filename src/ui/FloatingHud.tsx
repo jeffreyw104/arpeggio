@@ -204,6 +204,16 @@ export function FloatingHud({
     return () => countInRef.current?.cancel();
   }, []);
 
+  // A count-in only makes sense in Practice mode; cancel it if the user
+  // switches to Play while it is still running.
+  useEffect(() => {
+    if (mode !== "practice" && countInRef.current) {
+      countInRef.current.cancel();
+      countInRef.current = null;
+      setCountingIn(false);
+    }
+  }, [mode]);
+
   function changeSpeed(delta: number): void {
     const next = Math.max(
       0,
