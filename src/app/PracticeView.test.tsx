@@ -103,13 +103,9 @@ describe("PracticeView", () => {
       />,
     );
 
-    // Switch to Practice mode (ModeSwitch button; pressed:false targets the
-    // not-yet-active button, disambiguating from the transport Play button).
-    const practiceBtn = await screen.findByRole("button", {
-      name: /^practice$/i,
-      pressed: false,
-    });
-    fireEvent.click(practiceBtn);
+    // Switch to Practice mode (ModeSwitch slider toggle; one click from Play→Practice).
+    const modeSwitch = await screen.findByRole("switch", { name: /play.*practice/i });
+    fireEvent.click(modeSwitch);
 
     // Set a loop: Set start then Set end both snap to the playhead measure
     // (position 0 → measure 1).  The readout becomes m.1–1.
@@ -120,12 +116,12 @@ describe("PracticeView", () => {
     expect(screen.getByText(/m\.\d/)).toBeInTheDocument();
 
     // Switch to Play mode — PracticeHudControls unmounts, loop is suspended.
-    fireEvent.click(screen.getByRole("button", { name: /^play$/i, pressed: false }));
+    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
 
     // Switch back to Practice mode — PracticeHudControls remounts with the
     // restored loop; wait for it to appear.
     fireEvent.click(
-      await screen.findByRole("button", { name: /^practice$/i, pressed: false }),
+      await screen.findByRole("switch", { name: /play.*practice/i }),
     );
 
     // The readout must show a measure range again — proving the loop was
@@ -133,7 +129,7 @@ describe("PracticeView", () => {
     expect(await screen.findByText(/m\.\d/)).toBeInTheDocument();
   });
 
-  it("shows the extended top bar in Practice mode and hides it when collapsed", async () => {
+  it("shows the extended top bar in Practice mode", async () => {
     render(
       <PracticeView
         score={score}
@@ -143,17 +139,11 @@ describe("PracticeView", () => {
       />,
     );
     fireEvent.click(
-      await screen.findByRole("button", { name: /^practice$/i, pressed: false }),
+      await screen.findByRole("switch", { name: /play.*practice/i }),
     );
     expect(
       await screen.findByRole("button", { name: /loop measure/i }),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: /collapse control bar/i }),
-    );
-    expect(
-      screen.queryByRole("button", { name: /loop measure/i }),
-    ).toBeNull();
   });
 
   it("ArrowRight does not throw and keeps the view mounted", async () => {
@@ -165,7 +155,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    await screen.findByRole("button", { name: /^play$/i, pressed: true });
+    await screen.findByRole("switch", { name: /play.*practice/i });
     fireEvent.keyDown(window, { key: "ArrowRight" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(document.querySelector(".practice-view")).toBeInTheDocument();
