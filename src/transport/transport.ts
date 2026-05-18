@@ -50,6 +50,11 @@ export class Transport {
     return this._tempoMode;
   }
 
+  /** Whether gradual speed-up is currently running. */
+  get speedUpActive(): boolean {
+    return this._speedUp !== null;
+  }
+
   /** Set the absolute playback tempo; translates to a clock rate. */
   setBpm(bpm: number): void {
     this._bpm = bpm;

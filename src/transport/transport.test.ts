@@ -61,6 +61,17 @@ describe("Transport", () => {
     expect(t.score.durationSeconds).toBeCloseTo(4, 3);
   });
 
+  describe("speedUpActive", () => {
+    it("reports false initially, true after enableSpeedUp, false after disable", () => {
+      const t = new Transport(score);
+      expect(t.speedUpActive).toBe(false);
+      t.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.05 });
+      expect(t.speedUpActive).toBe(true);
+      t.disableSpeedUp();
+      expect(t.speedUpActive).toBe(false);
+    });
+  });
+
   it("keeps the musical position when toggling tempo mode", () => {
     // A score with a tempo change: 120 BPM for [0,2), then 60 BPM after.
     // The flatten and preserve timelines genuinely differ here.
