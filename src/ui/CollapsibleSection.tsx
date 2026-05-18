@@ -11,9 +11,10 @@ interface CollapsibleSectionProps {
 
 /**
  * One section of the accordion control bar: a clickable chip (label + caret)
- * and a body that slides open/closed. The body stays mounted in both states
- * so its controls keep their live state; CSS clips it to zero width when
- * closed and animates the width change.
+ * and a body of controls. The body is rendered only while the section is
+ * open, so a collapsed section is exactly its chip — nothing leaks. The
+ * section's control state lives in the parent, so unmounting the body does
+ * not lose anything.
  */
 export function CollapsibleSection({
   label,
@@ -34,9 +35,7 @@ export function CollapsibleSection({
           {open ? "▾" : "▸"}
         </span>
       </button>
-      <div className="accordion-body">
-        <div className="accordion-body-inner">{children}</div>
-      </div>
+      {open && <div className="accordion-body">{children}</div>}
     </div>
   );
 }

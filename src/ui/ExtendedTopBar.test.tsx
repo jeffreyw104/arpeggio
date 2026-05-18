@@ -49,14 +49,22 @@ function renderBar(
   return { transport, handState, props };
 }
 
+/**
+ * Open an accordion section by clicking its chip. A section's controls are
+ * only in the DOM while it is open, so tests open the section first.
+ */
+function open(section: "Loop" | "Tempo" | "Hands" | "Metronome"): void {
+  fireEvent.click(screen.getByRole("button", { name: section }));
+}
+
 describe("ExtendedTopBar accordion", () => {
   it("renders the four section chips", () => {
     renderBar();
     expect(screen.getByRole("button", { name: "Loop" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^tempo/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^hands/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tempo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hands" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /^metronome/i }),
+      screen.getByRole("button", { name: "Metronome" }),
     ).toBeInTheDocument();
   });
 
@@ -70,8 +78,21 @@ describe("ExtendedTopBar accordion", () => {
     expect(loop).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("a collapsed section does not render its controls", () => {
+    renderBar();
+    // Loop is collapsed by default — its controls are absent.
+    expect(
+      screen.queryByRole("button", { name: /loop measure/i }),
+    ).toBeNull();
+    open("Loop");
+    expect(
+      screen.getByRole("button", { name: /loop measure/i }),
+    ).toBeInTheDocument();
+  });
+
   it("Loop measure loops the single measure under the playhead", () => {
     const { transport } = renderBar();
+    open("Loop");
     transport.clock.seek(5);
     fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
     expect(transport.clock.loop).toEqual({ start: 4, end: 6 });
@@ -79,6 +100,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("the exact tempo input sets an arbitrary BPM", () => {
     const { transport } = renderBar();
+    open("Tempo");
     fireEvent.change(screen.getByRole("spinbutton", { name: /tempo/i }), {
       target: { value: "137" },
     });
@@ -87,18 +109,21 @@ describe("ExtendedTopBar accordion", () => {
 
   it("the flatten checkbox switches the tempo mode", () => {
     const { transport } = renderBar();
+    open("Tempo");
     fireEvent.click(screen.getByRole("checkbox", { name: /flatten/i }));
     expect(transport.tempoMode).toBe("flatten");
   });
 
   it("the speed-up toggle enables gradual speed-up", () => {
     const { transport } = renderBar();
+    open("Loop");
     fireEvent.click(screen.getByRole("checkbox", { name: /speed-up/i }));
     expect(transport.speedUpActive).toBe(true);
   });
 
   it("speed-up reads the start BPM field", () => {
     const { transport } = renderBar();
+    open("Loop");
     fireEvent.change(screen.getByRole("spinbutton", { name: /start bpm/i }), {
       target: { value: "80" },
     });
@@ -108,6 +133,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("the hand visibility select writes through to hand state", () => {
     const { handState } = renderBar();
+    open("Hands");
     fireEvent.change(screen.getByLabelText(/left hand/i), {
       target: { value: "hide" },
     });
@@ -116,6 +142,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("the metronome toggle enables the metronome", () => {
     const { props } = renderBar();
+    open("Metronome");
     fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
     expect(props.audioEngine!.metronome.enabled).toBe(true);
   });
@@ -123,6 +150,7 @@ describe("ExtendedTopBar accordion", () => {
   it("the count-in selector reports changes through onCountInBarsChange", () => {
     const onCountInBarsChange = vi.fn();
     renderBar({ onCountInBarsChange });
+    open("Metronome");
     fireEvent.change(screen.getByLabelText(/count-in/i), {
       target: { value: "2" },
     });
@@ -131,6 +159,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("Set start then Set end builds a loop range", () => {
     const { transport } = renderBar();
+    open("Loop");
     transport.clock.seek(1); // measure 0
     fireEvent.click(screen.getByRole("button", { name: /set start/i }));
     transport.clock.seek(5); // measure 2
@@ -140,6 +169,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("Clear removes the loop", () => {
     const { transport } = renderBar();
+    open("Loop");
     transport.clock.seek(1);
     fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
     fireEvent.click(screen.getByRole("button", { name: /clear loop/i }));
@@ -148,6 +178,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("the tempo + button steps the BPM up", () => {
     const { transport } = renderBar();
+    open("Tempo");
     fireEvent.click(screen.getByRole("button", { name: /increase tempo/i }));
     expect(transport.bpm).toBe(125);
   });
@@ -165,8 +196,8 @@ describe("ExtendedTopBar accordion", () => {
       value: 1000,
       configurable: true,
     });
-    const loop = screen.getByRole("button", { name: /^Loop$/ });
-    const tempo = screen.getByRole("button", { name: /^Tempo$/ });
+    const loop = screen.getByRole("button", { name: "Loop" });
+    const tempo = screen.getByRole("button", { name: "Tempo" });
     fireEvent.click(loop); // opens Loop (only one open — no collapse)
     expect(loop).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(tempo); // opening Tempo overflows -> oldest (Loop) collapses

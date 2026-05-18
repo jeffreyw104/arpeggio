@@ -103,26 +103,30 @@ describe("PracticeView", () => {
       />,
     );
 
-    // Switch to Practice mode (ModeSwitch slider toggle; one click from Play→Practice).
+    // Switch to Practice mode (ModeSwitch toggle; one click from Play→Practice).
     const modeSwitch = await screen.findByRole("switch", { name: /play.*practice/i });
     fireEvent.click(modeSwitch);
 
+    // Open the Loop accordion section so its controls are in the DOM.
+    fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
+
     // Set a loop: Set start then Set end both snap to the playhead measure
     // (position 0 → measure 1).  The readout becomes m.1–1.
-    fireEvent.click(await screen.findByRole("button", { name: /set start/i }));
+    fireEvent.click(screen.getByRole("button", { name: /set start/i }));
     fireEvent.click(screen.getByRole("button", { name: /set end/i }));
 
     // Confirm a loop is now shown in the readout.
     expect(screen.getByText(/m\.\d/)).toBeInTheDocument();
 
-    // Switch to Play mode — PracticeHudControls unmounts, loop is suspended.
+    // Switch to Play mode — the extended bar unmounts, the loop is suspended.
     fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
 
-    // Switch back to Practice mode — PracticeHudControls remounts with the
-    // restored loop; wait for it to appear.
+    // Switch back to Practice mode — the accordion remounts (sections start
+    // collapsed); re-open Loop to see the restored readout.
     fireEvent.click(
       await screen.findByRole("switch", { name: /play.*practice/i }),
     );
+    fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
 
     // The readout must show a measure range again — proving the loop was
     // restored.  If suspend/restore dropped the loop it would show "—" instead.
@@ -141,8 +145,12 @@ describe("PracticeView", () => {
     fireEvent.click(
       await screen.findByRole("switch", { name: /play.*practice/i }),
     );
+    // The accordion control bar renders with its section chips.
     expect(
-      await screen.findByRole("button", { name: /loop measure/i }),
+      await screen.findByRole("button", { name: "Loop" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Metronome" }),
     ).toBeInTheDocument();
   });
 
