@@ -26,7 +26,7 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
   const canvas = page.locator("canvas.falldown-canvas");
   await canvas.waitFor({ state: "visible", timeout: 15_000 });
-  const playBtn = page.getByLabel("Play");
+  const playBtn = page.getByRole("button", { name: "Play" });
 
   const snapshot = () =>
     canvas.evaluate((c: HTMLCanvasElement) => {
@@ -47,7 +47,7 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   );
 });
 
-test("switching to Practice mode reveals the extended control bar", async ({
+test("the Play/Practice toggle reveals the accordion control bar", async ({
   page,
 }) => {
   await page.goto("/");
@@ -56,27 +56,25 @@ test("switching to Practice mode reveals the extended control bar", async ({
     timeout: 15_000,
   });
 
-  // Play mode: the speed stepper is present, the loop controls are not.
+  // Play mode: the speed stepper is present.
   await expect(
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /loop measure/i })).toHaveCount(0);
 
-  // Switch to Practice — the extended bar and metronome checkbox appear.
-  await page.locator(".top-bar-modes").getByRole("button", { name: "Practice" }).click();
-  await expect(
-    page.getByRole("button", { name: /loop measure/i }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("checkbox", { name: /metronome/i }),
-  ).toBeVisible();
+  // Flip the toggle to Practice — the accordion section chips appear.
+  await page.getByRole("switch", { name: /play.*practice/i }).click();
+  await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Metronome", exact: true })).toBeVisible();
 
-  // Collapse the extended bar — the loop controls hide.
-  await page.getByRole("button", { name: /collapse control bar/i }).click();
-  await expect(page.getByRole("button", { name: /loop measure/i })).toHaveCount(0);
+  // Open the Loop section — its chip's aria-expanded flips to true.
+  await page.getByRole("button", { name: "Loop", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Loop", exact: true })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
 
-  // Back to Play — the speed stepper is back.
-  await page.locator(".top-bar-modes").getByRole("button", { name: "Play" }).click();
+  // Flip back to Play — the speed stepper is shown again.
+  await page.getByRole("switch", { name: /play.*practice/i }).click();
   await expect(
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();
