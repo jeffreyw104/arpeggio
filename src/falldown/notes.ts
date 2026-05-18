@@ -20,6 +20,10 @@ export interface NoteRect {
   top: number;
   height: number;
   color: string;
+  /** The note's velocity, 0-1 — drives draw opacity. */
+  velocity: number;
+  /** True while the note is sounding at the current clock time. */
+  playing: boolean;
 }
 
 /**
@@ -50,6 +54,8 @@ export function noteRects(
       top,
       height,
       color: note.hand === "right" ? config.rightColor : config.leftColor,
+      velocity: note.velocity,
+      playing: t >= note.start && t < note.start + note.duration,
     });
   }
   return rects;

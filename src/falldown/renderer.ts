@@ -9,6 +9,10 @@ import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 const RIGHT = "#4a90d9";
 const LEFT = "#e08a3c";
 const ACTIVE = "#4aa988";
+/** Max corner radius for a falling note, in px. */
+const NOTE_RADIUS = 4;
+/** Shadow blur applied to a note while it is sounding. */
+const GLOW_BLUR = 12;
 const WHITE = "#e6e6ea";
 const BLACK = "#15151a";
 const BG = "#15151a";
@@ -139,8 +143,18 @@ export class FalldownRenderer {
       leftColor: LEFT,
     });
     for (const rect of rects) {
+      const radius = Math.min(NOTE_RADIUS, rect.width / 3, rect.height / 2);
+      ctx.save();
+      ctx.globalAlpha = 0.5 + 0.5 * rect.velocity;
+      if (rect.playing) {
+        ctx.shadowColor = rect.color;
+        ctx.shadowBlur = GLOW_BLUR;
+      }
       ctx.fillStyle = rect.color;
-      ctx.fillRect(rect.x, rect.top, rect.width, rect.height);
+      ctx.beginPath();
+      ctx.roundRect(rect.x, rect.top, rect.width, rect.height, radius);
+      ctx.fill();
+      ctx.restore();
       if (this.showLabels) {
         ctx.fillStyle = LABEL;
         ctx.font = "11px sans-serif";

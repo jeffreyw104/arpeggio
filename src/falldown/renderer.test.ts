@@ -36,12 +36,20 @@ function fakeCtx() {
     moveTo: rec("moveTo"),
     lineTo: rec("lineTo"),
     stroke: rec("stroke"),
+    fill: rec("fill"),
+    roundRect: rec("roundRect"),
+    save: rec("save"),
+    restore: rec("restore"),
     fillText: rec("fillText"),
-    set fillStyle(_v: string) {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    set fillStyle(_v: string | CanvasGradient) {},
     set strokeStyle(_v: string) {},
     set lineWidth(_v: number) {},
     set font(_v: string) {},
     set textAlign(_v: string) {},
+    set globalAlpha(_v: number) {},
+    set shadowBlur(_v: number) {},
+    set shadowColor(_v: string) {},
   };
   return ctx;
 }
@@ -70,25 +78,16 @@ describe("FalldownRenderer", () => {
   it("draws falling-note rectangles when notes are visible", () => {
     const { transport, ctx, renderer } = makeRenderer();
 
-    // Render at a far-future time (no notes visible) to capture the
-    // keyboard-only fillRect count (keys + background).
     transport.clock.seek(100);
     renderer.renderFrame();
-    const keyboardOnlyFillRects = ctx.calls.filter((c) =>
-      c.startsWith("fillRect"),
-    ).length;
+    const keyboardOnly = ctx.calls.filter((c) => c.startsWith("roundRect")).length;
 
-    // Reset and render at t=0.4: the note at start=0.5 is 0.1 s above the
-    // hit line and clearly inside the falldown area, so at least one extra
-    // fillRect is emitted for the falling note rectangle.
     ctx.calls.length = 0;
     transport.clock.seek(0.4);
     renderer.renderFrame();
-    const withNotesFillRects = ctx.calls.filter((c) =>
-      c.startsWith("fillRect"),
-    ).length;
+    const withNotes = ctx.calls.filter((c) => c.startsWith("roundRect")).length;
 
-    expect(withNotesFillRects).toBeGreaterThan(keyboardOnlyFillRects);
+    expect(withNotes).toBeGreaterThan(keyboardOnly);
   });
 
   it("toggles the full-88 key range", () => {
@@ -141,7 +140,7 @@ describe("FalldownRenderer hand hide", () => {
     const { transport, ctx, renderer } = makeRenderer();
     transport.clock.seek(0.5);
     renderer.renderFrame();
-    const fullCount = ctx.calls.filter((c) => c.startsWith("fillRect")).length;
+    const fullCount = ctx.calls.filter((c) => c.startsWith("roundRect")).length;
 
     const { transport: t2, ctx: ctx2, renderer: r2 } = makeRenderer();
     const hands = new HandState();
@@ -150,7 +149,7 @@ describe("FalldownRenderer hand hide", () => {
     t2.clock.seek(0.5);
     r2.renderFrame();
     const hiddenCount = ctx2.calls.filter((c) =>
-      c.startsWith("fillRect"),
+      c.startsWith("roundRect"),
     ).length;
 
     // Hiding a hand removes that hand's falling-note rects, so fewer fillRects.

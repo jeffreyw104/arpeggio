@@ -42,6 +42,17 @@ describe("noteRects", () => {
     const rects = noteRects(notes, layout, 1, config);
     expect(rects.find((x) => x.midi === 60)!.color).toBe("#4a90d9");
   });
+
+  it("carries each note's velocity", () => {
+    const rects = noteRects(notes, layout, 1, config);
+    expect(rects.find((x) => x.midi === 60)!.velocity).toBeCloseTo(0.7, 6);
+  });
+
+  it("marks a note as playing only while it is sounding", () => {
+    // note 60: start 1, duration 0.5 -> sounding on [1, 1.5)
+    expect(noteRects(notes, layout, 1.2, config).find((x) => x.midi === 60)!.playing).toBe(true);
+    expect(noteRects(notes, layout, 0.6, config).find((x) => x.midi === 60)!.playing).toBe(false);
+  });
 });
 
 describe("activeKeys", () => {
