@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import App from "./App";
 
-test("App renders the import screen", () => {
+test("App renders the import screen", async () => {
   render(<App />);
-  expect(screen.getByText(/midi or musicxml/i)).toBeInTheDocument();
+  expect(await screen.findByText(/midi or musicxml/i)).toBeInTheDocument();
 });

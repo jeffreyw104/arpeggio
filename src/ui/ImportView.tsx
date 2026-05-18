@@ -3,7 +3,7 @@ import type { Score } from "../model/score";
 import { importFile } from "../import/importFile";
 
 interface ImportViewProps {
-  onLoaded: (score: Score) => void;
+  onLoaded: (score: Score, file: File) => void;
 }
 
 /** Landing screen: drop zone / file picker that imports a Score. */
@@ -16,7 +16,7 @@ export function ImportView({ onLoaded }: ImportViewProps) {
     setLoading(true);
     try {
       const score = await importFile(file);
-      onLoaded(score);
+      onLoaded(score, file);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

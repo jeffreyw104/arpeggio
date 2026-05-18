@@ -40,13 +40,13 @@ beforeEach(() => {
 
 describe("PracticeView", () => {
   it("renders the transport bar and the falldown canvas", () => {
-    render(<PracticeView score={score} />);
+    render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
     expect(screen.getByRole("button", { name: /play/i })).toBeInTheDocument();
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
   it("renders the practice control panel once the renderer mounts", () => {
-    render(<PracticeView score={score} />);
+    render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
     expect(screen.getByLabelText(/tempo/i)).toBeInTheDocument();
   });
 });

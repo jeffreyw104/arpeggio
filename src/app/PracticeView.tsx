@@ -15,16 +15,23 @@ import type { ViewMode } from "../layout/viewMode";
 import { TransportBar } from "../ui/TransportBar";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
+import { getPracticeState, savePracticeState } from "../library/db";
+import {
+  capturePracticeState,
+  applyPracticeState,
+} from "../library/practiceState";
 
 interface PracticeViewProps {
   score: Score;
+  pieceId: string;
+  onExit: () => void;
 }
 
 /**
  * The assembled practice screen: composes the transport, frame loop, falldown
  * renderer, audio engine, and engraved score view into a single playable view.
  */
-export function PracticeView({ score }: PracticeViewProps) {
+export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreContainerRef = useRef<HTMLDivElement>(null);
 
@@ -87,6 +94,12 @@ export function PracticeView({ score }: PracticeViewProps) {
     })();
 
     void (async () => {
+      const state = await getPracticeState(pieceId);
+      if (cancelled || !state) return;
+      applyPracticeState(state, transport, handState);
+    })();
+
+    void (async () => {
       try {
         const { svg, timemap } = await renderScore(transport.score.musicXml);
         if (cancelled) return;
@@ -105,8 +118,12 @@ export function PracticeView({ score }: PracticeViewProps) {
       cancelled = true;
       loop.stop();
       scoreViewRef.current?.destroy();
+      void savePracticeState(
+        pieceId,
+        capturePracticeState(transport, handState),
+      );
     };
-  }, [transport, handState]);
+  }, [transport, handState, pieceId]);
 
   // Resume the Web Audio context on the first user-driven play.
   useEffect(() => {
@@ -120,11 +137,16 @@ export function PracticeView({ score }: PracticeViewProps) {
 
   return (
     <div className="practice-view">
-      <TransportBar
-        transport={transport}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      <div className="practice-header">
+        <button type="button" onClick={onExit}>
+          Library
+        </button>
+        <TransportBar
+          transport={transport}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      </div>
       {falldown && (
         <ControlPanel
           transport={transport}
