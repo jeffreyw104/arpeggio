@@ -1,25 +1,26 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
-import type { HandState } from "../practice/hands";
 import type { PracticeMode } from "../layout/practiceMode";
-import { PracticeHudControls } from "./PracticeHudControls";
+import { MetronomeSettings } from "./MetronomeSettings";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 
 interface FloatingHudProps {
   transport: Transport;
-  handState: HandState;
   settingsOpen: boolean;
   audioEngine: AudioEngine | null;
   falldown: FalldownRenderer | null;
   mode: PracticeMode;
+  /** Whether the extended top bar is collapsed — drives the HUD's position. */
   collapsed: boolean;
-  onCollapsedChange: (collapsed: boolean) => void;
 }
 
 /** Milliseconds of pointer inactivity before the HUD fades. */
 const IDLE_MS = 2500;
+
+/** Play-mode playback-speed multipliers, slowest to fastest. */
+const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
 function formatTime(seconds: number): string {
@@ -29,24 +30,13 @@ function formatTime(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
-interface Position {
-  x: number;
-  y: number;
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, v));
-}
-
 /**
  * Returns whether the HUD should be faded: true after `IDLE_MS` with no
  * pointer movement, reset to false on any movement. Never fades while
- * `disabled` is true (e.g. the settings drawer is open) — the disabled
- * override is applied at render time so the idle state is pure tracking.
+ * `disabled` is true.
  */
 function useIdleFade(disabled: boolean): boolean {
   const [idle, setIdle] = useState(false);
-
   useEffect(() => {
     if (disabled) return;
     let timer = window.setTimeout(() => setIdle(true), IDLE_MS);
@@ -61,126 +51,32 @@ function useIdleFade(disabled: boolean): boolean {
       window.removeEventListener("pointermove", onMove);
     };
   }, [disabled]);
-
   return disabled ? false : idle;
 }
 
 /**
- * Makes an element draggable within its offset parent. Returns the element
- * ref, its position, and a pointerdown handler. Dragging is ignored when the
- * pointer goes down on an interactive control (button/input/select). When the
- * parent has no measured size (e.g. jsdom) the position is left unclamped.
- */
-function useDraggable(): {
-  ref: React.RefObject<HTMLDivElement | null>;
-  pos: Position | null;
-  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-} {
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<Position | null>(null);
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    const parent = el?.offsetParent as HTMLElement | null;
-    if (el && parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
-      setPos({
-        x: (parent.clientWidth - el.offsetWidth) / 2,
-        y: parent.clientHeight - el.offsetHeight - 16,
-      });
-    } else {
-      setPos({ x: 16, y: 16 });
-    }
-  }, []);
-
-  function onPointerDown(e: React.PointerEvent<HTMLDivElement>): void {
-    if ((e.target as HTMLElement).closest("button, input, select, label"))
-      return;
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    drag.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
-  }
-
-  useEffect(() => {
-    function move(e: PointerEvent): void {
-      const el = ref.current;
-      const d = drag.current;
-      if (!el || !d) return;
-      const parent = el.offsetParent as HTMLElement | null;
-      let x = e.clientX - d.dx;
-      let y = e.clientY - d.dy;
-      if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
-        x = clamp(x, 0, parent.clientWidth - el.offsetWidth);
-        y = clamp(y, 0, parent.clientHeight - el.offsetHeight);
-      }
-      setPos({ x, y });
-    }
-    function up(): void {
-      drag.current = null;
-    }
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-  }, []);
-
-  useEffect(() => {
-    function onResize(): void {
-      const el = ref.current;
-      const parent = el?.offsetParent as HTMLElement | null;
-      if (!el || !parent) return;
-      if (parent.clientWidth <= 0 || parent.clientHeight <= 0) return;
-      setPos((p) =>
-        p
-          ? {
-              x: clamp(p.x, 0, parent.clientWidth - el.offsetWidth),
-              y: clamp(p.y, 0, parent.clientHeight - el.offsetHeight),
-            }
-          : p,
-      );
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  return { ref, pos, onPointerDown };
-}
-
-/** Play-mode playback-speed multipliers, slowest to fastest. */
-const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5] as const;
-
-/**
- * The floating transport HUD. A shared draggable, idle-fading wrapper carries
- * the transport row; mode-specific content sits alongside it:
- *  - Play mode: a playback-speed stepper.
- *  - Practice mode: a collapse toggle and, when expanded, the practice
- *    controls row. The HUD does not auto-fade while expanded.
+ * The fixed-position transport HUD. Play mode: transport + a playback-speed
+ * stepper, anchored top-left. Practice mode: transport + the metronome
+ * control, anchored top-center (raised under the top bar when the extended
+ * bar is collapsed). Idle-fades when untouched.
  */
 export function FloatingHud({
   transport,
-  handState,
   settingsOpen,
   audioEngine,
   falldown,
   mode,
   collapsed,
-  onCollapsedChange,
 }: FloatingHudProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
 
-  const { ref, pos, onPointerDown } = useDraggable();
-
-  const practiceExpanded = mode === "practice" && !collapsed;
-  const faded = useIdleFade(settingsOpen || practiceExpanded);
+  const faded = useIdleFade(settingsOpen);
 
   const { clock } = transport;
   const { playing, position, duration } = clock;
 
-  // Count-in bars (per session); owned here so it survives the metronome menu.
+  // Count-in bars (per session) and the in-flight count-in handle.
   const [countInBars, setCountInBars] = useState(0);
   const [countingIn, setCountingIn] = useState(false);
   const countInRef = useRef<CountInHandle | null>(null);
@@ -200,12 +96,25 @@ export function FloatingHud({
     return best;
   });
 
+  // Metronome on/off mirror. Re-synced on entering Practice mode because the
+  // mode-switch suspend/restore may have changed metronome.enabled directly.
+  const [metronomeOn, setMetronomeOn] = useState(
+    () => audioEngine?.metronome.enabled ?? false,
+  );
+  useEffect(() => {
+    if (mode === "practice") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMetronomeOn(audioEngine?.metronome.enabled ?? false);
+    }
+  }, [mode, audioEngine]);
+
+  const pulseRef = useRef<HTMLSpanElement>(null);
+
   useEffect(() => {
     return () => countInRef.current?.cancel();
   }, []);
 
-  // A count-in only makes sense in Practice mode; cancel it if the user
-  // switches to Play while it is still running.
+  // A count-in only makes sense in Practice mode; cancel it on leaving.
   useEffect(() => {
     if (mode !== "practice" && countInRef.current) {
       countInRef.current.cancel();
@@ -214,6 +123,21 @@ export function FloatingHud({
     }
   }, [mode]);
 
+  // Self-contained rAF loop driving the metronome pulse indicator's opacity.
+  useEffect(() => {
+    let frame = 0;
+    const tick = (): void => {
+      if (pulseRef.current) {
+        pulseRef.current.style.opacity = String(
+          audioEngine?.metronome.pulse ?? 0,
+        );
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [audioEngine]);
+
   function changeSpeed(delta: number): void {
     const next = Math.max(
       0,
@@ -221,6 +145,15 @@ export function FloatingHud({
     );
     setSpeedIndex(next);
     transport.setBpm(transport.referenceBpm * SPEED_STEPS[next]);
+  }
+
+  function handleMetronome(checked: boolean): void {
+    setMetronomeOn(checked);
+    // The audio engine and renderer are imperative objects written through to.
+    // eslint-disable-next-line react-hooks/immutability
+    if (audioEngine) audioEngine.metronome.enabled = checked;
+    // eslint-disable-next-line react-hooks/immutability
+    if (falldown) falldown.showBeatPulse = checked;
   }
 
   function handlePlayToggle(): void {
@@ -249,79 +182,72 @@ export function FloatingHud({
     clock.play();
   }
 
+  const positionClass =
+    mode === "play"
+      ? "floating-hud--play"
+      : `floating-hud--practice${collapsed ? " floating-hud--raised" : ""}`;
+
   return (
-    <div
-      ref={ref}
-      className={`floating-hud${faded ? " faded" : ""}`}
-      style={pos ? { left: pos.x, top: pos.y } : undefined}
-      onPointerDown={onPointerDown}
-    >
-      <div className="hud-transport-row">
-        <button
-          type="button"
-          aria-label={playing ? "Pause" : "Play"}
-          disabled={countingIn}
-          onClick={handlePlayToggle}
-        >
-          {playing ? "⏸" : "▶"}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={duration}
-          step={0.01}
-          value={position}
-          onChange={(e) => clock.seek(Number(e.target.value))}
-        />
-        <span>
-          {formatTime(position)} / {formatTime(duration)}
-        </span>
+    <div className={`floating-hud ${positionClass}${faded ? " faded" : ""}`}>
+      <button
+        type="button"
+        aria-label={playing ? "Pause" : "Play"}
+        disabled={countingIn}
+        onClick={handlePlayToggle}
+      >
+        {playing ? "⏸" : "▶"}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={duration}
+        step={0.01}
+        value={position}
+        onChange={(e) => clock.seek(Number(e.target.value))}
+      />
+      <span>
+        {formatTime(position)} / {formatTime(duration)}
+      </span>
 
-        {mode === "play" && (
-          <div className="hud-group">
-            <span className="hud-group-label">Speed</span>
-            <button
-              type="button"
-              aria-label="Decrease speed"
-              onClick={() => changeSpeed(-1)}
-            >
-              −
-            </button>
-            <span className="hud-tempo-readout">
-              {SPEED_STEPS[speedIndex]}×
-            </span>
-            <button
-              type="button"
-              aria-label="Increase speed"
-              onClick={() => changeSpeed(1)}
-            >
-              +
-            </button>
-          </div>
-        )}
-
-        {mode === "practice" && (
+      {mode === "play" && (
+        <div className="hud-group">
+          <span className="hud-group-label">Speed</span>
           <button
             type="button"
-            className="hud-collapse"
-            aria-label={collapsed ? "Expand HUD" : "Collapse HUD"}
-            aria-expanded={!collapsed}
-            onClick={() => onCollapsedChange(!collapsed)}
+            aria-label="Decrease speed"
+            onClick={() => changeSpeed(-1)}
           >
-            {collapsed ? "▴" : "▾"}
+            −
           </button>
-        )}
-      </div>
+          <span className="hud-tempo-readout">{SPEED_STEPS[speedIndex]}×</span>
+          <button
+            type="button"
+            aria-label="Increase speed"
+            onClick={() => changeSpeed(1)}
+          >
+            +
+          </button>
+        </div>
+      )}
 
-      {practiceExpanded && (
-        <PracticeHudControls
-          transport={transport}
-          handState={handState}
-          audioEngine={audioEngine}
-          falldown={falldown}
-          countInBars={countInBars}
-          onCountInBarsChange={setCountInBars}
-        />
+      {mode === "practice" && (
+        <div className="hud-metronome">
+          <label>
+            <input
+              type="checkbox"
+              checked={metronomeOn}
+              onChange={(e) => handleMetronome(e.target.checked)}
+            />{" "}
+            Metronome
+          </label>
+          <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
+          <MetronomeSettings
+            falldown={falldown}
+            audioEngine={audioEngine}
+            countInBars={countInBars}
+            onCountInBarsChange={setCountInBars}
+          />
+        </div>
       )}
     </div>
   );

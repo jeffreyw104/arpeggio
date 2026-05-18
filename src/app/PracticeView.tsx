@@ -400,13 +400,11 @@ export function PracticeView({
       />
       <FloatingHud
         transport={transport}
-        handState={handState}
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
         falldown={falldown}
         mode={mode}
         collapsed={hudCollapsed}
-        onCollapsedChange={setHudCollapsed}
       />
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel falldown={falldown} audioEngine={audioEngine} />
