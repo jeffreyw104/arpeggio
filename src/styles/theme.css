@@ -122,6 +122,25 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Horizontal page layout for score-only view: pages sit side by side and the
+   container scrolls horizontally so the user never needs to scroll down. */
+.score-container.horizontal-pages {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.score-container.horizontal-pages .score-pages {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.score-container.horizontal-pages .score-page {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
 /* --- Import view --- */
 
 .import-view {

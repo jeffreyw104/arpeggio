@@ -266,7 +266,16 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         split={split}
         onSplitChange={setSplit}
         falldown={<canvas ref={canvasRef} className="falldown-canvas" />}
-        score={<div ref={scoreContainerRef} className="score-container" />}
+        score={
+          <div
+            ref={scoreContainerRef}
+            className={
+              viewMode === "score"
+                ? "score-container horizontal-pages"
+                : "score-container"
+            }
+          />
+        }
       />
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (
