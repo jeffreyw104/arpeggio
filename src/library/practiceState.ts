@@ -8,7 +8,7 @@ export function capturePracticeState(
   transport: Transport,
   hands: HandState,
   beat?: { numerator: number; denominator: number; subdivision: number },
-  session?: { mode: PracticeMode; hudCollapsed: boolean },
+  session?: { mode: PracticeMode; hudCollapsed?: boolean },
 ): StoredPracticeState {
   const loop = transport.clock.loop;
   return {

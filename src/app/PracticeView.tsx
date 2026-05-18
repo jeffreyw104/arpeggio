@@ -80,13 +80,12 @@ export function PracticeView({
   const practiceBpmRef = useRef<number>(transport.bpm);
   const playBpmRef = useRef<number>(transport.referenceBpm);
   const modeRef = useRef<PracticeMode>("play");
-  const collapsedRef = useRef(false);
   // True once the user has explicitly changed mode (prevents async init from
   // overwriting a mode the user already set before state was loaded).
   const userChangedModeRef = useRef(false);
 
   const [mode, setMode] = useState<PracticeMode>("play");
-  const [hudCollapsed, setHudCollapsed] = useState(false);
+  const [countInBars, setCountInBars] = useState(0);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.58);
@@ -191,7 +190,6 @@ export function PracticeView({
       // made before the stored state resolved).
       if (!userChangedModeRef.current) {
         setMode(restoredMode);
-        setHudCollapsed(state?.hudCollapsed ?? false);
       }
       setPracticeReady(true);
     })();
@@ -239,7 +237,6 @@ export function PracticeView({
         pieceId,
         capturePracticeState(transport, handState, beat, {
           mode: modeRef.current,
-          hudCollapsed: collapsedRef.current,
         }),
       );
     };
@@ -281,9 +278,6 @@ export function PracticeView({
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
-  useEffect(() => {
-    collapsedRef.current = hudCollapsed;
-  }, [hudCollapsed]);
 
   // Arrow keys jump the playhead one measure back/forward, in both modes.
   // Ignored while a form control is focused (so typing a tempo is not stolen).
@@ -379,7 +373,7 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
-  const extendedBarShown = mode === "practice" && !hudCollapsed && practiceReady;
+  const extendedBarShown = mode === "practice" && practiceReady;
 
   return (
     <div
@@ -430,10 +424,17 @@ export function PracticeView({
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
         mode={mode}
-        countInBars={0}
+        countInBars={countInBars}
       />
       {extendedBarShown && (
-        <ExtendedTopBar transport={transport} handState={handState} />
+        <ExtendedTopBar
+          transport={transport}
+          handState={handState}
+          audioEngine={audioEngine}
+          falldown={falldown}
+          countInBars={countInBars}
+          onCountInBarsChange={setCountInBars}
+        />
       )}
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel falldown={falldown} audioEngine={audioEngine} />
