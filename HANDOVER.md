@@ -1,9 +1,8 @@
 # Arpeggio — Session Handover
 
-_Last updated: 2026-05-18. Branch: **`fix/chrome-polish`** (unmerged).
-**Practice mode** plus three redesign rounds are merged & deployed on `main`.
-This branch is a long UI-polish round; the volume/zoom slider feature is now
-finished and the full gate is green — see "Current status"._
+_Last updated: 2026-05-18. Branch: **`main`** — clean, green, and deployed.
+The long `fix/chrome-polish` UI-polish round (including the HUD volume/zoom
+sliders) is merged to `main` and live on Vercel — see "Current status"._
 
 ## What this is
 
@@ -19,37 +18,32 @@ tempo, hands-separate, metronome, a saved library.
 
 ## Current status
 
-**On `main`:** v1, Practice mode, and three Practice-mode redesign rounds are
-all merged, pushed, and live on Vercel. `main` is clean and green.
+**`main` is clean, green, and live on Vercel.** v1, Practice mode, three
+Practice-mode redesign rounds, and the full `fix/chrome-polish` UI-polish round
+are all merged. The full gate passes (lint, typecheck, 263 Vitest tests, build,
+7 Playwright e2e). No work is in progress.
 
-**On `fix/chrome-polish` (current branch, NOT merged):** 10 commits of UI
-polish on top of `main` — typography unification, fully-collapsing accordion
-sections, the Play/Practice mode switch (reverted to two plain buttons after
-centering trouble), a darker theme, a midee-inspired HUD restyle, green accent
-on pill highlights, compact tempo steppers, and select-arrow clip fixes.
+The `fix/chrome-polish` round delivered: typography unification,
+fully-collapsing accordion sections, the Play/Practice mode switch (two plain
+buttons), a darker theme, a midee-inspired HUD restyle, green pill-highlight
+accents, compact tempo steppers, and select-arrow clip fixes — plus a final
+batch:
 
-**The HUD volume + zoom (note height) slider feature is complete** and the full
-gate is green (lint, typecheck, 263 Vitest tests, build, 7 Playwright e2e). The
-modified files:
-
-- `src/audio/engine.ts` — `OutputSink` interface, `AudioEngine` optional 4th
-  ctor arg `output`, `AudioEngine.setVolume(level)`, and `createAudioEngine`
-  wires a real `OutputSink` driving `Tone.getDestination().volume`
-  (`-Infinity` at 0, else `Tone.gainToDb`).
-- `src/falldown/renderer.ts` — public `zoom = 1` field; `pixelsPerSecond` is a
-  getter `(this.hitLineY / 2.5) * this.zoom`.
-- `src/ui/FloatingHud.tsx` — required prop `falldown: FalldownRenderer | null`;
-  `volume`/`zoom` state and handlers; two `.hud-minislider` range inputs
-  (Vol + Zoom); `aria-label="Seek"` on the scrubber.
-- `src/styles/theme.css` — `.hud-mini` / `.hud-mini-label` / `.hud-minislider`
-  styles, plus a `.practice-view--extended .control-panel` rule that drops the
-  settings drawer below the accordion bar (the Practice-mode drawer bug).
-- `src/app/PracticeView.tsx` — passes `falldown={falldown}` to `<FloatingHud>`.
-- Tests: `FloatingHud.test.tsx` passes a `falldown` stub and queries sliders by
-  name; new `AudioEngine.setVolume` and `FalldownRenderer` zoom tests.
-
-> The branch is unmerged and the user has **not** authorized merging this
-> polish round to `main`. The changes are uncommitted — commit when ready.
+- **HUD volume + note-zoom mini-sliders.** `AudioEngine` gained an `OutputSink`
+  interface, an optional 4th ctor arg `output`, and `setVolume(level)`;
+  `createAudioEngine` wires a real `OutputSink` driving
+  `Tone.getDestination().volume` (`-Infinity` at 0, else `Tone.gainToDb`).
+  `FalldownRenderer` gained a public `zoom` field, with `pixelsPerSecond` now a
+  getter `(hitLineY / 2.5) * zoom`. `FloatingHud` renders the two
+  `.hud-minislider` range inputs.
+- **Practice-mode chrome fixes.** The settings drawer, the score zoom buttons,
+  and the score-only page layout no longer collide with the accordion bar
+  (`.practice-view--extended` rules drop them below it).
+- **One-row accordion bar.** `.extended-top-bar` is `flex-wrap: nowrap`;
+  `ExtendedTopBar` auto-collapses the oldest-opened section to keep one row.
+- **Uniform score-only pages.** Verovio renders with `adjustPageHeight: false`
+  so every page is a full identical page; the score-only view sizes them to
+  the panel height, so it scrolls sideways only.
 
 ## How to verify (run from repo root)
 
