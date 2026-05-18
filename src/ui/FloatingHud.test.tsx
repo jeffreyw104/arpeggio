@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
+import { HandState } from "../practice/hands";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
@@ -20,23 +21,29 @@ const score = {
 
 function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
   const transport = new Transport(score);
+  const handState = new HandState();
   const audioEngine = {
     metronome: {
       enabled: false,
       accentDownbeat: false,
       subdivision: 1,
       pulse: 0,
+      timeSignature: { numerator: 4, denominator: 4 },
     },
   } as unknown as AudioEngine;
   const props = {
     transport,
+    handState,
     settingsOpen: false,
     audioEngine,
-    falldown: null,
+    falldown: null as FalldownRenderer | null,
+    mode: "play" as const,
+    collapsed: false,
+    onCollapsedChange: vi.fn(),
     ...overrides,
   };
   render(<FloatingHud {...props} />);
-  return { transport, props };
+  return { transport, handState, props };
 }
 
 describe("FloatingHud", () => {
@@ -61,26 +68,41 @@ describe("FloatingHud", () => {
     expect(screen.queryByRole("button", { name: "Settings" })).toBeNull();
   });
 
-  it("toggles the metronome on the audio engine", () => {
-    const { props } = renderHud();
-    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
-    expect(props.audioEngine!.metronome.enabled).toBe(true);
+  it("Play mode shows the speed stepper and no metronome", () => {
+    renderHud({ mode: "play" });
+    expect(
+      screen.getByRole("button", { name: /increase speed/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /metronome/i })).toBeNull();
   });
 
-  it("enables the falldown beat pulse with the metronome toggle", () => {
-    const falldown = { showBeatPulse: false } as unknown as FalldownRenderer;
-    renderHud({ falldown });
-    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
-    expect(falldown.showBeatPulse).toBe(true);
+  it("the Play-mode speed stepper changes the transport BPM", () => {
+    const { transport } = renderHud({ mode: "play" });
+    const ref = transport.referenceBpm;
+    fireEvent.click(screen.getByRole("button", { name: /increase speed/i }));
+    expect(transport.bpm).toBeGreaterThan(ref);
   });
 
-  it("opens the metronome settings dropdown", () => {
-    renderHud();
-    expect(screen.queryByLabelText(/time signature/i)).toBeNull();
-    fireEvent.click(
-      screen.getByRole("button", { name: /metronome settings/i }),
-    );
-    expect(screen.getByLabelText(/time signature/i)).toBeInTheDocument();
+  it("Practice mode expanded shows the practice controls row", () => {
+    renderHud({ mode: "practice", collapsed: false });
+    expect(
+      screen.getByRole("button", { name: /set start/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /metronome/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("Practice mode collapsed hides the practice controls row", () => {
+    renderHud({ mode: "practice", collapsed: true });
+    expect(screen.queryByRole("button", { name: /set start/i })).toBeNull();
+  });
+
+  it("the collapse toggle reports the new state", () => {
+    const onCollapsedChange = vi.fn();
+    renderHud({ mode: "practice", collapsed: false, onCollapsedChange });
+    fireEvent.click(screen.getByRole("button", { name: /collapse|expand/i }));
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
   });
 
   it("moves when dragged by its background", () => {
@@ -89,9 +111,6 @@ describe("FloatingHud", () => {
     fireEvent.pointerDown(hud, { clientX: 100, clientY: 100 });
     fireEvent.pointerMove(window, { clientX: 150, clientY: 130 });
     fireEvent.pointerUp(window);
-    // The HUD shifted by the pointer delta (+50, +30).
-    // In jsdom getBoundingClientRect() returns zeros, so dx=100,dy=100 and
-    // final pos = {x: 150-100=50, y: 130-100=30} (no clamping: parent has no size).
     expect(hud.style.left).toBe("50px");
     expect(hud.style.top).toBe("30px");
   });
@@ -115,7 +134,9 @@ describe("FloatingHud", () => {
       renderHud();
       const hud = document.querySelector(".floating-hud") as HTMLElement;
       expect(hud.className).not.toContain("faded");
-      act(() => { vi.advanceTimersByTime(3000); }); // past the 2500ms idle-fade threshold
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
       expect(hud.className).toContain("faded");
       fireEvent.pointerMove(window, { clientX: 5, clientY: 5 });
       expect(hud.className).not.toContain("faded");
@@ -129,7 +150,23 @@ describe("FloatingHud", () => {
     try {
       renderHud({ settingsOpen: true });
       const hud = document.querySelector(".floating-hud") as HTMLElement;
-      act(() => { vi.advanceTimersByTime(3000); }); // past the 2500ms idle-fade threshold
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(hud.className).not.toContain("faded");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not fade in Practice mode while expanded", () => {
+    vi.useFakeTimers();
+    try {
+      renderHud({ mode: "practice", collapsed: false });
+      const hud = document.querySelector(".floating-hud") as HTMLElement;
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
       expect(hud.className).not.toContain("faded");
     } finally {
       vi.useRealTimers();
@@ -139,8 +176,6 @@ describe("FloatingHud", () => {
   it("stays in the document after a window resize event", () => {
     renderHud();
     const hud = document.querySelector(".floating-hud") as HTMLElement;
-    // jsdom has zero-size parents so the clamp is a no-op; this confirms the
-    // resize handler does not throw and the component remains mounted.
     fireEvent(window, new Event("resize"));
     expect(hud).toBeInTheDocument();
   });
