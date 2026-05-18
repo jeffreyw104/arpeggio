@@ -181,8 +181,12 @@ export function FloatingHud({
       <button type="button" onClick={onExit}>
         Library
       </button>
-      <button type="button" onClick={() => clock.toggle()}>
-        {playing ? "Pause" : "Play"}
+      <button
+        type="button"
+        aria-label={playing ? "Pause" : "Play"}
+        onClick={() => clock.toggle()}
+      >
+        {playing ? "⏸" : "▶"}
       </button>
       <input
         type="range"
