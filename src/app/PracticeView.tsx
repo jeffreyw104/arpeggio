@@ -407,7 +407,7 @@ export function PracticeView({
         onCollapsedChange={setHudCollapsed}
       />
       {falldown && practiceReady && settingsOpen && (
-        <ControlPanel transport={transport} falldown={falldown} />
+        <ControlPanel falldown={falldown} audioEngine={audioEngine} />
       )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (

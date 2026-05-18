@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ControlPanel } from "./ControlPanel";
-import { Transport } from "../transport/transport";
 import { FalldownRenderer } from "../falldown/renderer";
+import { Transport } from "../transport/transport";
+import type { AudioEngine } from "../audio/engine";
 import type { Score } from "../model/score";
 
 const score = {
@@ -34,13 +35,14 @@ function renderPanel() {
     width: 800,
     height: 600,
   });
+  const audioEngine = { metronomeSound: "click" } as unknown as AudioEngine;
   render(
     <ControlPanel
-      transport={transport}
       falldown={falldown}
+      audioEngine={audioEngine}
     />,
   );
-  return { transport, falldown };
+  return { falldown, audioEngine };
 }
 
 describe("ControlPanel", () => {
@@ -56,10 +58,19 @@ describe("ControlPanel", () => {
     expect(falldown.full88).toBe(true);
   });
 
-  it("flattens tempo changes on the transport", () => {
-    const { transport } = renderPanel();
-    fireEvent.click(screen.getByLabelText(/flatten tempo/i));
-    expect(transport.tempoMode).toBe("flatten");
+  it("no longer renders the flatten-tempo control", () => {
+    renderPanel();
+    expect(
+      screen.queryByRole("checkbox", { name: /flatten tempo/i }),
+    ).toBeNull();
+  });
+
+  it("changes the metronome sound on the audio engine", () => {
+    const { audioEngine } = renderPanel();
+    fireEvent.change(screen.getByLabelText(/metronome sound/i), {
+      target: { value: "woodblock" },
+    });
+    expect(audioEngine.metronomeSound).toBe("woodblock");
   });
 
   it("no longer renders loop, speed-up, or hand controls", () => {
@@ -83,9 +94,6 @@ describe("ControlPanel", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("checkbox", { name: /full 88/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("checkbox", { name: /flatten tempo/i }),
     ).toBeInTheDocument();
   });
 });
