@@ -25,8 +25,16 @@ export function ModeSwitch({
       onClick={() => onModeChange(practice ? "play" : "practice")}
     >
       <span className="mode-switch-glass" aria-hidden="true" />
-      <span className="mode-switch-option">Play</span>
-      <span className="mode-switch-option">Practice</span>
+      <span
+        className={`mode-switch-option${practice ? "" : " is-active"}`}
+      >
+        Play
+      </span>
+      <span
+        className={`mode-switch-option${practice ? " is-active" : ""}`}
+      >
+        Practice
+      </span>
     </button>
   );
 }
