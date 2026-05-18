@@ -130,9 +130,8 @@ function useDraggable(mode: PracticeMode): {
 }
 
 /**
- * The draggable transport HUD. Play mode adds a playback-speed stepper;
- * Practice mode is transport-only (loop/tempo/hands/metronome live in the
- * accordion bar). Idle-fades when untouched.
+ * The draggable transport HUD: play/pause, scrubber, time, and the volume and
+ * zoom mini-sliders. Idle-fades when untouched.
  */
 export function FloatingHud({
   transport,
@@ -270,7 +269,6 @@ export function FloatingHud({
           onChange={(e) => changeZoom(Number(e.target.value))}
         />
       </label>
-
     </div>
   );
 }

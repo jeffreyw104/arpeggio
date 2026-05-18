@@ -55,15 +55,18 @@ describe("FloatingHud", () => {
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
-  it("no speed stepper is shown in either mode", () => {
-    renderHud({ mode: "play" });
-    expect(
-      screen.queryByRole("button", { name: /increase speed/i }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /decrease speed/i }),
-    ).toBeNull();
-  });
+  it.each(["play", "practice"] as const)(
+    "no speed stepper is shown in %s mode",
+    (mode) => {
+      renderHud({ mode });
+      expect(
+        screen.queryByRole("button", { name: /increase speed/i }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: /decrease speed/i }),
+      ).toBeNull();
+    },
+  );
 
   it("no metronome control is shown in the HUD", () => {
     renderHud({ mode: "practice" });
