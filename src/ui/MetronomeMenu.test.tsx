@@ -1,10 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MetronomeMenu } from "./MetronomeMenu";
+import type { Transport } from "../transport/transport";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
 
 function fakes() {
+  const setBpm = vi.fn();
+  const transport = { bpm: 120, setBpm } as unknown as Transport;
   const falldown = {
     beatMeter: { numerator: 4, denominator: 4 },
   } as unknown as FalldownRenderer;
@@ -12,21 +15,62 @@ function fakes() {
   const audioEngine = {
     metronome: { accentDownbeat: false, subdivision: 1, setTimeSignature },
   } as unknown as AudioEngine;
-  return { falldown, audioEngine, setTimeSignature };
+  return { transport, setBpm, falldown, audioEngine, setTimeSignature };
 }
 
 describe("MetronomeMenu", () => {
+  it("initialises the tempo from the transport", () => {
+    const { falldown, audioEngine } = fakes();
+    const transport = { bpm: 90, setBpm: vi.fn() } as unknown as Transport;
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
+    expect(screen.getByLabelText(/tempo/i)).toHaveValue(90);
+  });
+
+  it("changes the tempo on the transport", () => {
+    const { transport, falldown, audioEngine, setBpm } = fakes();
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/tempo/i), {
+      target: { value: "90" },
+    });
+    expect(setBpm).toHaveBeenCalledWith(90);
+  });
+
   it("initialises the time signature from the renderer's beat meter", () => {
+    const { transport, audioEngine } = fakes();
     const falldown = {
       beatMeter: { numerator: 3, denominator: 4 },
     } as unknown as FalldownRenderer;
-    render(<MetronomeMenu falldown={falldown} audioEngine={null} />);
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
     expect(screen.getByLabelText(/time signature/i)).toHaveValue("3/4");
   });
 
   it("writes a new time signature to the renderer and audio engine", () => {
-    const { falldown, audioEngine, setTimeSignature } = fakes();
-    render(<MetronomeMenu falldown={falldown} audioEngine={audioEngine} />);
+    const { transport, falldown, audioEngine, setTimeSignature } = fakes();
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
     fireEvent.change(screen.getByLabelText(/time signature/i), {
       target: { value: "6/8" },
     });
@@ -35,8 +79,14 @@ describe("MetronomeMenu", () => {
   });
 
   it("leaves the time signature unchanged for an invalid value", () => {
-    const { falldown, audioEngine, setTimeSignature } = fakes();
-    render(<MetronomeMenu falldown={falldown} audioEngine={audioEngine} />);
+    const { transport, falldown, audioEngine, setTimeSignature } = fakes();
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
     fireEvent.change(screen.getByLabelText(/time signature/i), {
       target: { value: "abc" },
     });
@@ -45,15 +95,27 @@ describe("MetronomeMenu", () => {
   });
 
   it("toggles the downbeat accent on the audio engine", () => {
-    const { falldown, audioEngine } = fakes();
-    render(<MetronomeMenu falldown={falldown} audioEngine={audioEngine} />);
+    const { transport, falldown, audioEngine } = fakes();
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
     fireEvent.click(screen.getByLabelText(/accent/i));
     expect(audioEngine.metronome.accentDownbeat).toBe(true);
   });
 
   it("sets the subdivision on the audio engine", () => {
-    const { falldown, audioEngine } = fakes();
-    render(<MetronomeMenu falldown={falldown} audioEngine={audioEngine} />);
+    const { transport, falldown, audioEngine } = fakes();
+    render(
+      <MetronomeMenu
+        transport={transport}
+        falldown={falldown}
+        audioEngine={audioEngine}
+      />,
+    );
     fireEvent.change(screen.getByLabelText(/subdivision/i), {
       target: { value: "4" },
     });

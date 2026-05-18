@@ -47,13 +47,6 @@ function setup() {
 }
 
 describe("ControlPanel", () => {
-  it("changes the tempo via the BPM input", () => {
-    const { transport } = setup();
-    const bpm = screen.getByLabelText(/tempo \(bpm\)/i);
-    fireEvent.change(bpm, { target: { value: "90" } });
-    expect(transport.bpm).toBeCloseTo(90, 3);
-  });
-
   it("mutes a hand via the hand controls", () => {
     const { handState } = setup();
     fireEvent.click(screen.getByLabelText(/mute left/i));

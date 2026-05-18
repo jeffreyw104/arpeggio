@@ -56,7 +56,7 @@ describe("PracticeView", () => {
 
   it("renders the practice control panel when the settings drawer opens", async () => {
     render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
-    fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
-    expect(await screen.findByLabelText(/tempo \(bpm\)/i)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    expect(await screen.findByLabelText(/note labels/i)).toBeInTheDocument();
   });
 });

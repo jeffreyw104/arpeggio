@@ -19,7 +19,6 @@ export function ControlPanel({
   handState,
   falldown,
 }: ControlPanelProps): React.JSX.Element {
-  const [bpm, setBpm] = useState(Math.round(transport.bpm));
   const [speedUp, setSpeedUp] = useState(false);
   const [showLabels, setShowLabels] = useState(falldown.showLabels);
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
@@ -35,12 +34,6 @@ export function ControlPanel({
   const [rightVis, setRightVis] = useState<HandVisibility>(
     handState.visibility("right"),
   );
-
-  function handleBpm(value: string): void {
-    const next = Number(value);
-    setBpm(next);
-    transport.setBpm(next);
-  }
 
   function handleLoopMeasure(): void {
     const pos = transport.clock.position;
@@ -87,17 +80,6 @@ export function ControlPanel({
 
   return (
     <div className="control-panel">
-      <fieldset className="control-group">
-        <label>
-          Tempo (BPM){" "}
-          <input
-            type="number"
-            value={bpm}
-            onChange={(e) => handleBpm(e.target.value)}
-          />
-        </label>
-      </fieldset>
-
       <fieldset className="control-group">
         <button type="button" onClick={handleLoopMeasure}>
           Loop measure

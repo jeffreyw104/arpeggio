@@ -252,7 +252,6 @@ export function FloatingHud({
           />{" "}
           Metronome
         </label>
-        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         <button
           type="button"
           aria-label="Metronome settings"
@@ -261,8 +260,13 @@ export function FloatingHud({
         >
           ▾
         </button>
+        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         {metronomeMenuOpen && (
-          <MetronomeMenu falldown={falldown} audioEngine={audioEngine} />
+          <MetronomeMenu
+            transport={transport}
+            falldown={falldown}
+            audioEngine={audioEngine}
+          />
         )}
       </div>
       {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
