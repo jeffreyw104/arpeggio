@@ -52,7 +52,7 @@ function renderBar(
 describe("ExtendedTopBar accordion", () => {
   it("renders the four section chips", () => {
     renderBar();
-    expect(screen.getByRole("button", { name: /^loop/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Loop" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^tempo/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^hands/i })).toBeInTheDocument();
     expect(
@@ -62,7 +62,7 @@ describe("ExtendedTopBar accordion", () => {
 
   it("a section chip toggles its aria-expanded", () => {
     renderBar();
-    const loop = screen.getByRole("button", { name: /^loop/i });
+    const loop = screen.getByRole("button", { name: "Loop" });
     expect(loop).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(loop);
     expect(loop).toHaveAttribute("aria-expanded", "true");
@@ -127,5 +127,28 @@ describe("ExtendedTopBar accordion", () => {
       target: { value: "2" },
     });
     expect(onCountInBarsChange).toHaveBeenCalledWith(2);
+  });
+
+  it("Set start then Set end builds a loop range", () => {
+    const { transport } = renderBar();
+    transport.clock.seek(1); // measure 0
+    fireEvent.click(screen.getByRole("button", { name: /set start/i }));
+    transport.clock.seek(5); // measure 2
+    fireEvent.click(screen.getByRole("button", { name: /set end/i }));
+    expect(transport.clock.loop).toEqual({ start: 0, end: 6 });
+  });
+
+  it("Clear removes the loop", () => {
+    const { transport } = renderBar();
+    transport.clock.seek(1);
+    fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
+    fireEvent.click(screen.getByRole("button", { name: /clear loop/i }));
+    expect(transport.clock.loop).toBeNull();
+  });
+
+  it("the tempo + button steps the BPM up", () => {
+    const { transport } = renderBar();
+    fireEvent.click(screen.getByRole("button", { name: /increase tempo/i }));
+    expect(transport.bpm).toBe(125);
   });
 });

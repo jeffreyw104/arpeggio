@@ -230,11 +230,7 @@ export function ExtendedTopBar({
         <button type="button" onClick={handleSetEnd}>
           Set end
         </button>
-        <button
-          type="button"
-          aria-label="snap loop measure"
-          onClick={handleLoopMeasure}
-        >
+        <button type="button" onClick={handleLoopMeasure}>
           Loop measure
         </button>
         <button type="button" aria-label="Clear loop" onClick={handleClearLoop}>
