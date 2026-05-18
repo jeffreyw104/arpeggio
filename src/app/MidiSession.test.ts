@@ -140,11 +140,33 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
+  it("does not gate the clock when active but waitEnabled is false", () => {
+    // Covers the other half of the active && waitEnabled invariant: the
+    // controller must stay disabled (and the clock must remain ungated) when
+    // the MIDI tab is open but the user has turned off wait-for-me.
+    const score = makeScore([note(60, 1, "right")]);
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
+    session.setActive(true);
+    session.setWaitEnabled(false);
+
+    clock.play();
+    clock.tick(1.5); // advance past the step onset at t=1
+    session.update(); // controller should be a no-op — not enabled
+
+    expect(clock.holdAt).toBeNull(); // clock was never parked
+    expect(clock.position).toBeGreaterThan(1); // it actually advanced freely
+    session.dispose();
+  });
+
   it("reports unsupported MIDI status under jsdom", () => {
     const score = makeScore([]);
     const session = new MidiSession(new Clock(10), score, new HandState());
     session.setActive(true);
-    // Web MIDI is absent in jsdom; status resolves to "unsupported".
+    // Status is read synchronously, before the async start() settles, so it
+    // is "no-device" at assertion time.  Once start() resolves in an
+    // environment without Web MIDI it becomes "unsupported".  The test accepts
+    // either because it does not await the settle.
     expect(["unsupported", "no-device"]).toContain(session.status);
     session.dispose();
   });

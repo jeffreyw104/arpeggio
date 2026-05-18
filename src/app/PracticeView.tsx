@@ -292,18 +292,13 @@ export function PracticeView({
     midiSession.setActive(mode === "midi");
   }, [mode, midiSession]);
 
-  // Push the user-facing MIDI config into the session.
+  // Push the user-facing MIDI config into the session (single effect so that
+  // all three settings are propagated together whenever any one changes).
   useEffect(() => {
     midiSession.setHandsIPlay(handsIPlay);
-  }, [handsIPlay, midiSession]);
-
-  useEffect(() => {
     midiSession.setWaitEnabled(waitEnabled);
-  }, [waitEnabled, midiSession]);
-
-  useEffect(() => {
     midiSession.setMonitorOn(monitorOn);
-  }, [monitorOn, midiSession]);
+  }, [handsIPlay, waitEnabled, monitorOn, midiSession]);
 
   // Arrow keys jump the playhead one measure back/forward, in both modes.
   // Spacebar toggles play/pause.

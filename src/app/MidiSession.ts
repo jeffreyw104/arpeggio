@@ -133,6 +133,13 @@ export class MidiSession {
       }
     } else {
       this.keyboardInput.disable();
+      // Release any audio voices before dropping the held-notes map so that
+      // piano voices attacked while the tab was showing are not stuck on.
+      for (const n of this.liveNotes.heldNotes()) {
+        if (this.monitorOn && this.audioEngine) {
+          this.audioEngine.releaseInputNote(n.pitch);
+        }
+      }
       // Drop stale held notes so they do not leak across a tab switch.
       this.liveNotes.clear();
     }
@@ -181,7 +188,16 @@ export class MidiSession {
     this.midiInput.dispose();
     this.keyboardInput.disable();
     this.controller.dispose();
+    // Release any audio voices so disposal does not leave stuck voices.
+    for (const n of this.liveNotes.heldNotes()) {
+      if (this.monitorOn && this.audioEngine) {
+        this.audioEngine.releaseInputNote(n.pitch);
+      }
+    }
     this.liveNotes.clear();
+    // Null the callbacks so closures over this session are not retained.
+    this.liveNotes.onPressed = null;
+    this.liveNotes.onReleased = null;
   }
 
   /** The controller is enabled only on the MIDI tab with wait-mode requested. */
