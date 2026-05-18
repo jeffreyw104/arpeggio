@@ -248,6 +248,43 @@ textarea {
   padding: 0.1rem 0.2rem;
 }
 
+/* --- Practice-mode HUD: row 2 --- */
+
+.practice-hud-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding-top: 0.5rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.hud-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.hud-group-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.hud-loop-readout,
+.hud-tempo-readout {
+  font-size: 0.85rem;
+  color: var(--text);
+  min-width: 2.5ch;
+  text-align: center;
+}
+
 /* --- Score-panel zoom controls --- */
 
 /* Zoom buttons overlaid on the score panel; fade in only on hover. Only the
