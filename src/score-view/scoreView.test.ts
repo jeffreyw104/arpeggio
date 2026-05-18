@@ -51,26 +51,32 @@ describe("ScoreView", () => {
     expect(measures[2].getAttribute("data-measure-index")).toBe("2");
   });
 
-  it("highlights the measure under the clock on renderFrame", () => {
+  it("draws a green measure-highlight rect over the current measure", () => {
     const { container, transport, view } = setup();
     transport.clock.seek(2.5); // measure index 1
     view.renderFrame();
-    const m1 = container.querySelector('[data-measure-index="1"]')!;
-    expect(m1.classList.contains("current-measure")).toBe(true);
-    const m0 = container.querySelector('[data-measure-index="0"]')!;
-    expect(m0.classList.contains("current-measure")).toBe(false);
+    const rect = container.querySelector("rect.measure-highlight");
+    expect(rect).not.toBeNull();
+    expect(rect!.getAttribute("class")).toBe("measure-highlight");
   });
 
-  it("highlights the note sounding under the clock on renderFrame", () => {
+  it("re-renders without error while the clock is not playing", () => {
     const { container, transport, view } = setup();
-    transport.clock.seek(2.5); // 2500 ms -> note n1 sounding
+    transport.clock.seek(2.5);
     view.renderFrame();
-    expect(
-      container.querySelector("#n1")!.classList.contains("current-note"),
-    ).toBe(true);
-    expect(
-      container.querySelector("#n0")!.classList.contains("current-note"),
-    ).toBe(false);
+    expect(transport.clock.playing).toBe(false);
+    transport.clock.seek(4.5); // measure index 2
+    expect(() => view.renderFrame()).not.toThrow();
+    expect(container.querySelector("rect.measure-highlight")).not.toBeNull();
+  });
+
+  it("draws a measure-hover rect on mousemove over a measure", () => {
+    const { container } = setup();
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    m1.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    const rect = container.querySelector("rect.measure-hover");
+    expect(rect).not.toBeNull();
+    expect(rect!.getAttribute("class")).toBe("measure-hover");
   });
 
   it("clicking a measure seeks the clock to that measure's start", () => {

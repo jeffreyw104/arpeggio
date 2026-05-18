@@ -1,32 +1,43 @@
 import type { Transport } from "../transport/transport";
-import { currentMeasureIndex, notesAtTime } from "./sync";
+import { currentMeasureIndex } from "./sync";
 import { measureIndexFromTarget, orderedRange } from "./interactions";
 import type { TimemapEntry } from "./verovio";
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 /**
  * Orchestrates the engraved score: injects the Verovio SVG, tags measures with
- * their index, drives per-frame measure/note highlighting from the transport
- * clock, and turns clicks/drags into seeks and A-B loops. The view only READS
- * `transport.clock.position`; user input drives `seek`/`loopMeasures`.
+ * their index, draws a green highlight over the current measure (and a lighter
+ * green over the hovered measure), and turns clicks/drags into seeks and A-B
+ * loops. The view only READS `transport.clock.position`; user input drives
+ * `seek`/`loopMeasures`.
  */
 export class ScoreView {
   private readonly container: HTMLElement;
   private readonly transport: Transport;
-  private readonly timemap: TimemapEntry[];
   private readonly pagesEl: HTMLElement;
   private dragStart: number | null = null;
+  private highlightRect: SVGRectElement | null = null;
+  private hoverRect: SVGRectElement | null = null;
+  private lastScrolledIndex: number | null = null;
+  private lastHoverIndex: number | null = null;
   private readonly onMouseDown: (e: MouseEvent) => void;
   private readonly onMouseUp: (e: MouseEvent) => void;
+  private readonly onMouseMove: (e: MouseEvent) => void;
+  private readonly onMouseLeave: () => void;
 
   constructor(
     container: HTMLElement,
     transport: Transport,
     svgPages: string[],
-    timemap: TimemapEntry[],
+    // Per-note highlighting was removed; the timemap is no longer used. The
+    // parameter is kept so the constructor signature stays stable for
+    // PracticeView and tests.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _timemap: TimemapEntry[],
   ) {
     this.container = container;
     this.transport = transport;
-    this.timemap = timemap;
 
     container.innerHTML = "";
     const pagesEl = document.createElement("div");
@@ -63,34 +74,90 @@ export class ScoreView {
       }
       this.dragStart = null;
     };
+    this.onMouseMove = (e) => {
+      const idx = measureIndexFromTarget(e.target);
+      if (idx === this.lastHoverIndex) return;
+      this.lastHoverIndex = idx;
+      if (idx === null) {
+        this.hideRect(this.hoverRect);
+        return;
+      }
+      const el = this.container.querySelector(
+        `[data-measure-index="${idx}"]`,
+      );
+      if (el) {
+        this.hoverRect = this.ensureRect(this.hoverRect, "measure-hover");
+        this.positionRect(this.hoverRect, el);
+      } else {
+        this.hideRect(this.hoverRect);
+      }
+    };
+    this.onMouseLeave = () => {
+      this.lastHoverIndex = null;
+      this.hideRect(this.hoverRect);
+    };
     container.addEventListener("mousedown", this.onMouseDown);
     container.addEventListener("mouseup", this.onMouseUp);
+    container.addEventListener("mousemove", this.onMouseMove);
+    container.addEventListener("mouseleave", this.onMouseLeave);
   }
 
-  /** Update measure/note highlighting and scroll from the current clock time. */
+  /** Update the current-measure highlight and scroll from the clock time. */
   renderFrame(): void {
     const t = this.transport.clock.position;
-
     const idx = currentMeasureIndex(this.transport.score, t);
-    for (const el of this.container.querySelectorAll(".current-measure")) {
-      el.classList.remove("current-measure");
-    }
     const current = this.container.querySelector(
       `[data-measure-index="${idx}"]`,
     );
     if (current) {
-      current.classList.add("current-measure");
-      (current as HTMLElement).scrollIntoView?.({ block: "nearest" });
-    }
+      this.highlightRect = this.ensureRect(
+        this.highlightRect,
+        "measure-highlight",
+      );
+      this.positionRect(this.highlightRect, current);
 
-    const ids = notesAtTime(this.timemap, t * 1000);
-    for (const el of this.container.querySelectorAll(".current-note")) {
-      el.classList.remove("current-note");
+      // Follow the playhead only when it actually moves to a new measure,
+      // and only while playing — so a paused user can browse freely.
+      if (
+        this.transport.clock.playing &&
+        idx !== this.lastScrolledIndex
+      ) {
+        (current as HTMLElement).scrollIntoView?.({ block: "nearest" });
+      }
+      this.lastScrolledIndex = idx;
+    } else {
+      this.hideRect(this.highlightRect);
     }
-    for (const id of ids) {
-      const note = this.container.querySelector("#" + CSS.escape(id));
-      if (note) note.classList.add("current-note");
-    }
+  }
+
+  /** Lazily create an SVG overlay rect with the given class. */
+  private ensureRect(
+    rect: SVGRectElement | null,
+    className: string,
+  ): SVGRectElement {
+    if (rect) return rect;
+    const created = document.createElementNS(SVG_NS, "rect");
+    created.setAttribute("class", className);
+    created.style.pointerEvents = "none";
+    return created;
+  }
+
+  /** Move and size `rect` to cover `measureEl`, in that page's SVG space. */
+  private positionRect(rect: SVGRectElement, measureEl: Element): void {
+    const box = (measureEl as SVGGraphicsElement).getBBox();
+    rect.setAttribute("x", String(box.x));
+    rect.setAttribute("y", String(box.y));
+    rect.setAttribute("width", String(box.width));
+    rect.setAttribute("height", String(box.height));
+    const svg = (measureEl as SVGGraphicsElement).ownerSVGElement;
+    // appendChild moves the rect into the measure's owning <svg> so it shares
+    // the same coordinate space.
+    if (svg && rect.ownerSVGElement !== svg) svg.appendChild(rect);
+  }
+
+  /** Detach a rect from the DOM so it is no longer visible. */
+  private hideRect(rect: SVGRectElement | null): void {
+    if (rect && rect.parentNode) rect.parentNode.removeChild(rect);
   }
 
   /**
@@ -105,6 +172,8 @@ export class ScoreView {
   destroy(): void {
     this.container.removeEventListener("mousedown", this.onMouseDown);
     this.container.removeEventListener("mouseup", this.onMouseUp);
+    this.container.removeEventListener("mousemove", this.onMouseMove);
+    this.container.removeEventListener("mouseleave", this.onMouseLeave);
     this.container.innerHTML = "";
   }
 }

@@ -214,13 +214,18 @@ body {
 
 /* --- Score-view highlighting --- */
 
-.current-note {
-  fill: var(--accent) !important;
+/* Translucent green overlay marking the measure under the playhead. */
+.measure-highlight {
+  fill: #3fae4f;
+  opacity: 0.25;
+  pointer-events: none;
 }
 
-.current-measure {
-  /* Faint cue only — robust SVG measure highlighting is out of scope for v1. */
-  opacity: 1;
+/* Lighter green overlay marking the measure the cursor is hovering. */
+.measure-hover {
+  fill: #3fae4f;
+  opacity: 0.12;
+  pointer-events: none;
 }
 
 /* --- Library browser --- */

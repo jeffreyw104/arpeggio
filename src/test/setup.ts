@@ -12,6 +12,16 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   } as unknown as typeof ResizeObserver;
 }
 
+// jsdom does not implement SVGGraphicsElement.getBBox; ScoreView calls it to
+// size its measure-highlight/hover overlay rects. Provide a zero-size stub.
+const svgProto = SVGElement.prototype as unknown as {
+  getBBox?: () => DOMRect;
+};
+if (!svgProto.getBBox) {
+  svgProto.getBBox = () =>
+    ({ x: 0, y: 0, width: 0, height: 0 }) as DOMRect;
+}
+
 // Reset the DOM between tests so leaked elements from one test cannot leak
 // into another. Without this, jsdom's document-wide id-selector fast path can
 // resolve `querySelector("#id")` to a stale element from an earlier test.
