@@ -193,7 +193,8 @@ textarea {
 
 .hud-metronome-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  /* The HUD sits at the bottom of the viewport, so the menu opens upward. */
+  bottom: calc(100% + 8px);
   left: 0;
   z-index: 21;
   display: flex;
