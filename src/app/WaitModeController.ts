@@ -40,6 +40,7 @@ export class WaitModeController {
     this.enabled = on;
     if (on) {
       this.resyncToPosition();
+      this.update(); // place the hold immediately rather than waiting for the next frame
     } else {
       this.clock.setHold(null);
       this.result = null;
@@ -47,11 +48,12 @@ export class WaitModeController {
   }
 
   /** Point the step pointer at the first step at or after the clock. */
-  resyncToPosition(): void {
+  private resyncToPosition(): void {
     const pos = this.clock.position;
     const idx = this.steps.findIndex((s) => s.time >= pos);
     this.stepIndex = idx === -1 ? this.steps.length : idx;
     this.armedFor = -1;
+    this.result = null; // clear stale evaluation from the previous position
   }
 
   /** Call once per frame, after the clock has ticked. */
@@ -88,6 +90,7 @@ export class WaitModeController {
   }
 
   dispose(): void {
+    this.enabled = false;
     this.unsubscribeLoop();
     this.clock.setHold(null);
   }
