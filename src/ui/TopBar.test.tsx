@@ -48,10 +48,10 @@ describe("TopBar", () => {
     );
   });
 
-  it("renders the Play/Practice switch", () => {
+  it("renders the Play/MIDI Practice switch", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("button", { name: "Practice" }));
-    expect(props.onModeChange).toHaveBeenCalledWith("practice");
+    fireEvent.click(screen.getByRole("button", { name: "MIDI Practice" }));
+    expect(props.onModeChange).toHaveBeenCalledWith("midi");
   });
 
   it("toggles settings and reflects the open state", () => {

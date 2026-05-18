@@ -3,7 +3,7 @@ import { capturePracticeState, applyPracticeState } from "./practiceState";
 import { Transport } from "../transport/transport";
 import { HandState } from "../practice/hands";
 import type { Score } from "../model/score";
-import { PRACTICE_MODES } from "../layout/practiceMode";
+import { TAB_MODES } from "../layout/practiceMode";
 
 const score = {
   source: "midi",
@@ -119,12 +119,12 @@ describe("practice-mode persistence", () => {
     const t = new Transport(score);
     const hands = new HandState();
     const captured = capturePracticeState(t, hands, undefined, {
-      mode: "practice",
+      mode: "midi",
       hudCollapsed: true,
     });
-    expect(captured.mode).toBe("practice");
+    expect(captured.mode).toBe("midi");
     expect(captured.hudCollapsed).toBe(true);
-    expect(PRACTICE_MODES).toContain(captured.mode);
+    expect(TAB_MODES).toContain(captured.mode);
   });
 
   it("omits mode and hudCollapsed when not given", () => {

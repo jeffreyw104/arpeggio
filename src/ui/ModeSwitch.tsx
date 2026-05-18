@@ -1,14 +1,14 @@
-import type { PracticeMode } from "../layout/practiceMode";
+import type { TabMode } from "../layout/practiceMode";
 
 interface ModeSwitchProps {
-  mode: PracticeMode;
-  onModeChange: (m: PracticeMode) => void;
+  mode: TabMode;
+  onModeChange: (m: TabMode) => void;
 }
 
 /**
- * The Play / Practice switch — two buttons. The active mode is `aria-pressed`
- * and styled as the accent pill. Purely presentational; the mode state lives
- * in PracticeView.
+ * The Play / MIDI Practice switch — two buttons. The active mode is
+ * `aria-pressed` and styled as the accent pill. Purely presentational; the
+ * mode state lives in PracticeView.
  */
 export function ModeSwitch({
   mode,
@@ -25,10 +25,10 @@ export function ModeSwitch({
       </button>
       <button
         type="button"
-        aria-pressed={mode === "practice"}
-        onClick={() => onModeChange("practice")}
+        aria-pressed={mode === "midi"}
+        onClick={() => onModeChange("midi")}
       >
-        Practice
+        MIDI Practice
       </button>
     </div>
   );

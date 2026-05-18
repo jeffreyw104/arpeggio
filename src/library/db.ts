@@ -4,7 +4,7 @@
  */
 
 import type { HandVisibility } from "../practice/hands";
-import type { PracticeMode } from "../layout/practiceMode";
+import type { TabMode } from "../layout/practiceMode";
 
 /** A stored uploaded piece. */
 export interface StoredPiece {
@@ -31,7 +31,7 @@ export interface StoredPracticeState {
   denominator?: number;
   subdivision?: number;
   /** The last-used session mode (optional for records saved before this). */
-  mode?: PracticeMode;
+  mode?: TabMode;
   /** The Practice-HUD collapse state (optional for records saved before this). */
   hudCollapsed?: boolean;
 }

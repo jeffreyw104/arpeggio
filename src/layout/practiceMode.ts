@@ -1,5 +1,5 @@
-/** Which session mode the practice screen is in. */
-export type PracticeMode = "play" | "practice";
+/** Which tab the practice screen is on. */
+export type TabMode = "play" | "midi";
 
-/** All practice modes, in switcher order. Designed so a third could be added. */
-export const PRACTICE_MODES: readonly PracticeMode[] = ["play", "practice"];
+/** All tabs, in switcher order. */
+export const TAB_MODES: readonly TabMode[] = ["play", "midi"];

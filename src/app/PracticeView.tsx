@@ -26,7 +26,7 @@ import {
   capturePracticeState,
   applyPracticeState,
 } from "../library/practiceState";
-import type { PracticeMode } from "../layout/practiceMode";
+import type { TabMode } from "../layout/practiceMode";
 import { measureJumpTarget } from "../transport/measureJump";
 
 interface PracticeViewProps {
@@ -65,9 +65,9 @@ export function PracticeView({
   const falldownRef = useRef<FalldownRenderer | null>(null);
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
 
-  const modeRef = useRef<PracticeMode>("play");
+  const modeRef = useRef<TabMode>("play");
 
-  const [mode, setMode] = useState<PracticeMode>("play");
+  const [mode, setMode] = useState<TabMode>("play");
   const [countInBars, setCountInBars] = useState(0);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
@@ -159,7 +159,7 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
-      setMode(state?.mode ?? "practice");
+      setMode(state?.mode ?? "play");
       setPracticeReady(true);
     })();
 
@@ -264,7 +264,7 @@ export function PracticeView({
     return () => window.removeEventListener("keydown", onKey);
   }, [transport]);
 
-  function handleModeChange(next: PracticeMode): void {
+  function handleModeChange(next: TabMode): void {
     setMode(next);
   }
 

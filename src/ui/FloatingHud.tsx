@@ -8,7 +8,7 @@ import {
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
-import type { PracticeMode } from "../layout/practiceMode";
+import type { TabMode } from "../layout/practiceMode";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 
 interface FloatingHudProps {
@@ -16,7 +16,7 @@ interface FloatingHudProps {
   settingsOpen: boolean;
   audioEngine: AudioEngine | null;
   falldown: FalldownRenderer | null;
-  mode: PracticeMode;
+  mode: TabMode;
   /** Count-in bars (owned by PracticeView; the metronome section sets it). */
   countInBars: number;
 }
@@ -69,7 +69,7 @@ function useIdleFade(disabled: boolean): boolean {
  * depends on `mode`: Play spawns top-left, Practice spawns top-center. A drag
  * is ignored when it starts on an interactive control.
  */
-function useDraggable(mode: PracticeMode): {
+function useDraggable(mode: TabMode): {
   ref: React.RefObject<HTMLDivElement | null>;
   pos: Position | null;
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -173,9 +173,9 @@ export function FloatingHud({
     return () => countInRef.current?.cancel();
   }, []);
 
-  // A count-in only makes sense in Practice mode; cancel it on leaving.
+  // A count-in only makes sense in MIDI Practice mode; cancel it on leaving.
   useEffect(() => {
-    if (mode !== "practice" && countInRef.current) {
+    if (mode !== "midi" && countInRef.current) {
       countInRef.current.cancel();
       countInRef.current = null;
       setCountingIn(false);
@@ -190,7 +190,7 @@ export function FloatingHud({
       setCountingIn(false);
       return;
     }
-    if (mode === "practice" && countInBars > 0 && audioEngine) {
+    if (mode === "midi" && countInBars > 0 && audioEngine) {
       setCountingIn(true);
       countInRef.current = startCountIn({
         bars: countInBars,

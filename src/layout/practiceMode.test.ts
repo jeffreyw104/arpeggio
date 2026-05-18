@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { PRACTICE_MODES, type PracticeMode } from "./practiceMode";
+import { TAB_MODES, type TabMode } from "./practiceMode";
 
 describe("practiceMode", () => {
-  it("lists Play and Practice in order", () => {
-    expect(PRACTICE_MODES).toEqual(["play", "practice"]);
+  it("lists Play and MIDI in order", () => {
+    expect(TAB_MODES).toEqual(["play", "midi"]);
   });
 
-  it("PracticeMode admits exactly the two modes", () => {
-    const modes: PracticeMode[] = ["play", "practice"];
+  it("TabMode admits exactly the two modes", () => {
+    const modes: TabMode[] = ["play", "midi"];
     expect(modes).toHaveLength(2);
   });
 });

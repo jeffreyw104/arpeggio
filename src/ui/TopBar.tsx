@@ -1,6 +1,6 @@
 import type { ViewMode } from "../layout/viewMode";
 import { ModeSwitch } from "./ModeSwitch";
-import type { PracticeMode } from "../layout/practiceMode";
+import type { TabMode } from "../layout/practiceMode";
 
 interface TopBarProps {
   pieceName: string;
@@ -9,8 +9,8 @@ interface TopBarProps {
   onOpenLibrary: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
-  mode: PracticeMode;
-  onModeChange: (m: PracticeMode) => void;
+  mode: TabMode;
+  onModeChange: (m: TabMode) => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [

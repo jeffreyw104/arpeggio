@@ -55,7 +55,7 @@ describe("FloatingHud", () => {
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
-  it.each(["play", "practice"] as const)(
+  it.each(["play", "midi"] as const)(
     "no speed stepper is shown in %s mode",
     (mode) => {
       renderHud({ mode });
@@ -69,7 +69,7 @@ describe("FloatingHud", () => {
   );
 
   it("no metronome control is shown in the HUD", () => {
-    renderHud({ mode: "practice" });
+    renderHud({ mode: "midi" });
     expect(screen.queryByRole("checkbox", { name: /metronome/i })).toBeNull();
   });
 
@@ -99,7 +99,7 @@ describe("FloatingHud", () => {
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {
-      const { transport } = renderHud({ mode: "practice", countInBars: 1 });
+      const { transport } = renderHud({ mode: "midi", countInBars: 1 });
       fireEvent.click(screen.getByRole("button", { name: /play/i }));
       expect(screen.getByRole("button", { name: /play/i })).toBeDisabled();
       expect(transport.clock.playing).toBe(false);

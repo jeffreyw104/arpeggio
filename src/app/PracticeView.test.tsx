@@ -120,7 +120,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    await screen.findByRole("button", { name: "Practice" });
+    await screen.findByRole("button", { name: "MIDI Practice" });
     fireEvent.keyDown(window, { key: "ArrowRight" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(document.querySelector(".practice-view")).toBeInTheDocument();
