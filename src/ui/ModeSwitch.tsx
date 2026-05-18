@@ -1,35 +1,34 @@
-import { PRACTICE_MODES, type PracticeMode } from "../layout/practiceMode";
+import type { PracticeMode } from "../layout/practiceMode";
 
 interface ModeSwitchProps {
   mode: PracticeMode;
   onModeChange: (m: PracticeMode) => void;
 }
 
-const LABELS: Record<PracticeMode, string> = {
-  play: "Play",
-  practice: "Practice",
-};
-
 /**
- * The Play / Practice segmented control. Purely presentational; the mode
- * state lives in PracticeView. Built so a third segment could be added later.
+ * The Play / Practice toggle — a sliding on/off switch. "Practice" is the
+ * checked state. Clicking it flips the mode. Purely presentational; the mode
+ * state lives in PracticeView.
  */
 export function ModeSwitch({
   mode,
   onModeChange,
 }: ModeSwitchProps): React.JSX.Element {
+  const practice = mode === "practice";
   return (
-    <div className="top-bar-modes">
-      {PRACTICE_MODES.map((m) => (
-        <button
-          key={m}
-          type="button"
-          aria-pressed={mode === m}
-          onClick={() => onModeChange(m)}
-        >
-          {LABELS[m]}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={practice}
+      aria-label="Play / Practice"
+      className="mode-switch"
+      onClick={() => onModeChange(practice ? "play" : "practice")}
+    >
+      <span className="mode-switch-label">Play</span>
+      <span className="mode-switch-track">
+        <span className="mode-switch-knob" />
+      </span>
+      <span className="mode-switch-label">Practice</span>
+    </button>
   );
 }

@@ -3,29 +3,30 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ModeSwitch } from "./ModeSwitch";
 
 describe("ModeSwitch", () => {
-  it("renders a Play and a Practice segment", () => {
+  it("renders a Play/Practice toggle reflecting the current mode", () => {
     render(<ModeSwitch mode="play" onModeChange={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /^play$/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^practice$/i }),
-    ).toBeInTheDocument();
+    const toggle = screen.getByRole("switch", { name: /play.*practice/i });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
   });
 
-  it("marks the active mode with aria-pressed", () => {
+  it("reads aria-checked true in Practice mode", () => {
     render(<ModeSwitch mode="practice" onModeChange={vi.fn()} />);
     expect(
-      screen.getByRole("button", { name: /^practice$/i }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /^play$/i })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+      screen.getByRole("switch", { name: /play.*practice/i }),
+    ).toHaveAttribute("aria-checked", "true");
   });
 
-  it("emits onModeChange when a segment is clicked", () => {
+  it("flips to Practice when clicked from Play", () => {
     const onModeChange = vi.fn();
     render(<ModeSwitch mode="play" onModeChange={onModeChange} />);
-    fireEvent.click(screen.getByRole("button", { name: /^practice$/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
     expect(onModeChange).toHaveBeenCalledWith("practice");
+  });
+
+  it("flips to Play when clicked from Practice", () => {
+    const onModeChange = vi.fn();
+    render(<ModeSwitch mode="practice" onModeChange={onModeChange} />);
+    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
+    expect(onModeChange).toHaveBeenCalledWith("play");
   });
 });

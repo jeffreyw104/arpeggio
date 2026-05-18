@@ -136,6 +136,54 @@ textarea {
   gap: 0.25rem;
 }
 
+/* Play / Practice slider toggle. */
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.mode-switch-label {
+  transition: color 0.2s ease;
+}
+
+/* The active side's label brightens. */
+.mode-switch[aria-checked="false"] .mode-switch-label:first-of-type,
+.mode-switch[aria-checked="true"] .mode-switch-label:last-of-type {
+  color: var(--text);
+}
+
+.mode-switch-track {
+  position: relative;
+  width: 34px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mode-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: left 0.2s ease;
+}
+
+.mode-switch[aria-checked="true"] .mode-switch-knob {
+  left: 20px;
+}
+
 /* --- Floating transport HUD --- */
 
 .floating-hud {
