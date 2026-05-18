@@ -153,14 +153,26 @@ export function drawPiano(
       : opts.whiteColor;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
     ctx.strokeRect(key.x, opts.y, key.width, opts.height);
+
+    // Depth: a soft top highlight fading to a bottom shadow, lit from above.
+    const grad = ctx.createLinearGradient(0, opts.y, 0, opts.y + opts.height);
+    grad.addColorStop(0, "rgba(255,255,255,0.35)");
+    grad.addColorStop(0.12, "rgba(255,255,255,0)");
+    grad.addColorStop(0.85, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(key.x, opts.y, key.width, opts.height);
   }
 
-  // Black keys on top — shorter.
+  // Black keys on top — shorter, with a top bevel highlight.
   for (const key of layout.keys) {
     if (!key.black) continue;
+    const h = opts.height * 0.62;
     ctx.fillStyle = opts.activeKeys.has(key.midi)
       ? opts.activeColor
       : opts.blackColor;
-    ctx.fillRect(key.x, opts.y, key.width, opts.height * 0.62);
+    ctx.fillRect(key.x, opts.y, key.width, h);
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fillRect(key.x, opts.y, key.width, Math.max(1, h * 0.08));
   }
 }

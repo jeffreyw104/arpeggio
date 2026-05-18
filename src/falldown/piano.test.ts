@@ -68,6 +68,7 @@ describe("drawPiano", () => {
       strokeRect: () => calls.push("strokeRect"),
       set strokeStyle(_v: string) {},
       set lineWidth(_v: number) {},
+      createLinearGradient: () => ({ addColorStop: () => {} }),
     } as unknown as CanvasRenderingContext2D;
     drawPiano(ctx, layout, {
       y: 300,
@@ -81,5 +82,30 @@ describe("drawPiano", () => {
       layout.keys.length,
     );
     expect(calls).toContain("fill=#4a8"); // the active key was highlighted
+  });
+
+  it("shades white keys with a vertical gradient for depth", () => {
+    const layout = keyLayout({ low: 60, high: 72 }, 800);
+    let gradients = 0;
+    const ctx = {
+      set fillStyle(_v: string | CanvasGradient) {},
+      fillRect: () => {},
+      strokeRect: () => {},
+      set strokeStyle(_v: string) {},
+      set lineWidth(_v: number) {},
+      createLinearGradient: () => {
+        gradients++;
+        return { addColorStop: () => {} };
+      },
+    } as unknown as CanvasRenderingContext2D;
+    drawPiano(ctx, layout, {
+      y: 300,
+      height: 100,
+      activeKeys: new Set<number>(),
+      activeColor: "#4a8",
+      whiteColor: "#fff",
+      blackColor: "#222",
+    });
+    expect(gradients).toBeGreaterThan(0);
   });
 });
