@@ -749,8 +749,8 @@ textarea {
 }
 
 .accordion-section.open {
-  border-color: rgba(122, 162, 255, 0.45);
-  background: rgba(122, 162, 255, 0.1);
+  border-color: rgba(68, 170, 136, 0.5);
+  background: rgba(68, 170, 136, 0.12);
 }
 
 .accordion-chip {
@@ -819,6 +819,14 @@ textarea {
 
 .accordion-body button:hover {
   background: rgba(255, 255, 255, 0.13);
+}
+
+/* The tempo − / + steppers are compact squares — they need not be as wide
+   as the BPM field between them. */
+.accordion-body button[aria-label="Decrease tempo"],
+.accordion-body button[aria-label="Increase tempo"] {
+  width: 1.5rem;
+  padding: 0;
 }
 
 .accordion-body label {
