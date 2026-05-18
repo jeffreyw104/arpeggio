@@ -42,6 +42,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     transport,
     audioEngine,
     countInBars: 0,
+    laneCollapsed: false,
+    onToggleLane: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);

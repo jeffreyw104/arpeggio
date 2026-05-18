@@ -37,7 +37,6 @@ export function MidiTools({
     <div className="play-tools midi-tools">
       <div
         className="midi-tools-placeholder"
-        aria-disabled="true"
       >
         MIDI input — added in the next update
       </div>

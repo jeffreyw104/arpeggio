@@ -21,9 +21,9 @@ interface TopBarProps {
   audioEngine: AudioEngine | null;
   countInBars: number;
   /** MIDI tab: whether the reading lane is currently collapsed. */
-  laneCollapsed?: boolean;
+  laneCollapsed: boolean;
   /** MIDI tab: toggle the reading lane collapsed state. */
-  onToggleLane?: () => void;
+  onToggleLane: () => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -65,7 +65,7 @@ export function TopBar({
   transport,
   audioEngine,
   countInBars,
-  laneCollapsed = false,
+  laneCollapsed,
   onToggleLane,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);

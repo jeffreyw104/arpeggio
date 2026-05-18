@@ -447,8 +447,8 @@ textarea {
 /* --- Score-panel zoom controls --- */
 
 /* Zoom buttons overlaid on the score panel; fade in only on hover. Only the
-   score panel contains a .score-zoom, so the :hover selector never matches
-   the falldown panel. */
+   score panel (.practice-score-panel) contains a .score-zoom, so the :hover
+   selector never matches the falldown panel. */
 .score-zoom {
   position: absolute;
   top: 70px;
@@ -460,7 +460,7 @@ textarea {
   transition: opacity 0.3s ease;
 }
 
-.layout-panel:hover .score-zoom {
+.practice-score-panel:hover .score-zoom {
   opacity: 1;
 }
 

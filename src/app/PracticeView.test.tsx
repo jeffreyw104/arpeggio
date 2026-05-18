@@ -6,7 +6,7 @@ import type { Score } from "../model/score";
 // Verovio + Tone are heavy/async; stub them so the component mounts in jsdom.
 vi.mock("../score-view/verovio", () => ({
   renderScore: vi.fn().mockResolvedValue({
-    svg: '<svg><g class="measure"></g></svg>',
+    svgPages: ['<svg><g class="measure"></g></svg>'],
     timemap: [],
   }),
 }));

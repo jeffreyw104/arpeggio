@@ -277,10 +277,6 @@ export function PracticeView({
     return () => window.removeEventListener("keydown", onKey);
   }, [transport]);
 
-  function handleModeChange(next: TabMode): void {
-    setMode(next);
-  }
-
   function zoomIn(): void {
     const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
     setScoreZoom(next);
@@ -345,7 +341,6 @@ export function PracticeView({
         className={[
           "practice-content",
           `practice-content--${mode}`,
-          isMidi && laneCollapsed ? "practice-content--lane-collapsed" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -369,7 +364,7 @@ export function PracticeView({
         <div
           className={scorePanelClass}
           style={scorePanelStyle}
-          data-testid="reading-lane"
+          {...(isMidi ? { "data-testid": "reading-lane" } : {})}
         >
           {/* The score-container ref is always this element, at this position */}
           <div ref={scoreContainerRef} className={scoreContainerClass} />
@@ -414,7 +409,7 @@ export function PracticeView({
         toolsOpen={toolsOpen}
         onToggleTools={() => setToolsOpen((o) => !o)}
         mode={mode}
-        onModeChange={handleModeChange}
+        onModeChange={setMode}
         transport={transport}
         audioEngine={audioEngine}
         countInBars={countInBars}
