@@ -123,6 +123,19 @@ describe("FalldownRenderer", () => {
   });
 });
 
+describe("FalldownRenderer resize", () => {
+  it("renders without throwing after resize and uses the new size", () => {
+    const { ctx, renderer } = makeRenderer();
+    renderer.resize(400, 300);
+    renderer.renderFrame();
+
+    // The canvas is cleared to the new pixel dimensions.
+    expect(ctx.calls).toContain("clearRect(0,0,400,300)");
+    // The background fill spans the new dimensions.
+    expect(ctx.calls).toContain("fillRect(0,0,400,300)");
+  });
+});
+
 describe("FalldownRenderer hand hide", () => {
   it("draws fewer note rects when a hand is hidden", () => {
     const { transport, ctx, renderer } = makeRenderer();

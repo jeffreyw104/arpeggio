@@ -17,36 +17,31 @@ export function Layout({
   falldown,
   score,
 }: LayoutProps) {
-  if (viewMode === "both") {
-    return (
-      <div className="layout">
-        <div
-          className="layout-panel"
-          style={{ flexBasis: `${split * 100}%`, flexGrow: 0, flexShrink: 0 }}
-        >
-          {falldown}
-        </div>
-        <Divider fraction={split} onChange={onSplitChange} />
-        <div className="layout-panel" style={{ flex: 1 }}>
-          {score}
-        </div>
-      </div>
-    );
-  }
+  const showFalldown = viewMode !== "score";
+  const showScore = viewMode !== "falldown";
 
-  if (viewMode === "falldown") {
-    return (
-      <div className="layout">
-        <div className="layout-panel" style={{ flex: 1 }}>
-          {falldown}
-        </div>
-      </div>
-    );
-  }
+  const falldownStyle =
+    viewMode === "both"
+      ? {
+          display: showFalldown ? undefined : "none",
+          flexBasis: `${split * 100}%`,
+          flexGrow: 0,
+          flexShrink: 0,
+        }
+      : { display: showFalldown ? undefined : "none", flex: 1 };
 
   return (
     <div className="layout">
-      <div className="layout-panel" style={{ flex: 1 }}>
+      <div className="layout-panel" style={falldownStyle}>
+        {falldown}
+      </div>
+      {viewMode === "both" && (
+        <Divider fraction={split} onChange={onSplitChange} />
+      )}
+      <div
+        className="layout-panel"
+        style={{ display: showScore ? undefined : "none", flex: 1 }}
+      >
         {score}
       </div>
     </div>

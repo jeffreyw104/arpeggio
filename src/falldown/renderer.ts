@@ -29,11 +29,11 @@ export interface FalldownRendererOptions {
 export class FalldownRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly transport: Transport;
-  private readonly width: number;
-  private readonly height: number;
-  private readonly pianoHeight: number;
-  private readonly hitLineY: number;
-  private readonly pixelsPerSecond: number;
+  private width: number;
+  private height: number;
+  private pianoHeight: number;
+  private hitLineY: number;
+  private pixelsPerSecond: number;
   private rafHandle: number | null = null;
 
   /** Show the full 88-key keyboard instead of the auto-fitted range. */
@@ -54,6 +54,15 @@ export class FalldownRenderer {
     this.transport = transport;
     this.width = options.width;
     this.height = options.height;
+    this.pianoHeight = Math.min(140, this.height * 0.22);
+    this.hitLineY = this.height - this.pianoHeight;
+    this.pixelsPerSecond = this.hitLineY / 2.5;
+  }
+
+  /** Re-size the renderer to a new canvas pixel size (after a layout change). */
+  resize(width: number, height: number): void {
+    this.width = width;
+    this.height = height;
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
     this.pixelsPerSecond = this.hitLineY / 2.5;

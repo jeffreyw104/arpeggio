@@ -16,8 +16,8 @@ describe("Layout", () => {
         score={scorePanel}
       />,
     );
-    expect(screen.getByTestId("falldown-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("score-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("falldown-panel")).toBeVisible();
+    expect(screen.getByTestId("score-panel")).toBeVisible();
     expect(screen.getByRole("separator")).toBeInTheDocument();
   });
 
@@ -31,8 +31,8 @@ describe("Layout", () => {
         score={scorePanel}
       />,
     );
-    expect(screen.getByTestId("falldown-panel")).toBeInTheDocument();
-    expect(screen.queryByTestId("score-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("falldown-panel")).toBeVisible();
+    expect(screen.getByTestId("score-panel")).not.toBeVisible();
     expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 
@@ -46,7 +46,7 @@ describe("Layout", () => {
         score={scorePanel}
       />,
     );
-    expect(screen.queryByTestId("falldown-panel")).not.toBeInTheDocument();
-    expect(screen.getByTestId("score-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("score-panel")).toBeVisible();
+    expect(screen.getByTestId("falldown-panel")).not.toBeVisible();
   });
 });

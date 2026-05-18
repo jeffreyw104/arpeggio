@@ -125,6 +125,29 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
     };
   }, [transport, handState, pieceId]);
 
+  // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
+  // divider drag, or window resize). The renderer holds onto a fixed pixel
+  // size, so the canvas backing store and the renderer must both be updated.
+  useEffect(() => {
+    if (!falldown) return;
+    if (typeof ResizeObserver === "undefined") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const observer = new ResizeObserver(() => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (width > 0 && height > 0) {
+        canvas.width = width;
+        canvas.height = height;
+        falldown.resize(width, height);
+      }
+    });
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
+  }, [falldown]);
+
   // Resume the Web Audio context on the first user-driven play.
   useEffect(() => {
     return transport.clock.onChange(() => {
