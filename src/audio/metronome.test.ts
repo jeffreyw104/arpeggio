@@ -87,6 +87,26 @@ describe("Metronome", () => {
     expect(m.pulse).toBeLessThan(right);
   });
 
+  it("setScore re-grids onto the new score's measures", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    // A re-timed score (as a flatten/preserve toggle produces): the same two
+    // measures, but each now spanning 1 s instead of 2 s.
+    const reTimed = {
+      ...score,
+      measures: [
+        { index: 0, start: 0, end: 1, numerator: 4, denominator: 4 },
+        { index: 1, start: 1, end: 2, numerator: 4, denominator: 4 },
+      ],
+      durationSeconds: 2,
+    } satisfies Score;
+    m.setScore(reTimed);
+    const times: number[] = [];
+    m.onClick((time) => times.push(time));
+    m.update(-0.01, 2); // 4 beats per 1 s measure -> every 0.25 s
+    expect(times).toEqual([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75]);
+  });
+
   it("setTimeSignature(2, 4) changes beats-per-bar", () => {
     const m = new Metronome(score);
     m.enabled = true;

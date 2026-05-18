@@ -1,4 +1,5 @@
 import type { Transport } from "../transport/transport";
+import type { Score } from "../model/score";
 import { notesToTrigger } from "./scheduler";
 import { Metronome } from "./metronome";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
@@ -32,6 +33,8 @@ export class AudioEngine {
   private prevPosition: number;
   private wasPlaying = false;
   private firePrevBoundary = false;
+  /** The score the metronome is currently gridded to; tracks tempo-mode swaps. */
+  private score: Score;
 
   constructor(
     private readonly transport: Transport,
@@ -39,6 +42,7 @@ export class AudioEngine {
     private readonly click: ClickSink,
   ) {
     this.metronome = new Metronome(transport.score);
+    this.score = transport.score;
     this.prevPosition = transport.clock.position;
     this.metronome.onClick((_t, accent) => this.click.playClick(accent));
     this.transport.clock.onSeek(() => this.resync());
@@ -54,6 +58,14 @@ export class AudioEngine {
 
   /** Trigger notes and metronome clicks for the clock advance since last call. */
   update(): void {
+    // A tempo-mode toggle replaces the transport's score with a re-timed one.
+    // The metronome caches its beat grid, so re-grid it onto the new measures.
+    const score = this.transport.score;
+    if (score !== this.score) {
+      this.score = score;
+      this.metronome.setScore(score);
+    }
+
     const cur = this.transport.clock.position;
     const prev = this.prevPosition;
     const playing = this.transport.clock.playing;

@@ -28,7 +28,7 @@ export class Metronome {
    */
   accentDownbeat = false;
 
-  private readonly measures: Measure[];
+  private measures: Measure[];
   private beatsPerBar: number;
   private subdivisionValue: number;
   /** Kept only so the `timeSignature` getter can report it; not used for timing. */
@@ -70,6 +70,17 @@ export class Metronome {
     this.denominator = denominator;
     this.recompute();
     this.resync();
+  }
+
+  /**
+   * Swap to a new score and re-grid. A tempo-mode toggle replaces the
+   * transport's score with one whose measures sit at different second-times;
+   * without this the metronome would keep clicking at the old measure times.
+   * The current beats-per-bar and subdivision are kept.
+   */
+  setScore(score: Score): void {
+    this.measures = score.measures;
+    this.recompute();
   }
 
   /** Recompute the cached beat grid for the current settings. */

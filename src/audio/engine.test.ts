@@ -105,6 +105,28 @@ describe("AudioEngine", () => {
     expect(click.count).toBe(4); // 2 beats per pass, 2 passes
   });
 
+  it("re-grids the metronome when the tempo mode changes", () => {
+    // A varying-tempo score: flatten re-times the measures, so a metronome
+    // that ignored the score swap would keep clicking at the old measure beats.
+    const varying = {
+      ...score,
+      notes: [],
+      tempoMap: [
+        { start: 0, bpm: 60 },
+        { start: 2, bpm: 120 },
+      ],
+    } satisfies Score;
+    const t = new Transport(varying);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    engine.metronome.enabled = true;
+    t.setTempoMode("flatten"); // measure 0 re-times from [0,2] to [0,1.333…]
+    t.clock.play();
+    t.clock.tick(1.1); // flattened measure-0 beats: 0, 0.333, 0.667, 1.0
+    engine.update();
+    expect(click.count).toBe(4); // stale grid (beats 0, 0.5, 1.0) would give 3
+  });
+
   it("plays a note sitting exactly at the playback start position", () => {
     // A note at time 0 must sound when playback starts from 0, even though
     // the trigger window (prev, cur] would otherwise exclude the boundary.
