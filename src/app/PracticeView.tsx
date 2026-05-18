@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { Score } from "../model/score";
+import type { Score, Hand } from "../model/score";
 import { Transport } from "../transport/transport";
+import { MidiSession } from "./MidiSession";
+import type { MidiDevice, MidiStatus } from "../midi/MidiInput";
 import { FrameLoop } from "./frameLoop";
 import {
   createAudioEngine,
@@ -70,6 +72,12 @@ export function PracticeView({
   // Stable per-hand mute/hide state shared by the audio engine and renderer.
   const [handState] = useState(() => new HandState());
 
+  // The MIDI Practice session: input sources + wait-mode, created once. Audio
+  // and falldown are late-bound below once they exist.
+  const [midiSession] = useState(
+    () => new MidiSession(transport.clock, score, handState),
+  );
+
   const engineRef = useRef<AudioEngine | null>(null);
   const scoreViewRef = useRef<ScoreView | null>(null);
   const audioStartedRef = useRef(false);
@@ -80,6 +88,15 @@ export function PracticeView({
 
   const [mode, setMode] = useState<TabMode>("play");
   const [countInBars, setCountInBars] = useState(0);
+
+  // MIDI tab configuration mirrored into React so MidiTools re-renders.
+  const [midiStatus, setMidiStatus] = useState<MidiStatus>("no-device");
+  const [midiDevices, setMidiDevices] = useState<readonly MidiDevice[]>([]);
+  const [handsIPlay, setHandsIPlay] = useState<Set<Hand>>(
+    () => new Set<Hand>(["right"]),
+  );
+  const [waitEnabled, setWaitEnabled] = useState(true);
+  const [monitorOn, setMonitorOn] = useState(true);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.58);
@@ -118,9 +135,18 @@ export function PracticeView({
         falldownInstance.handState = handState;
         loop.onFrame(() => falldownInstance.renderFrame());
         falldownRef.current = falldownInstance;
+        midiSession.attachFalldown(falldownInstance);
         setFalldown(falldownInstance);
       }
     }
+
+    // Mirror MIDI device status/list into React so MidiTools re-renders on
+    // hot-plug. Read-then-set captures the latest state at each change.
+    midiSession.setStatusListener(() => {
+      setMidiStatus(midiSession.status);
+      setMidiDevices([...midiSession.devices]);
+    });
+    loop.onFrame(() => midiSession.update());
 
     loop.start();
 
@@ -130,6 +156,7 @@ export function PracticeView({
         if (cancelled) return;
         engine.handState = handState;
         engineRef.current = engine;
+        midiSession.attachAudio(engine);
         loop.onFrame(() => engine.update());
         const loaded = loadedStateRef.current;
         if (loaded && loaded.numerator && loaded.denominator) {
@@ -203,6 +230,7 @@ export function PracticeView({
     return () => {
       cancelled = true;
       loop.stop();
+      midiSession.dispose();
       scoreViewRef.current?.destroy();
       const renderer = falldownRef.current;
       const beat = renderer
@@ -219,7 +247,7 @@ export function PracticeView({
         }),
       );
     };
-  }, [transport, handState, pieceId]);
+  }, [transport, handState, pieceId, midiSession]);
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
   // divider drag, or window resize). The renderer holds onto a fixed pixel
@@ -257,6 +285,25 @@ export function PracticeView({
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // Activate the MIDI session only while the MIDI tab is showing — this is what
+  // keeps the wait-mode controller (and its clock hold) off the play tab.
+  useEffect(() => {
+    midiSession.setActive(mode === "midi");
+  }, [mode, midiSession]);
+
+  // Push the user-facing MIDI config into the session.
+  useEffect(() => {
+    midiSession.setHandsIPlay(handsIPlay);
+  }, [handsIPlay, midiSession]);
+
+  useEffect(() => {
+    midiSession.setWaitEnabled(waitEnabled);
+  }, [waitEnabled, midiSession]);
+
+  useEffect(() => {
+    midiSession.setMonitorOn(monitorOn);
+  }, [monitorOn, midiSession]);
 
   // Arrow keys jump the playhead one measure back/forward, in both modes.
   // Spacebar toggles play/pause.
@@ -434,7 +481,20 @@ export function PracticeView({
           />
         )}
         {practiceReady && mode === "midi" && (
-          <MidiTools audioEngine={audioEngine} falldown={falldown} />
+          <MidiTools
+            audioEngine={audioEngine}
+            falldown={falldown}
+            midiStatus={midiStatus}
+            devices={midiDevices}
+            selectedDeviceId={midiSession.selectedDeviceId}
+            onSelectDevice={(id) => midiSession.selectDevice(id)}
+            handsIPlay={handsIPlay}
+            onHandsIPlayChange={setHandsIPlay}
+            waitEnabled={waitEnabled}
+            onWaitEnabledChange={setWaitEnabled}
+            monitorOn={monitorOn}
+            onMonitorOnChange={setMonitorOn}
+          />
         )}
       </ToolsPopover>
       {falldown && practiceReady && settingsOpen && (
