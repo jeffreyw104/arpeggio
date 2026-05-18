@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { HandState, HandVisibility } from "../practice/hands";
 import type { AudioEngine } from "../audio/engine";
@@ -6,7 +6,7 @@ import type { FalldownRenderer } from "../falldown/renderer";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { MetronomeSettings } from "./MetronomeSettings";
 
-interface ExtendedTopBarProps {
+interface PlayToolsProps {
   transport: Transport;
   handState: HandState;
   audioEngine: AudioEngine | null;
@@ -14,9 +14,6 @@ interface ExtendedTopBarProps {
   countInBars: number;
   onCountInBarsChange: (bars: number) => void;
 }
-
-/** The accordion section ids, in display order. */
-type SectionId = "loop" | "tempo" | "hands" | "metronome";
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
@@ -50,41 +47,26 @@ function loopMeasures(
 }
 
 /**
- * The Practice-mode accordion control bar. Four collapsible sections — Loop
- * (with a Speed-up sub-group), Tempo, Hands, and Metronome. The bar tracks
- * which sections are open and in what order; when opening one would overflow
- * the bar's width, the oldest-opened section auto-collapses to make room.
- * Every section's body stays mounted (CSS clips it) so controls keep their
- * live state regardless of open/closed.
+ * The Tools popover body for Play mode: Loop (with Speed-up sub-group), Tempo,
+ * Hands, Metronome, Volume, and Note-zoom — each in its own CollapsibleSection.
+ * Unlike the old accordion bar there is no width constraint, so all sections
+ * can be open at the same time.
  */
-export function ExtendedTopBar({
+export function PlayTools({
   transport,
   handState,
   audioEngine,
   falldown,
   countInBars,
   onCountInBarsChange,
-}: ExtendedTopBarProps): React.JSX.Element {
-  // Open sections, oldest first. The newest open section is last.
-  const [openOrder, setOpenOrder] = useState<SectionId[]>([]);
-  const barRef = useRef<HTMLDivElement>(null);
-
-  function toggleSection(id: SectionId): void {
-    setOpenOrder((order) =>
-      order.includes(id) ? order.filter((s) => s !== id) : [...order, id],
-    );
-  }
-
-  // After a section opens, if the row overflows the bar, collapse the
-  // oldest-opened section and re-measure — repeating until it fits (or only
-  // the newest section remains open).
-  useLayoutEffect(() => {
-    const bar = barRef.current;
-    if (!bar) return;
-    if (bar.scrollWidth > bar.clientWidth && openOrder.length > 1) {
-      setOpenOrder((order) => order.slice(1));
-    }
-  }, [openOrder]);
+}: PlayToolsProps): React.JSX.Element {
+  // Per-section open state — all start closed, independent of each other.
+  const [loopOpen, setLoopOpen] = useState(false);
+  const [tempoOpen, setTempoOpen] = useState(false);
+  const [handsOpen, setHandsOpen] = useState(false);
+  const [metronomeOpen, setMetronomeOpen] = useState(false);
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   // --- Loop state ---
   const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));
@@ -217,12 +199,27 @@ export function ExtendedTopBar({
     return () => cancelAnimationFrame(frame);
   }, [audioEngine]);
 
+  // --- Volume state ---
+  const [volume, setVolume] = useState(1);
+  function changeVolume(v: number): void {
+    setVolume(v);
+    audioEngine?.setVolume(v);
+  }
+
+  // --- Note-zoom state ---
+  const [zoom, setZoom] = useState(() => falldown?.zoom ?? 1);
+  function changeZoom(z: number): void {
+    setZoom(z);
+    // eslint-disable-next-line react-hooks/immutability
+    if (falldown) falldown.zoom = z;
+  }
+
   return (
-    <div className="extended-top-bar" ref={barRef}>
+    <div className="play-tools">
       <CollapsibleSection
         label="Loop"
-        open={openOrder.includes("loop")}
-        onToggle={() => toggleSection("loop")}
+        open={loopOpen}
+        onToggle={() => setLoopOpen((o) => !o)}
       >
         <button type="button" onClick={handleSetStart}>
           Set start
@@ -252,6 +249,7 @@ export function ExtendedTopBar({
           Start BPM{" "}
           <input
             type="number"
+            aria-label="Start BPM"
             className="ext-tempo-input"
             value={startBpm}
             onChange={(e) => setStartBpm(e.target.value)}
@@ -261,6 +259,7 @@ export function ExtendedTopBar({
           Target BPM{" "}
           <input
             type="number"
+            aria-label="Target BPM"
             className="ext-tempo-input"
             value={targetBpm}
             onChange={(e) => setTargetBpm(e.target.value)}
@@ -270,6 +269,7 @@ export function ExtendedTopBar({
           +BPM / loop{" "}
           <input
             type="number"
+            aria-label="+BPM per loop"
             className="ext-tempo-input"
             value={incBpm}
             onChange={(e) => setIncBpm(e.target.value)}
@@ -279,8 +279,8 @@ export function ExtendedTopBar({
 
       <CollapsibleSection
         label="Tempo"
-        open={openOrder.includes("tempo")}
-        onToggle={() => toggleSection("tempo")}
+        open={tempoOpen}
+        onToggle={() => setTempoOpen((o) => !o)}
       >
         <button
           type="button"
@@ -315,8 +315,8 @@ export function ExtendedTopBar({
 
       <CollapsibleSection
         label="Hands"
-        open={openOrder.includes("hands")}
-        onToggle={() => toggleSection("hands")}
+        open={handsOpen}
+        onToggle={() => setHandsOpen((o) => !o)}
       >
         <label>
           Left hand{" "}
@@ -374,8 +374,8 @@ export function ExtendedTopBar({
 
       <CollapsibleSection
         label="Metronome"
-        open={openOrder.includes("metronome")}
-        onToggle={() => toggleSection("metronome")}
+        open={metronomeOpen}
+        onToggle={() => setMetronomeOpen((o) => !o)}
       >
         <label>
           <input
@@ -392,6 +392,44 @@ export function ExtendedTopBar({
           countInBars={countInBars}
           onCountInBarsChange={onCountInBarsChange}
         />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        label="Volume"
+        open={volumeOpen}
+        onToggle={() => setVolumeOpen((o) => !o)}
+      >
+        <label>
+          <span className="ext-sub-label">Vol</span>
+          <input
+            type="range"
+            aria-label="Volume"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => changeVolume(Number(e.target.value))}
+          />
+        </label>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        label="Note zoom"
+        open={zoomOpen}
+        onToggle={() => setZoomOpen((o) => !o)}
+      >
+        <label>
+          <span className="ext-sub-label">Zoom</span>
+          <input
+            type="range"
+            aria-label="Note zoom"
+            min={0.5}
+            max={2}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => changeZoom(Number(e.target.value))}
+          />
+        </label>
       </CollapsibleSection>
     </div>
   );

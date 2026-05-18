@@ -93,7 +93,7 @@ describe("PracticeView", () => {
     expect(screen.getByText("moonlight-sonata")).toBeInTheDocument();
   });
 
-  it("shows the extended top bar once practice state is ready, regardless of mode", async () => {
+  it("shows the Tools button, and opening it reveals Loop and Metronome sections", async () => {
     render(
       <PracticeView
         score={score}
@@ -102,7 +102,14 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    // The accordion control bar renders after practiceReady — no mode switch needed.
+    // The Tools button is always visible in the top bar.
+    const toolsBtn = await screen.findByRole("button", { name: "Tools" });
+    expect(toolsBtn).toBeInTheDocument();
+
+    // Open the popover.
+    fireEvent.click(toolsBtn);
+
+    // Wait for practiceReady so PlayTools is rendered inside the popover.
     expect(
       await screen.findByRole("button", { name: "Loop" }),
     ).toBeInTheDocument();

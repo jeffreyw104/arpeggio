@@ -4,7 +4,6 @@ import { TopBar } from "./TopBar";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
-import type { FalldownRenderer } from "../falldown/renderer";
 
 const score = {
   source: "midi",
@@ -29,7 +28,6 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     playClick: vi.fn(),
     setVolume: vi.fn(),
   } as unknown as AudioEngine;
-  const falldown = { zoom: 1 } as unknown as FalldownRenderer;
   const props = {
     pieceName: "moonlight-sonata.mid",
     viewMode: "both" as const,
@@ -37,11 +35,12 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     onOpenLibrary: vi.fn(),
     settingsOpen: false,
     onToggleSettings: vi.fn(),
+    toolsOpen: false,
+    onToggleTools: vi.fn(),
     mode: "play" as const,
     onModeChange: vi.fn(),
     transport,
     audioEngine,
-    falldown,
     countInBars: 0,
     ...overrides,
   };

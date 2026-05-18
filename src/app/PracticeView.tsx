@@ -12,8 +12,9 @@ import { renderScore } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
-import { ExtendedTopBar } from "../ui/ExtendedTopBar";
 import { TopBar } from "../ui/TopBar";
+import { ToolsPopover } from "../ui/ToolsPopover";
+import { PlayTools } from "../ui/PlayTools";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
@@ -83,6 +84,7 @@ export function PracticeView({
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -279,16 +281,8 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
-  const extendedBarShown = practiceReady;
-
   return (
-    <div
-      className={
-        extendedBarShown
-          ? "practice-view practice-view--extended"
-          : "practice-view"
-      }
-    >
+    <div className="practice-view">
       <Layout
         viewMode={viewMode}
         split={split}
@@ -322,23 +316,29 @@ export function PracticeView({
         onOpenLibrary={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
+        toolsOpen={toolsOpen}
+        onToggleTools={() => setToolsOpen((o) => !o)}
         mode={mode}
         onModeChange={handleModeChange}
         transport={transport}
         audioEngine={audioEngine}
-        falldown={falldown}
         countInBars={countInBars}
       />
-      {extendedBarShown && (
-        <ExtendedTopBar
-          transport={transport}
-          handState={handState}
-          audioEngine={audioEngine}
-          falldown={falldown}
-          countInBars={countInBars}
-          onCountInBarsChange={setCountInBars}
-        />
-      )}
+      <ToolsPopover
+        open={toolsOpen}
+        onClose={() => setToolsOpen(false)}
+      >
+        {practiceReady && (
+          <PlayTools
+            transport={transport}
+            handState={handState}
+            audioEngine={audioEngine}
+            falldown={falldown}
+            countInBars={countInBars}
+            onCountInBarsChange={setCountInBars}
+          />
+        )}
+      </ToolsPopover>
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel falldown={falldown} audioEngine={audioEngine} />
       )}

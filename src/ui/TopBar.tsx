@@ -4,7 +4,6 @@ import { ModeSwitch } from "./ModeSwitch";
 import type { TabMode } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
-import type { FalldownRenderer } from "../falldown/renderer";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 
 interface TopBarProps {
@@ -14,11 +13,12 @@ interface TopBarProps {
   onOpenLibrary: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
+  toolsOpen: boolean;
+  onToggleTools: () => void;
   mode: TabMode;
   onModeChange: (m: TabMode) => void;
   transport: Transport;
   audioEngine: AudioEngine | null;
-  falldown: FalldownRenderer | null;
   countInBars: number;
 }
 
@@ -44,7 +44,7 @@ function formatTime(seconds: number): string {
 /**
  * The fixed top bar. Left: logo, Library, play/pause, seek scrubber, time,
  * and the Play/MIDI Practice toggle. Center: the now-playing piece name.
- * Right: Vol/Zoom mini-sliders, the view-mode switch, and the settings gear.
+ * Right: Tools popover toggle, the view-mode switch, and the settings gear.
  */
 export function TopBar({
   pieceName,
@@ -53,11 +53,12 @@ export function TopBar({
   onOpenLibrary,
   settingsOpen,
   onToggleSettings,
+  toolsOpen,
+  onToggleTools,
   mode,
   onModeChange,
   transport,
   audioEngine,
-  falldown,
   countInBars,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
@@ -68,22 +69,6 @@ export function TopBar({
 
   const [countingIn, setCountingIn] = useState(false);
   const countInRef = useRef<CountInHandle | null>(null);
-
-  // Master output volume (0-1) and falldown zoom — per-session sliders.
-  const [volume, setVolume] = useState(1);
-  const [zoom, setZoom] = useState(() => falldown?.zoom ?? 1);
-
-  function changeVolume(v: number): void {
-    setVolume(v);
-    audioEngine?.setVolume(v);
-  }
-
-  function changeZoom(z: number): void {
-    setZoom(z);
-    // The falldown renderer exposes plain mutable fields as its API.
-    // eslint-disable-next-line react-hooks/immutability
-    if (falldown) falldown.zoom = z;
-  }
 
   useEffect(() => {
     return () => countInRef.current?.cancel();
@@ -160,32 +145,14 @@ export function TopBar({
       <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <span className="top-bar-piece">{displayName(pieceName)}</span>
       <span className="top-bar-spacer" />
-      <label className="hud-mini">
-        <span className="hud-mini-label">Vol</span>
-        <input
-          type="range"
-          className="hud-minislider"
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={(e) => changeVolume(Number(e.target.value))}
-        />
-      </label>
-      <label className="hud-mini">
-        <span className="hud-mini-label">Zoom</span>
-        <input
-          type="range"
-          className="hud-minislider"
-          aria-label="Note zoom"
-          min={0.5}
-          max={2}
-          step={0.05}
-          value={zoom}
-          onChange={(e) => changeZoom(Number(e.target.value))}
-        />
-      </label>
+      <button
+        type="button"
+        aria-label="Tools"
+        aria-pressed={toolsOpen}
+        onClick={onToggleTools}
+      >
+        Tools▾
+      </button>
       <div className="top-bar-views">
         {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
           <button

@@ -49,7 +49,7 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   );
 });
 
-test("the accordion control bar is always visible after loading", async ({
+test("the Tools popover opens and exposes loop controls", async ({
   page,
 }) => {
   await page.goto("/");
@@ -58,28 +58,33 @@ test("the accordion control bar is always visible after loading", async ({
     timeout: 15_000,
   });
 
-  // The accordion control bar renders immediately after practiceReady — no mode switch needed.
-  await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Metronome", exact: true })).toBeVisible();
+  // The Tools button is always visible in the top bar.
+  const toolsBtn = page.getByRole("button", { name: "Tools" });
+  await expect(toolsBtn).toBeVisible();
 
-  // No speed stepper anywhere in the HUD.
-  await expect(
-    page.getByRole("button", { name: /increase speed/i }),
-  ).toBeHidden();
+  // Before opening, the popover is not present.
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeHidden();
+
+  // Open the popover.
+  await toolsBtn.click();
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
+
+  // The Loop chip is visible inside the popover.
+  const loopChip = page.getByRole("button", { name: "Loop", exact: true });
+  await expect(loopChip).toBeVisible();
 
   // Open the Loop section — its chip's aria-expanded flips to true.
-  await page.getByRole("button", { name: "Loop", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Loop", exact: true })).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
+  await loopChip.click();
+  await expect(loopChip).toHaveAttribute("aria-expanded", "true");
 
-  // Switching tabs keeps the accordion bar visible.
-  await page
-    .locator(".top-bar-modes")
-    .getByRole("button", { name: "Practice" })
-    .click();
-  await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
+  // Loop measure button is now visible.
+  await expect(
+    page.getByRole("button", { name: /loop measure/i }),
+  ).toBeVisible();
+
+  // Close via Escape.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeHidden();
 });
 
 test("arrow keys jump the playhead by measure", async ({ page }) => {
