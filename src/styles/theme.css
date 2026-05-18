@@ -25,6 +25,17 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  /* This is an app UI, not a document — a fast double-tap on a button or
+     label should not select its text as a word. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Text stays selectable/editable inside form fields. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* --- Practice view --- */
