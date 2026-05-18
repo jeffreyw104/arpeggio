@@ -13,6 +13,7 @@ import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
 import { FloatingHud } from "../ui/FloatingHud";
+import { TopBar } from "../ui/TopBar";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
@@ -28,6 +29,7 @@ import {
 interface PracticeViewProps {
   score: Score;
   pieceId: string;
+  pieceName: string;
   onExit: () => void;
 }
 
@@ -38,7 +40,12 @@ const DEFAULT_SCORE_ZOOM = 0.8;
  * The assembled practice screen: composes the transport, frame loop, falldown
  * renderer, audio engine, and engraved score view into a single playable view.
  */
-export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
+export function PracticeView({
+  score,
+  pieceId,
+  pieceName,
+  onExit,
+}: PracticeViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreContainerRef = useRef<HTMLDivElement>(null);
 
@@ -263,13 +270,17 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
           </>
         }
       />
-      <FloatingHud
-        transport={transport}
+      <TopBar
+        pieceName={pieceName}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        onExit={onExit}
+        onOpenLibrary={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
+      />
+      <FloatingHud
+        transport={transport}
+        settingsOpen={settingsOpen}
         audioEngine={audioEngine}
         falldown={falldown}
       />

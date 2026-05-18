@@ -9,6 +9,7 @@ import { importFile } from "./import/importFile";
 interface Session {
   score: Score;
   pieceId: string;
+  pieceName: string;
 }
 
 export default function App() {
@@ -16,14 +17,14 @@ export default function App() {
 
   async function handleImported(score: Score, file: File) {
     const id = await savePiece(file.name, await file.arrayBuffer());
-    setSession({ score, pieceId: id });
+    setSession({ score, pieceId: id, pieceName: file.name });
   }
 
   async function handleOpen(id: string) {
     const piece = await getPiece(id);
     if (!piece) return;
     const score = await importFile(new File([piece.data], piece.name));
-    setSession({ score, pieceId: id });
+    setSession({ score, pieceId: id, pieceName: piece.name });
   }
 
   if (session) {
@@ -31,6 +32,7 @@ export default function App() {
       <PracticeView
         score={session.score}
         pieceId={session.pieceId}
+        pieceName={session.pieceName}
         onExit={() => setSession(null)}
       />
     );

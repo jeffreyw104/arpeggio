@@ -49,14 +49,40 @@ beforeEach(() => {
 
 describe("PracticeView", () => {
   it("renders the transport HUD and the falldown canvas", () => {
-    render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
+    render(
+      <PracticeView
+        score={score}
+        pieceId="test-piece"
+        pieceName="moonlight-sonata.mid"
+        onExit={() => {}}
+      />,
+    );
     expect(screen.getByRole("button", { name: /play/i })).toBeInTheDocument();
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
   it("renders the practice control panel when the settings drawer opens", async () => {
-    render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
+    render(
+      <PracticeView
+        score={score}
+        pieceId="test-piece"
+        pieceName="moonlight-sonata.mid"
+        onExit={() => {}}
+      />,
+    );
     fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
     expect(await screen.findByLabelText(/note labels/i)).toBeInTheDocument();
+  });
+
+  it("shows the piece name in the top bar", () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="test-piece"
+        pieceName="moonlight-sonata.mid"
+        onExit={() => {}}
+      />,
+    );
+    expect(screen.getByText("moonlight-sonata")).toBeInTheDocument();
   });
 });
