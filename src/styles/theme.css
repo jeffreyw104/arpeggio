@@ -98,7 +98,17 @@ textarea {
   color: var(--bg);
 }
 
+.top-bar-logo {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+/* The piece name is centered in the bar independently of the side groups. */
 .top-bar-piece {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   max-width: 28ch;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,10 +117,12 @@ textarea {
   font-size: 0.9rem;
 }
 
+.top-bar-extended-toggle {
+  font-size: 0.8rem;
+}
+
 .top-bar-spacer {
   flex: 1;
-  display: flex;
-  justify-content: center;
 }
 
 .top-bar-views {
@@ -140,8 +152,110 @@ textarea {
   border: 1px solid var(--glass-border);
   border-radius: 18px;
   box-shadow: var(--glass-shadow);
-  cursor: grab;
   transition: opacity 0.4s ease;
+}
+
+/* Play HUD: top-left, just below the top bar. */
+.floating-hud--play {
+  top: 70px;
+  left: 10px;
+}
+
+/* Practice HUD: top-center, below the extended bar. */
+.floating-hud--practice {
+  top: 124px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* When the extended bar is collapsed the Practice HUD rises under the bar. */
+.floating-hud--practice.floating-hud--raised {
+  top: 70px;
+}
+
+/* The extended control bar, flush below the top bar (Practice mode). */
+.extended-top-bar {
+  position: absolute;
+  top: 68px;
+  left: 10px;
+  right: 10px;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Each control group is its own bordered box. */
+.ext-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+}
+
+.ext-box-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.ext-box button {
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.ext-box button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ext-box label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ext-loop-readout {
+  font-size: 0.82rem;
+  color: var(--text);
+  min-width: 3ch;
+  text-align: center;
+}
+
+.ext-tempo-input {
+  width: 3.2rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+  font-family: inherit;
+}
+
+.ext-box select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.2rem;
 }
 
 .floating-hud label {
@@ -382,6 +496,12 @@ textarea {
   background: #f4f4f2;
   /* Extra top padding so the engraved music clears the floating top bar. */
   padding: 66px 1rem 1rem;
+}
+
+/* In Practice mode the extended bar reaches ~112px down; push the engraved
+   score below it so the music is never covered. Play mode is unchanged. */
+.practice-view--extended .score-container {
+  padding-top: 120px;
 }
 
 /* The zoom wrapper; `zoom` is set in JS (ScoreView.setZoom). */
