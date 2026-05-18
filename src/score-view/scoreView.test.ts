@@ -51,13 +51,32 @@ describe("ScoreView", () => {
     expect(measures[2].getAttribute("data-measure-index")).toBe("2");
   });
 
-  it("draws a green measure-highlight rect over the current measure", () => {
+  it("draws a green measure-highlight rect inside the current measure", () => {
     const { container, transport, view } = setup();
     transport.clock.seek(2.5); // measure index 1
     view.renderFrame();
     const rect = container.querySelector("rect.measure-highlight");
     expect(rect).not.toBeNull();
     expect(rect!.getAttribute("class")).toBe("measure-highlight");
+    // The rect lives inside the measure <g> itself (so it shares the
+    // measure's coordinate space and covers the full measure rectangle).
+    const measure = rect!.parentElement;
+    expect(measure!.getAttribute("data-measure-index")).toBe("1");
+    // Inserted as the first child so it sits behind the notation.
+    expect(measure!.firstElementChild).toBe(rect);
+  });
+
+  it("moves the highlight rect into the new measure when the clock advances", () => {
+    const { container, transport, view } = setup();
+    transport.clock.seek(2.5); // measure index 1
+    view.renderFrame();
+    transport.clock.seek(4.5); // measure index 2
+    view.renderFrame();
+    const rects = container.querySelectorAll("rect.measure-highlight");
+    expect(rects).toHaveLength(1); // one rect, moved — not duplicated
+    expect(rects[0].parentElement!.getAttribute("data-measure-index")).toBe(
+      "2",
+    );
   });
 
   it("re-renders without error while the clock is not playing", () => {
@@ -70,13 +89,35 @@ describe("ScoreView", () => {
     expect(container.querySelector("rect.measure-highlight")).not.toBeNull();
   });
 
-  it("draws a measure-hover rect on mousemove over a measure", () => {
+  it("draws a measure-hover rect inside the hovered measure on mousemove", () => {
     const { container } = setup();
     const m1 = container.querySelector('[data-measure-index="1"]')!;
     m1.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
     const rect = container.querySelector("rect.measure-hover");
     expect(rect).not.toBeNull();
     expect(rect!.getAttribute("class")).toBe("measure-hover");
+    expect(rect!.parentElement).toBe(m1);
+    expect(m1.firstElementChild).toBe(rect);
+  });
+
+  it("moves the hover rect when the cursor crosses into another measure", () => {
+    const { container } = setup();
+    const m0 = container.querySelector('[data-measure-index="0"]')!;
+    const m2 = container.querySelector('[data-measure-index="2"]')!;
+    m0.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    m2.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    const rects = container.querySelectorAll("rect.measure-hover");
+    expect(rects).toHaveLength(1); // one rect, moved — not duplicated
+    expect(rects[0].parentElement).toBe(m2);
+  });
+
+  it("clears the hover rect on mouseleave", () => {
+    const { container } = setup();
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    m1.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    expect(container.querySelector("rect.measure-hover")).not.toBeNull();
+    container.dispatchEvent(new MouseEvent("mouseleave"));
+    expect(container.querySelector("rect.measure-hover")).toBeNull();
   });
 
   it("clicking a measure seeks the clock to that measure's start", () => {

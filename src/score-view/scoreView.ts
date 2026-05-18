@@ -142,17 +142,29 @@ export class ScoreView {
     return created;
   }
 
-  /** Move and size `rect` to cover `measureEl`, in that page's SVG space. */
+  /**
+   * Move and size `rect` to cover the FULL measure rectangle (barline to
+   * barline, full staff height) — MuseScore-style.
+   *
+   * The rect is inserted as the FIRST child of the measure `<g>` itself, so it
+   * sits behind the notation and shares the measure's exact coordinate space.
+   * (Verovio nests measures inside transformed `g.page-margin`/`g.system`
+   * groups, so `getBBox()`'s local coords are only correct for a sibling of
+   * the notation — appending to the root `<svg>`, as before, mis-placed it.)
+   *
+   * `g.measure.getBBox()` spans the staff-line `<path>`s and barlines that
+   * Verovio draws inside every measure, so that bbox IS the full measure
+   * rectangle. The rect is removed from the DOM before measuring so it never
+   * inflates the measure's own bbox.
+   */
   private positionRect(rect: SVGRectElement, measureEl: Element): void {
+    if (rect.parentNode) rect.parentNode.removeChild(rect);
     const box = (measureEl as SVGGraphicsElement).getBBox();
     rect.setAttribute("x", String(box.x));
     rect.setAttribute("y", String(box.y));
     rect.setAttribute("width", String(box.width));
     rect.setAttribute("height", String(box.height));
-    const svg = (measureEl as SVGGraphicsElement).ownerSVGElement;
-    // appendChild moves the rect into the measure's owning <svg> so it shares
-    // the same coordinate space.
-    if (svg && rect.ownerSVGElement !== svg) svg.appendChild(rect);
+    measureEl.insertBefore(rect, measureEl.firstChild);
   }
 
   /** Detach a rect from the DOM so it is no longer visible. */
