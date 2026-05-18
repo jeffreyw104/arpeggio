@@ -5,7 +5,6 @@ import { Transport } from "../transport/transport";
 import { HandState } from "./hands";
 import { FalldownRenderer } from "../falldown/renderer";
 import type { Score } from "../model/score";
-import type { AudioEngine } from "../audio/engine";
 
 const score = {
   source: "midi",
@@ -30,7 +29,7 @@ function fakeCtx() {
   } as unknown as CanvasRenderingContext2D;
 }
 
-function setup(audioEngine: AudioEngine | null = null) {
+function setup() {
   const transport = new Transport(score);
   const handState = new HandState();
   const falldown = new FalldownRenderer(fakeCtx(), transport, {
@@ -42,7 +41,6 @@ function setup(audioEngine: AudioEngine | null = null) {
       transport={transport}
       handState={handState}
       falldown={falldown}
-      audioEngine={audioEngine}
     />,
   );
   return { transport, handState, falldown };
@@ -96,30 +94,6 @@ describe("ControlPanel", () => {
     fireEvent.click(screen.getByLabelText(/gradual speed-up/i));
     // with speed-up enabled the clock rate starts below 1
     expect(transport.clock.rate).toBeLessThan(1);
-  });
-
-  it("sets the time signature via the single N/D text box", () => {
-    const { falldown } = setup();
-    fireEvent.change(screen.getByLabelText(/time signature/i), {
-      target: { value: "6/4" },
-    });
-    expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
-    // An invalid value leaves the time signature unchanged.
-    fireEvent.change(screen.getByLabelText(/time signature/i), {
-      target: { value: "abc" },
-    });
-    expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
-  });
-
-  it("sets the metronome subdivision on the audio engine", () => {
-    const fakeEngine = {
-      metronome: { enabled: false, subdivision: 1, pulse: 0 },
-    } as unknown as AudioEngine;
-    setup(fakeEngine);
-    fireEvent.change(screen.getByLabelText(/subdivision/i), {
-      target: { value: "4" },
-    });
-    expect(fakeEngine.metronome.subdivision).toBe(4);
   });
 
   it("flattens tempo changes on the transport", () => {

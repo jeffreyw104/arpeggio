@@ -56,7 +56,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
-  const [split, setSplit] = useState(0.62);
+  const [split, setSplit] = useState(0.58);
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
 
@@ -271,13 +271,13 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
         audioEngine={audioEngine}
+        falldown={falldown}
       />
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel
           transport={transport}
           handState={handState}
           falldown={falldown}
-          audioEngine={audioEngine}
         />
       )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}

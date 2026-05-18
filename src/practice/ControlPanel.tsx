@@ -2,13 +2,11 @@ import { useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { HandState, HandVisibility } from "./hands";
 import type { FalldownRenderer } from "../falldown/renderer";
-import type { AudioEngine } from "../audio/engine";
 
 interface ControlPanelProps {
   transport: Transport;
   handState: HandState;
   falldown: FalldownRenderer;
-  audioEngine: AudioEngine | null;
 }
 
 /**
@@ -20,17 +18,12 @@ export function ControlPanel({
   transport,
   handState,
   falldown,
-  audioEngine,
 }: ControlPanelProps): React.JSX.Element {
   const [bpm, setBpm] = useState(Math.round(transport.bpm));
   const [speedUp, setSpeedUp] = useState(false);
   const [showLabels, setShowLabels] = useState(falldown.showLabels);
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
   const [full88, setFull88] = useState(falldown.full88);
-  const [subdivision, setSubdivision] = useState(1);
-  const [timeSignature, setTimeSignature] = useState(
-    `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`,
-  );
   const [flattenTempo, setFlattenTempo] = useState(
     transport.tempoMode === "flatten",
   );
@@ -64,30 +57,6 @@ export function ControlPanel({
       transport.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.05 });
     } else {
       transport.disableSpeedUp();
-    }
-  }
-
-  function handleSubdivision(value: string): void {
-    const next = Number(value);
-    setSubdivision(next);
-    // The audio engine is an imperative object the panel writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.subdivision = next;
-  }
-
-  function handleTimeSignature(value: string): void {
-    // Keep the raw string so typing is never blocked mid-edit.
-    setTimeSignature(value);
-    const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(value);
-    if (!match) return;
-    const numerator = Number(match[1]);
-    const denominator = Number(match[2]);
-    if (numerator < 1 || denominator < 1) return;
-    // The falldown renderer exposes plain mutable fields as its API.
-    // eslint-disable-next-line react-hooks/immutability
-    falldown.beatMeter = { numerator, denominator };
-    if (audioEngine) {
-      audioEngine.metronome.setTimeSignature(numerator, denominator);
     }
   }
 
@@ -170,27 +139,6 @@ export function ControlPanel({
             onChange={(e) => handleFull88(e.target.checked)}
           />{" "}
           Full 88 keys
-        </label>
-        <label>
-          Time signature{" "}
-          <input
-            type="text"
-            placeholder="4/4"
-            value={timeSignature}
-            onChange={(e) => handleTimeSignature(e.target.value)}
-          />
-        </label>
-        <label>
-          Subdivision{" "}
-          <select
-            value={subdivision}
-            onChange={(e) => handleSubdivision(e.target.value)}
-          >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-          </select>
         </label>
         <label>
           <input

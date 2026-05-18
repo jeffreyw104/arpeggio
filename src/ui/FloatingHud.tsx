@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react"
 import type { Transport } from "../transport/transport";
 import type { ViewMode } from "../layout/viewMode";
 import type { AudioEngine } from "../audio/engine";
+import type { FalldownRenderer } from "../falldown/renderer";
+import { MetronomeMenu } from "./MetronomeMenu";
 
 interface FloatingHudProps {
   transport: Transport;
@@ -11,6 +13,7 @@ interface FloatingHudProps {
   settingsOpen: boolean;
   onToggleSettings: () => void;
   audioEngine: AudioEngine | null;
+  falldown: FalldownRenderer | null;
 }
 
 /** Milliseconds of pointer inactivity before the HUD fades. */
@@ -161,6 +164,7 @@ export function FloatingHud({
   settingsOpen,
   onToggleSettings,
   audioEngine,
+  falldown,
 }: FloatingHudProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
@@ -172,21 +176,15 @@ export function FloatingHud({
   const { playing, position, duration } = clock;
 
   const [metronomeOn, setMetronomeOn] = useState(false);
-  const [accentDownbeat, setAccentDownbeat] = useState(false);
+  const [metronomeMenuOpen, setMetronomeMenuOpen] = useState(false);
   const pulseRef = useRef<HTMLSpanElement>(null);
+  const metronomeRef = useRef<HTMLDivElement>(null);
 
   function handleMetronome(checked: boolean): void {
     setMetronomeOn(checked);
     // The audio engine is an imperative object the HUD writes through to.
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.enabled = checked;
-  }
-
-  function handleAccent(checked: boolean): void {
-    setAccentDownbeat(checked);
-    // The audio engine is an imperative object the HUD writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.accentDownbeat = checked;
   }
 
   // Self-contained rAF loop driving the metronome pulse indicator's opacity
@@ -204,6 +202,18 @@ export function FloatingHud({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [audioEngine]);
+
+  // Close the metronome dropdown when the pointer goes down outside it.
+  useEffect(() => {
+    if (!metronomeMenuOpen) return;
+    function onDown(e: PointerEvent): void {
+      if (!metronomeRef.current?.contains(e.target as Node)) {
+        setMetronomeMenuOpen(false);
+      }
+    }
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, [metronomeMenuOpen]);
 
   return (
     <div
@@ -233,23 +243,28 @@ export function FloatingHud({
       <span>
         {formatTime(position)} / {formatTime(duration)}
       </span>
-      <label>
-        <input
-          type="checkbox"
-          checked={metronomeOn}
-          onChange={(e) => handleMetronome(e.target.checked)}
-        />{" "}
-        Metronome
-      </label>
-      <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
-      <label>
-        <input
-          type="checkbox"
-          checked={accentDownbeat}
-          onChange={(e) => handleAccent(e.target.checked)}
-        />{" "}
-        Accent
-      </label>
+      <div className="hud-metronome" ref={metronomeRef}>
+        <label>
+          <input
+            type="checkbox"
+            checked={metronomeOn}
+            onChange={(e) => handleMetronome(e.target.checked)}
+          />{" "}
+          Metronome
+        </label>
+        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
+        <button
+          type="button"
+          aria-label="Metronome settings"
+          aria-expanded={metronomeMenuOpen}
+          onClick={() => setMetronomeMenuOpen((o) => !o)}
+        >
+          ▾
+        </button>
+        {metronomeMenuOpen && (
+          <MetronomeMenu falldown={falldown} audioEngine={audioEngine} />
+        )}
+      </div>
       {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
         <button
           key={mode}

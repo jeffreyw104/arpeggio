@@ -35,6 +35,7 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
     settingsOpen: false,
     onToggleSettings: vi.fn(),
     audioEngine,
+    falldown: null,
     ...overrides,
   };
   render(<FloatingHud {...props} />);
@@ -70,20 +71,23 @@ describe("FloatingHud", () => {
 
   it("toggles the settings drawer", () => {
     const { props } = renderHud();
-    fireEvent.click(screen.getByRole("button", { name: /settings/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(props.onToggleSettings).toHaveBeenCalled();
   });
 
   it("toggles the metronome on the audio engine", () => {
     const { props } = renderHud();
-    fireEvent.click(screen.getByLabelText(/metronome/i));
+    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
     expect(props.audioEngine!.metronome.enabled).toBe(true);
   });
 
-  it("toggles the accent option on the audio engine", () => {
-    const { props } = renderHud();
-    fireEvent.click(screen.getByLabelText(/accent/i));
-    expect(props.audioEngine!.metronome.accentDownbeat).toBe(true);
+  it("opens the metronome settings dropdown", () => {
+    renderHud();
+    expect(screen.queryByLabelText(/time signature/i)).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: /metronome settings/i }),
+    );
+    expect(screen.getByLabelText(/time signature/i)).toBeInTheDocument();
   });
 
   it("moves when dragged by its background", () => {
