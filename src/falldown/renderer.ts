@@ -118,8 +118,7 @@ export class FalldownRenderer {
       blackColor: BLACK,
     });
 
-    // Beat-pulse effects. Both are drawn for now so the two can be compared;
-    // one will be kept once chosen.
+    // Brighten the hit line on each beat.
     const pulse = this.transport.clock.playing
       ? beatPulse(
           this.transport.score.measures,
@@ -129,10 +128,9 @@ export class FalldownRenderer {
         )
       : 0;
     this.drawHitLinePulse(pulse);
-    this.drawEdgeGlow(pulse);
   }
 
-  /** Option B1: brighten the hit line on each beat. */
+  /** Brighten the hit line on each beat. */
   private drawHitLinePulse(pulse: number): void {
     if (pulse <= 0) return;
     const { ctx } = this;
@@ -146,20 +144,6 @@ export class FalldownRenderer {
     ctx.moveTo(0, this.hitLineY);
     ctx.lineTo(this.width, this.hitLineY);
     ctx.stroke();
-    ctx.restore();
-  }
-
-  /** Option B2: pulse a glow around the viewport edge on each beat. */
-  private drawEdgeGlow(pulse: number): void {
-    if (pulse <= 0) return;
-    const { ctx } = this;
-    ctx.save();
-    ctx.globalAlpha = pulse * 0.85;
-    ctx.strokeStyle = PULSE_COLOR;
-    ctx.lineWidth = 5;
-    ctx.shadowColor = PULSE_COLOR;
-    ctx.shadowBlur = 28 * pulse;
-    ctx.strokeRect(3, 3, this.width - 6, this.height - 6);
     ctx.restore();
   }
 
