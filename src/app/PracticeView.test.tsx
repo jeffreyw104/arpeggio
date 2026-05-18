@@ -57,7 +57,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /play/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /play/i }).length).toBeGreaterThan(0);
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
@@ -84,5 +84,28 @@ describe("PracticeView", () => {
       />,
     );
     expect(screen.getByText("moonlight-sonata")).toBeInTheDocument();
+  });
+
+  it("switching to Play suspends the loop and restores it on switching back", async () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="test-piece"
+        pieceName="moonlight-sonata.mid"
+        onExit={() => {}}
+      />,
+    );
+    const practiceBtn = await screen.findByRole("button", {
+      name: /^practice$/i,
+      pressed: false,
+    });
+    fireEvent.click(practiceBtn);
+    fireEvent.click(await screen.findByRole("button", { name: /set start/i }));
+    fireEvent.click(screen.getByRole("button", { name: /set end/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^play$/i, pressed: false }));
+    fireEvent.click(screen.getByRole("button", { name: /^practice$/i, pressed: false }));
+    expect(
+      await screen.findByRole("button", { name: /set start/i }),
+    ).toBeInTheDocument();
   });
 });

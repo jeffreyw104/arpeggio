@@ -15,6 +15,7 @@ import type { ViewMode } from "../layout/viewMode";
 import { FloatingHud } from "../ui/FloatingHud";
 import { TopBar } from "../ui/TopBar";
 import { HandState } from "../practice/hands";
+import type { HandVisibility } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
   getPracticeState,
@@ -25,6 +26,7 @@ import {
   capturePracticeState,
   applyPracticeState,
 } from "../library/practiceState";
+import type { PracticeMode } from "../layout/practiceMode";
 
 interface PracticeViewProps {
   score: Score;
@@ -61,6 +63,28 @@ export function PracticeView({
   const audioStartedRef = useRef(false);
   const falldownRef = useRef<FalldownRenderer | null>(null);
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
+
+  // Practice-only state stowed while in Play mode (suspend & restore).
+  const suspendedRef = useRef<{
+    loop: { start: number; end: number } | null;
+    speedUp: boolean;
+    metronome: boolean;
+    leftMuted: boolean;
+    rightMuted: boolean;
+    leftVis: HandVisibility;
+    rightVis: HandVisibility;
+  } | null>(null);
+  // Each mode keeps its own tempo; snapshotted on switch, re-applied on return.
+  const practiceBpmRef = useRef<number>(transport.bpm);
+  const playBpmRef = useRef<number>(transport.referenceBpm);
+  const modeRef = useRef<PracticeMode>("play");
+  const collapsedRef = useRef(false);
+  // True once the user has explicitly changed mode (prevents async init from
+  // overwriting a mode the user already set before state was loaded).
+  const userChangedModeRef = useRef(false);
+
+  const [mode, setMode] = useState<PracticeMode>("play");
+  const [hudCollapsed, setHudCollapsed] = useState(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.58);
@@ -151,6 +175,22 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
+      practiceBpmRef.current = transport.bpm;
+      playBpmRef.current = transport.referenceBpm;
+      const restoredMode: PracticeMode = state?.mode ?? "play";
+      if (restoredMode === "play") {
+        // Stow whatever applyPracticeState just applied, so Play is clean
+        // and a later switch to Practice restores it.
+        suspendPractice();
+        transport.setBpm(playBpmRef.current);
+      }
+      // Only apply the persisted mode and collapsed state if the user has not
+      // already changed the mode (prevents async load from overwriting a change
+      // made before the stored state resolved).
+      if (!userChangedModeRef.current) {
+        setMode(restoredMode);
+        setHudCollapsed(state?.hudCollapsed ?? false);
+      }
       setPracticeReady(true);
     })();
 
@@ -190,12 +230,18 @@ export function PracticeView({
             subdivision: engineRef.current?.metronome.subdivision ?? 1,
           }
         : undefined;
+      // If we are in Play mode the practice state is suspended; momentarily
+      // restore it so the captured snapshot has the real loop/hand values.
+      if (modeRef.current === "play") restorePractice();
       void savePracticeState(
         pieceId,
-        capturePracticeState(transport, handState, beat),
+        capturePracticeState(transport, handState, beat, {
+          mode: modeRef.current,
+          hudCollapsed: collapsedRef.current,
+        }),
       );
     };
-  }, [transport, handState, pieceId]);
+  }, [transport, handState, pieceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
   // divider drag, or window resize). The renderer holds onto a fixed pixel
@@ -229,6 +275,74 @@ export function PracticeView({
       }
     });
   }, [transport]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+  useEffect(() => {
+    collapsedRef.current = hudCollapsed;
+  }, [hudCollapsed]);
+
+  // Stow practice-only state and make playback "straight through" for Play.
+  function suspendPractice(): void {
+    const loop = transport.clock.loop;
+    suspendedRef.current = {
+      loop: loop ? { start: loop.start, end: loop.end } : null,
+      speedUp: transport.speedUpActive,
+      metronome: engineRef.current?.metronome.enabled ?? false,
+      leftMuted: handState.isMuted("left"),
+      rightMuted: handState.isMuted("right"),
+      leftVis: handState.visibility("left"),
+      rightVis: handState.visibility("right"),
+    };
+    transport.clearLoop();
+    transport.disableSpeedUp();
+    if (engineRef.current) {
+      engineRef.current.metronome.enabled = false;
+    }
+    if (falldownRef.current) {
+      falldownRef.current.showBeatPulse = false;
+    }
+    handState.setMuted("left", false);
+    handState.setMuted("right", false);
+    handState.setVisibility("left", "show");
+    handState.setVisibility("right", "show");
+  }
+
+  // Restore the practice-only state stowed by suspendPractice().
+  function restorePractice(): void {
+    const s = suspendedRef.current;
+    if (!s) return;
+    transport.clock.setLoop(s.loop ? { ...s.loop } : null);
+    if (s.speedUp) {
+      transport.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.05 });
+    }
+    if (engineRef.current) {
+      engineRef.current.metronome.enabled = s.metronome;
+    }
+    if (falldownRef.current) {
+      falldownRef.current.showBeatPulse = s.metronome;
+    }
+    handState.setMuted("left", s.leftMuted);
+    handState.setMuted("right", s.rightMuted);
+    handState.setVisibility("left", s.leftVis);
+    handState.setVisibility("right", s.rightVis);
+  }
+
+  function handleModeChange(next: PracticeMode): void {
+    if (next === mode) return;
+    userChangedModeRef.current = true;
+    if (next === "play") {
+      practiceBpmRef.current = transport.bpm;
+      suspendPractice();
+      transport.setBpm(playBpmRef.current);
+    } else {
+      playBpmRef.current = transport.bpm;
+      restorePractice();
+      transport.setBpm(practiceBpmRef.current);
+    }
+    setMode(next);
+  }
 
   function zoomIn(): void {
     const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
@@ -277,8 +391,8 @@ export function PracticeView({
         onOpenLibrary={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
-        mode="play"
-        onModeChange={() => {}}
+        mode={mode}
+        onModeChange={handleModeChange}
       />
       <FloatingHud
         transport={transport}
@@ -286,9 +400,9 @@ export function PracticeView({
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
         falldown={falldown}
-        mode="play"
-        collapsed={false}
-        onCollapsedChange={() => {}}
+        mode={mode}
+        collapsed={hudCollapsed}
+        onCollapsedChange={setHudCollapsed}
       />
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel transport={transport} falldown={falldown} />
