@@ -252,6 +252,8 @@ export function FloatingHud({
             transport={transport}
             falldown={falldown}
             audioEngine={audioEngine}
+            countInBars={0}
+            onCountInBarsChange={() => {}}
           />
         )}
       </div>

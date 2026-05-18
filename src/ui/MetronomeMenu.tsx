@@ -7,6 +7,8 @@ interface MetronomeMenuProps {
   transport: Transport;
   falldown: FalldownRenderer | null;
   audioEngine: AudioEngine | null;
+  countInBars: number;
+  onCountInBarsChange: (bars: number) => void;
 }
 
 /**
@@ -19,6 +21,8 @@ export function MetronomeMenu({
   transport,
   falldown,
   audioEngine,
+  countInBars,
+  onCountInBarsChange,
 }: MetronomeMenuProps): React.JSX.Element {
   const [bpm, setBpm] = useState(() => Math.round(transport.bpm));
   const [timeSignature, setTimeSignature] = useState(() =>
@@ -108,6 +112,17 @@ export function MetronomeMenu({
           <option value={2}>2</option>
           <option value={3}>3</option>
           <option value={4}>4</option>
+        </select>
+      </label>
+      <label>
+        Count-in{" "}
+        <select
+          value={countInBars}
+          onChange={(e) => onCountInBarsChange(Number(e.target.value))}
+        >
+          <option value={0}>Off</option>
+          <option value={1}>1 bar</option>
+          <option value={2}>2 bars</option>
         </select>
       </label>
     </div>

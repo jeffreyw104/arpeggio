@@ -18,6 +18,27 @@ function fakes() {
   return { transport, setBpm, falldown, audioEngine, setTimeSignature };
 }
 
+function renderMenu(
+  overrides: Partial<{
+    transport: Transport;
+    falldown: FalldownRenderer;
+    audioEngine: AudioEngine;
+    countInBars: number;
+    onCountInBarsChange: (bars: number) => void;
+  }> = {},
+) {
+  const { transport, falldown, audioEngine } = fakes();
+  return render(
+    <MetronomeMenu
+      transport={overrides.transport ?? transport}
+      falldown={overrides.falldown ?? falldown}
+      audioEngine={overrides.audioEngine ?? audioEngine}
+      countInBars={overrides.countInBars ?? 0}
+      onCountInBarsChange={overrides.onCountInBarsChange ?? vi.fn()}
+    />,
+  );
+}
+
 describe("MetronomeMenu", () => {
   it("initialises the tempo from the transport", () => {
     const { falldown, audioEngine } = fakes();
@@ -27,6 +48,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     expect(screen.getByLabelText(/tempo/i)).toHaveValue(90);
@@ -39,6 +62,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/tempo/i), {
@@ -57,6 +82,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     expect(screen.getByLabelText(/time signature/i)).toHaveValue("3/4");
@@ -69,6 +96,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/time signature/i), {
@@ -85,6 +114,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/time signature/i), {
@@ -101,6 +132,8 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByLabelText(/accent/i));
@@ -114,11 +147,22 @@ describe("MetronomeMenu", () => {
         transport={transport}
         falldown={falldown}
         audioEngine={audioEngine}
+        countInBars={0}
+        onCountInBarsChange={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/subdivision/i), {
       target: { value: "4" },
     });
     expect(audioEngine.metronome.subdivision).toBe(4);
+  });
+
+  it("renders the count-in selector and reports changes in bars", () => {
+    const onCountInBarsChange = vi.fn();
+    renderMenu({ countInBars: 0, onCountInBarsChange });
+    const select = screen.getByLabelText(/count-in/i);
+    expect(select).toHaveValue("0");
+    fireEvent.change(select, { target: { value: "2" } });
+    expect(onCountInBarsChange).toHaveBeenCalledWith(2);
   });
 });
