@@ -31,8 +31,6 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
     transport,
     viewMode: "both" as const,
     onViewModeChange: vi.fn(),
-    onZoomIn: vi.fn(),
-    onZoomOut: vi.fn(),
     onExit: vi.fn(),
     settingsOpen: false,
     onToggleSettings: vi.fn(),
@@ -64,13 +62,9 @@ describe("FloatingHud", () => {
     expect(props.onViewModeChange).toHaveBeenCalledWith("score");
   });
 
-  it("calls the zoom and exit callbacks", () => {
+  it("calls the exit callback", () => {
     const { props } = renderHud();
-    fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
-    fireEvent.click(screen.getByRole("button", { name: /zoom out/i }));
     fireEvent.click(screen.getByRole("button", { name: /library/i }));
-    expect(props.onZoomIn).toHaveBeenCalled();
-    expect(props.onZoomOut).toHaveBeenCalled();
     expect(props.onExit).toHaveBeenCalled();
   });
 
@@ -90,14 +84,6 @@ describe("FloatingHud", () => {
     const { props } = renderHud();
     fireEvent.click(screen.getByLabelText(/accent/i));
     expect(props.audioEngine!.metronome.accentDownbeat).toBe(true);
-  });
-
-  it("sets the metronome subdivision on the audio engine", () => {
-    const { props } = renderHud();
-    fireEvent.change(screen.getByLabelText(/subdivision/i), {
-      target: { value: "4" },
-    });
-    expect(props.audioEngine!.metronome.subdivision).toBe(4);
   });
 
   it("moves when dragged by its background", () => {

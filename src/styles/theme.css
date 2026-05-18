@@ -63,14 +63,6 @@ body {
   white-space: nowrap;
 }
 
-.floating-hud select {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.1rem 0.2rem;
-}
-
 .floating-hud.faded {
   opacity: 0.2;
 }
@@ -101,6 +93,39 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
+}
+
+/* --- Score-panel zoom controls --- */
+
+/* Zoom buttons overlaid on the score panel; fade in only on hover. Only the
+   score panel contains a .score-zoom, so the :hover selector never matches
+   the falldown panel. */
+.score-zoom {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.layout-panel:hover .score-zoom {
+  opacity: 1;
+}
+
+.score-zoom button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+
+.score-zoom button:hover {
+  border-color: var(--accent);
 }
 
 /* --- Layout --- */

@@ -27,6 +27,7 @@ export function ControlPanel({
   const [showLabels, setShowLabels] = useState(falldown.showLabels);
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
   const [full88, setFull88] = useState(falldown.full88);
+  const [subdivision, setSubdivision] = useState(1);
   const [timeSignature, setTimeSignature] = useState(
     `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`,
   );
@@ -64,6 +65,14 @@ export function ControlPanel({
     } else {
       transport.disableSpeedUp();
     }
+  }
+
+  function handleSubdivision(value: string): void {
+    const next = Number(value);
+    setSubdivision(next);
+    // The audio engine is an imperative object the panel writes through to.
+    // eslint-disable-next-line react-hooks/immutability
+    if (audioEngine) audioEngine.metronome.subdivision = next;
   }
 
   function handleTimeSignature(value: string): void {
@@ -170,6 +179,18 @@ export function ControlPanel({
             value={timeSignature}
             onChange={(e) => handleTimeSignature(e.target.value)}
           />
+        </label>
+        <label>
+          Subdivision{" "}
+          <select
+            value={subdivision}
+            onChange={(e) => handleSubdivision(e.target.value)}
+          >
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+            <option value={4}>4</option>
+          </select>
         </label>
         <label>
           <input

@@ -31,6 +31,9 @@ interface PracticeViewProps {
   onExit: () => void;
 }
 
+/** Initial score zoom — slightly out so a full page fits beside the falldown. */
+const DEFAULT_SCORE_ZOOM = 0.8;
+
 /**
  * The assembled practice screen: composes the transport, frame loop, falldown
  * renderer, audio engine, and engraved score view into a single playable view.
@@ -53,9 +56,9 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
-  const [split, setSplit] = useState(0.65);
+  const [split, setSplit] = useState(0.55);
   const [scoreReady, setScoreReady] = useState(false);
-  const [scoreZoom, setScoreZoom] = useState(1);
+  const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the ControlPanel render against them in JSX.
@@ -158,8 +161,8 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
           svgPages,
           timemap,
         );
-        // scoreZoom starts at 1; the zoom buttons drive subsequent changes.
-        scoreView.setZoom(1);
+        // Start slightly zoomed out; the zoom buttons drive subsequent changes.
+        scoreView.setZoom(DEFAULT_SCORE_ZOOM);
         scoreViewRef.current = scoreView;
         loop.onFrame(() => scoreView.renderFrame());
         setScoreReady(true);
@@ -240,22 +243,30 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         onSplitChange={setSplit}
         falldown={<canvas ref={canvasRef} className="falldown-canvas" />}
         score={
-          <div
-            ref={scoreContainerRef}
-            className={
-              viewMode === "score"
-                ? "score-container horizontal-pages"
-                : "score-container"
-            }
-          />
+          <>
+            <div
+              ref={scoreContainerRef}
+              className={
+                viewMode === "score"
+                  ? "score-container horizontal-pages"
+                  : "score-container"
+              }
+            />
+            <div className="score-zoom">
+              <button type="button" aria-label="Zoom out" onClick={zoomOut}>
+                −
+              </button>
+              <button type="button" aria-label="Zoom in" onClick={zoomIn}>
+                +
+              </button>
+            </div>
+          </>
         }
       />
       <FloatingHud
         transport={transport}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
         onExit={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}

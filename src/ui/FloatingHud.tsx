@@ -7,8 +7,6 @@ interface FloatingHudProps {
   transport: Transport;
   viewMode: ViewMode;
   onViewModeChange: (m: ViewMode) => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
   onExit: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
@@ -159,8 +157,6 @@ export function FloatingHud({
   transport,
   viewMode,
   onViewModeChange,
-  onZoomIn,
-  onZoomOut,
   onExit,
   settingsOpen,
   onToggleSettings,
@@ -177,7 +173,6 @@ export function FloatingHud({
 
   const [metronomeOn, setMetronomeOn] = useState(false);
   const [accentDownbeat, setAccentDownbeat] = useState(false);
-  const [subdivision, setSubdivision] = useState(1);
   const pulseRef = useRef<HTMLSpanElement>(null);
 
   function handleMetronome(checked: boolean): void {
@@ -192,14 +187,6 @@ export function FloatingHud({
     // The audio engine is an imperative object the HUD writes through to.
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.accentDownbeat = checked;
-  }
-
-  function handleSubdivision(value: string): void {
-    const next = Number(value);
-    setSubdivision(next);
-    // The audio engine is an imperative object the HUD writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.subdivision = next;
   }
 
   // Self-contained rAF loop driving the metronome pulse indicator's opacity
@@ -263,18 +250,6 @@ export function FloatingHud({
         />{" "}
         Accent
       </label>
-      <label>
-        Subdivision{" "}
-        <select
-          value={subdivision}
-          onChange={(e) => handleSubdivision(e.target.value)}
-        >
-          <option value={1}>1</option>
-          <option value={2}>2</option>
-          <option value={3}>3</option>
-          <option value={4}>4</option>
-        </select>
-      </label>
       {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
         <button
           key={mode}
@@ -285,12 +260,6 @@ export function FloatingHud({
           {label}
         </button>
       ))}
-      <button type="button" aria-label="Zoom out" onClick={onZoomOut}>
-        −
-      </button>
-      <button type="button" aria-label="Zoom in" onClick={onZoomIn}>
-        +
-      </button>
       <button
         type="button"
         aria-label="Settings"

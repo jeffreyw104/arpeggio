@@ -111,6 +111,17 @@ describe("ControlPanel", () => {
     expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
   });
 
+  it("sets the metronome subdivision on the audio engine", () => {
+    const fakeEngine = {
+      metronome: { enabled: false, subdivision: 1, pulse: 0 },
+    } as unknown as AudioEngine;
+    setup(fakeEngine);
+    fireEvent.change(screen.getByLabelText(/subdivision/i), {
+      target: { value: "4" },
+    });
+    expect(fakeEngine.metronome.subdivision).toBe(4);
+  });
+
   it("flattens tempo changes on the transport", () => {
     const { transport } = setup();
     fireEvent.click(screen.getByLabelText(/flatten tempo/i));
