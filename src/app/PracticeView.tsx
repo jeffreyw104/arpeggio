@@ -56,7 +56,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
-  const [split, setSplit] = useState(0.55);
+  const [split, setSplit] = useState(0.62);
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
 

@@ -174,6 +174,11 @@ body {
   width: max-content;
 }
 
+/* Centre the page in the panel so left/right whitespace is balanced. */
+.score-container:not(.horizontal-pages) .score-pages {
+  margin-inline: auto;
+}
+
 /* Each engraved page: white background with a subtle border, separated from
    the next page so multi-page scores read clearly. */
 .score-page {
