@@ -107,13 +107,15 @@ describe("ControlPanel", () => {
     expect(fakeEngine.metronome.subdivision).toBe(4);
   });
 
-  it("sets the time signature on the falldown renderer", () => {
+  it("sets the time signature via the single N/D text box", () => {
     const { falldown } = setup();
     fireEvent.change(screen.getByLabelText(/time signature/i), {
-      target: { value: "6" },
+      target: { value: "6/4" },
     });
-    fireEvent.change(screen.getByLabelText(/beat unit/i), {
-      target: { value: "4" },
+    expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
+    // An invalid value leaves the time signature unchanged.
+    fireEvent.change(screen.getByLabelText(/time signature/i), {
+      target: { value: "abc" },
     });
     expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
   });

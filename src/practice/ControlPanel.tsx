@@ -29,9 +29,8 @@ export function ControlPanel({
   const [full88, setFull88] = useState(falldown.full88);
   const [metronome, setMetronome] = useState(false);
   const [subdivision, setSubdivision] = useState(1);
-  const [numerator, setNumerator] = useState(falldown.beatMeter.numerator);
-  const [denominator, setDenominator] = useState(
-    falldown.beatMeter.denominator,
+  const [timeSignature, setTimeSignature] = useState(
+    `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`,
   );
   const [flattenTempo, setFlattenTempo] = useState(
     transport.tempoMode === "flatten",
@@ -81,22 +80,20 @@ export function ControlPanel({
     if (audioEngine) audioEngine.metronome.subdivision = next;
   }
 
-  function handleNumerator(value: string): void {
-    const next = Math.max(1, Math.floor(Number(value)) || 1);
-    setNumerator(next);
+  function handleTimeSignature(value: string): void {
+    // Keep the raw string so typing is never blocked mid-edit.
+    setTimeSignature(value);
+    const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(value);
+    if (!match) return;
+    const numerator = Number(match[1]);
+    const denominator = Number(match[2]);
+    if (numerator < 1 || denominator < 1) return;
     // The falldown renderer exposes plain mutable fields as its API.
     // eslint-disable-next-line react-hooks/immutability
-    falldown.beatMeter = { numerator: next, denominator };
-    if (audioEngine) audioEngine.metronome.setTimeSignature(next, denominator);
-  }
-
-  function handleDenominator(value: string): void {
-    const next = Number(value);
-    setDenominator(next);
-    // The falldown renderer exposes plain mutable fields as its API.
-    // eslint-disable-next-line react-hooks/immutability
-    falldown.beatMeter = { numerator, denominator: next };
-    if (audioEngine) audioEngine.metronome.setTimeSignature(numerator, next);
+    falldown.beatMeter = { numerator, denominator };
+    if (audioEngine) {
+      audioEngine.metronome.setTimeSignature(numerator, denominator);
+    }
   }
 
   function handleFlattenTempo(checked: boolean): void {
@@ -207,24 +204,11 @@ export function ControlPanel({
         <label>
           Time signature{" "}
           <input
-            type="number"
-            min={1}
-            value={numerator}
-            onChange={(e) => handleNumerator(e.target.value)}
+            type="text"
+            placeholder="4/4"
+            value={timeSignature}
+            onChange={(e) => handleTimeSignature(e.target.value)}
           />
-        </label>
-        <label>
-          Beat unit{" "}
-          <select
-            value={denominator}
-            onChange={(e) => handleDenominator(e.target.value)}
-          >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={4}>4</option>
-            <option value={8}>8</option>
-            <option value={16}>16</option>
-          </select>
         </label>
         <label>
           Subdivision{" "}
