@@ -61,17 +61,6 @@ export function noteRects(
   return rects;
 }
 
-/** MIDI numbers of every note sounding at time `t` (start <= t < start+dur). */
-export function activeKeys(notes: Note[], t: number): Set<number> {
-  const active = new Set<number>();
-  for (const note of notes) {
-    if (t >= note.start && t < note.start + note.duration) {
-      active.add(note.midi);
-    }
-  }
-  return active;
-}
-
 /**
  * Map of midi -> hand color for every note sounding at time `t`. If two notes
  * sound the same pitch the last one wins (rare; either color reads correctly).
