@@ -29,7 +29,7 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 | F       | Score View           | Done        | `docs/superpowers/plans/2026-05-18-feature-f-score-view.md`         | `docs/features/F-score-view.md`         |
 | G       | Layout & View Modes  | Done        | `docs/superpowers/plans/2026-05-18-feature-g-layout-view-modes.md`  | `docs/features/G-layout-view-modes.md`  |
 | H       | Practice Controls    | Done        | `docs/superpowers/plans/2026-05-18-feature-h-practice-controls.md`  | `docs/features/H-practice-controls.md`  |
-| I       | Library              | Not started | _(write before build)_                                              | `docs/features/I-library.md`            |
+| I       | Library              | In progress | `docs/superpowers/plans/2026-05-18-feature-i-library.md`            | `docs/features/I-library.md`            |
 
 Statuses: Not started / In progress / Blocked / Done.
 
