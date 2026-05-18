@@ -12,6 +12,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     onToggleSettings: vi.fn(),
     mode: "play" as const,
     onModeChange: vi.fn(),
+    extendedCollapsed: false,
+    onToggleExtended: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
@@ -62,5 +64,24 @@ describe("TopBar", () => {
     expect(gear).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(gear);
     expect(props.onToggleSettings).toHaveBeenCalled();
+  });
+
+  it("shows the arpeggio wordmark", () => {
+    renderBar();
+    expect(screen.getByText("arpeggio")).toBeInTheDocument();
+  });
+
+  it("shows the extended-bar collapse toggle in Practice mode", () => {
+    const { props } = renderBar({ mode: "practice" });
+    const toggle = screen.getByRole("button", { name: /collapse|expand/i });
+    fireEvent.click(toggle);
+    expect(props.onToggleExtended).toHaveBeenCalled();
+  });
+
+  it("hides the collapse toggle in Play mode", () => {
+    renderBar({ mode: "play" });
+    expect(
+      screen.queryByRole("button", { name: /collapse|expand/i }),
+    ).toBeNull();
   });
 });

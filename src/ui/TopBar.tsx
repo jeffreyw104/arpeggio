@@ -11,6 +11,8 @@ interface TopBarProps {
   onToggleSettings: () => void;
   mode: PracticeMode;
   onModeChange: (m: PracticeMode) => void;
+  extendedCollapsed: boolean;
+  onToggleExtended: () => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -25,9 +27,10 @@ function displayName(fileName: string): string {
 }
 
 /**
- * The fixed top bar: navigation and feature controls (Library, the now-playing
- * piece name, the view-mode switch, the settings gear). Purely presentational —
- * all state lives in PracticeView.
+ * The fixed top bar. Left: the arpeggio wordmark and the Library button.
+ * Center: the now-playing piece name. Right: the Play/Practice switch, the
+ * view-mode switch, the settings gear, and — in Practice mode — the toggle
+ * that collapses the extended control bar. Purely presentational.
  */
 export function TopBar({
   pieceName,
@@ -38,16 +41,18 @@ export function TopBar({
   onToggleSettings,
   mode,
   onModeChange,
+  extendedCollapsed,
+  onToggleExtended,
 }: TopBarProps): React.JSX.Element {
   return (
     <div className="top-bar">
+      <span className="top-bar-logo">arpeggio</span>
       <button type="button" onClick={onOpenLibrary}>
         Library
       </button>
       <span className="top-bar-piece">{displayName(pieceName)}</span>
-      <div className="top-bar-spacer">
-        <ModeSwitch mode={mode} onModeChange={onModeChange} />
-      </div>
+      <span className="top-bar-spacer" />
+      <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <div className="top-bar-views">
         {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
           <button
@@ -68,6 +73,19 @@ export function TopBar({
       >
         ⚙
       </button>
+      {mode === "practice" && (
+        <button
+          type="button"
+          className="top-bar-extended-toggle"
+          aria-label={
+            extendedCollapsed ? "Expand control bar" : "Collapse control bar"
+          }
+          aria-expanded={!extendedCollapsed}
+          onClick={onToggleExtended}
+        >
+          {extendedCollapsed ? "▾" : "▴"}
+        </button>
+      )}
     </div>
   );
 }
