@@ -125,6 +125,25 @@ function useDraggable(): {
     };
   }, []);
 
+  useEffect(() => {
+    function onResize(): void {
+      const el = ref.current;
+      const parent = el?.offsetParent as HTMLElement | null;
+      if (!el || !parent) return;
+      if (parent.clientWidth <= 0 || parent.clientHeight <= 0) return;
+      setPos((p) =>
+        p
+          ? {
+              x: clamp(p.x, 0, parent.clientWidth - el.offsetWidth),
+              y: clamp(p.y, 0, parent.clientHeight - el.offsetHeight),
+            }
+          : p,
+      );
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return { ref, pos, onPointerDown };
 }
 

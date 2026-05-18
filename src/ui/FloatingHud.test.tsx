@@ -122,4 +122,13 @@ describe("FloatingHud", () => {
       vi.useRealTimers();
     }
   });
+
+  it("stays in the document after a window resize event", () => {
+    renderHud();
+    const hud = document.querySelector(".floating-hud") as HTMLElement;
+    // jsdom has zero-size parents so the clamp is a no-op; this confirms the
+    // resize handler does not throw and the component remains mounted.
+    fireEvent(window, new Event("resize"));
+    expect(hud).toBeInTheDocument();
+  });
 });
