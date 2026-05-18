@@ -116,6 +116,11 @@ textarea {
   gap: 0.25rem;
 }
 
+.top-bar-modes {
+  display: flex;
+  gap: 0.25rem;
+}
+
 /* --- Floating transport HUD --- */
 
 .floating-hud {
