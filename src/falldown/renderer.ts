@@ -2,6 +2,7 @@ import { autoFitRange, FULL_88, type KeyRange } from "./keyRange";
 import { keyLayout, drawPiano, midiToNoteName, type KeyboardLayout } from "./piano";
 import { noteRects, activeKeyColors } from "./notes";
 import { beatGridLines } from "./beatGrid";
+import { beatPulse } from "../audio/beats";
 import type { Transport } from "../transport/transport";
 import type { Note } from "../model/score";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
@@ -22,6 +23,10 @@ const BG = "#15151a";
 const BEAT_LINE = "#34343c";
 const DOWNBEAT_LINE = "#5a5a66";
 const LABEL = "#15151a";
+/** Seconds for the on-beat pulse to fade out. */
+const BEAT_PULSE_DECAY = 0.22;
+/** Colour of the beat-pulse effects (matches the metronome pulse dot). */
+const PULSE_COLOR = "#44aa88";
 
 export interface FalldownRendererOptions {
   width: number;
@@ -112,6 +117,50 @@ export class FalldownRenderer {
       whiteColor: WHITE,
       blackColor: BLACK,
     });
+
+    // Beat-pulse effects. Both are drawn for now so the two can be compared;
+    // one will be kept once chosen.
+    const pulse = this.transport.clock.playing
+      ? beatPulse(
+          this.transport.score.measures,
+          this.beatMeter.numerator,
+          t,
+          BEAT_PULSE_DECAY,
+        )
+      : 0;
+    this.drawHitLinePulse(pulse);
+    this.drawEdgeGlow(pulse);
+  }
+
+  /** Option B1: brighten the hit line on each beat. */
+  private drawHitLinePulse(pulse: number): void {
+    if (pulse <= 0) return;
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = PULSE_COLOR;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = PULSE_COLOR;
+    ctx.shadowBlur = 16 * pulse;
+    ctx.beginPath();
+    ctx.moveTo(0, this.hitLineY);
+    ctx.lineTo(this.width, this.hitLineY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Option B2: pulse a glow around the viewport edge on each beat. */
+  private drawEdgeGlow(pulse: number): void {
+    if (pulse <= 0) return;
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = pulse * 0.85;
+    ctx.strokeStyle = PULSE_COLOR;
+    ctx.lineWidth = 5;
+    ctx.shadowColor = PULSE_COLOR;
+    ctx.shadowBlur = 28 * pulse;
+    ctx.strokeRect(3, 3, this.width - 6, this.height - 6);
+    ctx.restore();
   }
 
   /** Draw the horizontal beat/downbeat lines visible at time `t`. */

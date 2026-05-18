@@ -105,6 +105,13 @@ describe("FalldownRenderer", () => {
     renderer.renderFrame();
   });
 
+  it("renders the beat-pulse effects while playing without throwing", () => {
+    const { transport, renderer } = makeRenderer();
+    transport.clock.play();
+    transport.clock.tick(0.5); // onto a beat — beats fall at 0, 0.5, 1, ...
+    renderer.renderFrame();
+  });
+
   it("start() then stop() runs and cancels the animation loop", () => {
     const raf = vi
       .spyOn(globalThis, "requestAnimationFrame")

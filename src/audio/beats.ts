@@ -40,3 +40,23 @@ export function metronomeBeats(
   }
   return beats;
 }
+
+/**
+ * A 0-1 visual pulse of the beat at clock time `t`: 1 exactly on a beat,
+ * decaying linearly to 0 over `decay` seconds. Beats come from the same
+ * `measures` grid that drives the metronome and beat grid.
+ */
+export function beatPulse(
+  measures: Measure[],
+  beatsPerBar: number,
+  t: number,
+  decay: number,
+): number {
+  const beats = metronomeBeats(measures, beatsPerBar, 1);
+  let last = -Infinity;
+  for (const b of beats) {
+    if (b.time <= t && b.time > last) last = b.time;
+  }
+  if (last === -Infinity) return 0;
+  return Math.max(0, 1 - (t - last) / decay);
+}

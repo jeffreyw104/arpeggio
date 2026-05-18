@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { metronomeBeats } from "./beats";
+import { metronomeBeats, beatPulse } from "./beats";
 import type { Measure } from "../model/score";
 
 // Two 4/4 measures spanning [0,2] and [2,4].
@@ -49,5 +49,18 @@ describe("metronomeBeats", () => {
     const a = metronomeBeats(measures, 0, 0);
     const b = metronomeBeats(measures, 1, 1);
     expect(a).toEqual(b);
+  });
+});
+
+describe("beatPulse", () => {
+  it("is 1 on a beat and decays linearly to 0 over the decay window", () => {
+    // Beats at 0, 0.5, 1, ... ; decay 0.2 s.
+    expect(beatPulse(measures, 4, 1, 0.2)).toBe(1); // exactly on the beat
+    expect(beatPulse(measures, 4, 1.1, 0.2)).toBeCloseTo(0.5, 6); // 0.1 s after
+    expect(beatPulse(measures, 4, 1.3, 0.2)).toBe(0); // past the window
+  });
+
+  it("is 0 before the first beat", () => {
+    expect(beatPulse(measures, 4, -1, 0.2)).toBe(0);
   });
 });
