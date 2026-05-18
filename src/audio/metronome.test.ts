@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Metronome } from "./metronome";
 import type { Score } from "../model/score";
+import { averageBpm } from "../transport/tempoMap";
 
 const score = {
   source: "midi",
@@ -74,6 +75,38 @@ describe("Metronome", () => {
     const right = m.pulse;
     m.update(0.0, 0.3); // 0.3 s later, no beat until 0.5
     expect(m.pulse).toBeLessThan(right);
+  });
+
+  it("uses the duration-weighted average tempo, not the first tempo", () => {
+    // Slow intro (60 bpm, 4 s) + fast section (180 bpm, 4 s) over 8 s.
+    // averageBpm = (4*1 + 4*3) / 8 * 60 = 120; first tempo = 60.
+    // At 4/4, 120 bpm: beatLen = (60/120)*(4/4) = 0.5 s.
+    // At 4/4, 60 bpm:  beatLen = (60/60)*(4/4)  = 1.0 s.
+    // Driving update(0, 1.1) should yield beats at 0, 0.5, 1.0 → 3 clicks (avg),
+    // not 2 clicks (first tempo only: 0, 1.0).
+    const multiTempoScore: Score = {
+      source: "midi",
+      notes: [],
+      measures: [],
+      pedalEvents: [],
+      timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
+      tempoMap: [
+        { start: 0, bpm: 60 },
+        { start: 4, bpm: 180 },
+      ],
+      durationSeconds: 8,
+      musicXml: "",
+      qualityWarning: null,
+    };
+    const avg = averageBpm(multiTempoScore); // 120
+    const beatLen = (60 / avg) * (4 / 4); // 0.5 s
+    const m = new Metronome(multiTempoScore);
+    m.enabled = true;
+    const times: number[] = [];
+    m.onClick((time) => times.push(time));
+    m.update(0, beatLen * 2 + 0.1); // covers 3 beats: 0, 0.5, 1.0
+    expect(times.length).toBe(3);
+    expect(times[1]).toBeCloseTo(beatLen, 9);
   });
 
   it("setTimeSignature(6, 4) accents every 6 beats", () => {

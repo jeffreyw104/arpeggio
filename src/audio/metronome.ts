@@ -1,5 +1,6 @@
 import { metronomeBeats, type BeatGridSpec, type MetronomeBeat } from "./beats";
 import type { Score } from "../model/score";
+import { averageBpm } from "../transport/tempoMap";
 
 /** A metronome click listener: receives the beat time and whether it's accented. */
 export type ClickListener = (time: number, accent: boolean) => void;
@@ -39,7 +40,7 @@ export class Metronome {
       denominator: ts?.denominator ?? 4,
       subdivision: 1,
     };
-    this.bpm = score.tempoMap[0]?.bpm ?? 120;
+    this.bpm = averageBpm(score);
     this.durationSeconds = score.durationSeconds;
     this.recompute();
   }

@@ -129,6 +129,15 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
               denominator: state.denominator,
             };
           }
+          if (engineRef.current) {
+            engineRef.current.metronome.setTimeSignature(
+              state.numerator,
+              state.denominator,
+            );
+          }
+        }
+        if (state.subdivision != null && engineRef.current) {
+          engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
       setPracticeReady(true);

@@ -5,6 +5,7 @@ import { beatGridLines } from "./beatGrid";
 import type { Transport } from "../transport/transport";
 import type { Note } from "../model/score";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
+import { averageBpm } from "../transport/tempoMap";
 
 const RIGHT = "#4a90d9";
 const LEFT = "#e08a3c";
@@ -110,7 +111,7 @@ export class FalldownRenderer {
   /** Draw the horizontal beat/downbeat lines visible at time `t`. */
   private drawBeatGrid(t: number): void {
     const { ctx } = this;
-    const bpm = this.transport.score.tempoMap[0]?.bpm ?? 120;
+    const bpm = averageBpm(this.transport.score);
     const durationSeconds = this.transport.score.durationSeconds;
     const lines = beatGridLines(
       this.beatMeter.numerator,
