@@ -1,5 +1,6 @@
 import type { Note } from "../model/score";
 import type { KeyboardLayout } from "./piano";
+import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
 /** Geometry/style configuration for the falldown. */
 export interface FalldownConfig {
@@ -24,6 +25,8 @@ export interface NoteRect {
   velocity: number;
   /** True while the note is sounding at the current clock time. */
   playing: boolean;
+  /** True when the note's hand is set to "dim" — draw it faint. */
+  dimmed: boolean;
 }
 
 /**
@@ -36,15 +39,17 @@ export function noteRects(
   layout: KeyboardLayout,
   t: number,
   config: FalldownConfig,
+  handFilter: HandFilter = NO_HAND_FILTER,
 ): NoteRect[] {
   const rects: NoteRect[] = [];
   for (const note of notes) {
+    const vis = handFilter.visibility(note.hand);
+    if (vis === "hide") continue;
     const key = layout.byMidi(note.midi);
     if (!key) continue;
     const bottom = config.hitLineY - (note.start - t) * config.pixelsPerSecond;
     const height = note.duration * config.pixelsPerSecond;
     const top = bottom - height;
-    // Visible if the rect overlaps the falldown area [0, hitLineY].
     if (top > config.hitLineY || bottom < 0) continue;
     rects.push({
       midi: note.midi,
@@ -56,6 +61,7 @@ export function noteRects(
       color: note.hand === "right" ? config.rightColor : config.leftColor,
       velocity: note.velocity,
       playing: t >= note.start && t < note.start + note.duration,
+      dimmed: vis === "dim",
     });
   }
   return rects;

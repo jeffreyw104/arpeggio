@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { noteRects, activeKeyColors, type FalldownConfig } from "./notes";
+import { HandState } from "../practice/hands";
 import { keyLayout } from "./piano";
 import type { Note } from "../model/score";
 
@@ -52,6 +53,22 @@ describe("noteRects", () => {
     // note 60: start 1, duration 0.5 -> sounding on [1, 1.5)
     expect(noteRects(notes, layout, 1.2, config).find((x) => x.midi === 60)!.playing).toBe(true);
     expect(noteRects(notes, layout, 0.6, config).find((x) => x.midi === 60)!.playing).toBe(false);
+  });
+});
+
+describe("noteRects hand visibility", () => {
+  it("skips a hidden hand's notes and flags a dimmed hand's notes", () => {
+    const hands = new HandState();
+    hands.setVisibility("right", "hide"); // note 60 is right-hand
+    hands.setVisibility("left", "dim"); // note 64 is left-hand
+    const rects = noteRects(notes, layout, 5, config, hands);
+    expect(rects.find((x) => x.midi === 60)).toBeUndefined();
+    expect(rects.find((x) => x.midi === 64)!.dimmed).toBe(true);
+  });
+
+  it("defaults to drawing every note undimmed", () => {
+    const r = noteRects(notes, layout, 1, config).find((x) => x.midi === 60)!;
+    expect(r.dimmed).toBe(false);
   });
 });
 

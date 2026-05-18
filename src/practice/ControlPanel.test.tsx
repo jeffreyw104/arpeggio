@@ -62,10 +62,12 @@ describe("ControlPanel", () => {
     expect(handState.isMuted("left")).toBe(true);
   });
 
-  it("hides a hand via the hand controls", () => {
+  it("sets a hand to dim via the visibility control", () => {
     const { handState } = setup();
-    fireEvent.click(screen.getByLabelText(/hide right/i));
-    expect(handState.isHidden("right")).toBe(true);
+    fireEvent.change(screen.getByLabelText(/left hand/i), {
+      target: { value: "dim" },
+    });
+    expect(handState.visibility("left")).toBe("dim");
   });
 
   it("toggles note labels on the falldown renderer", () => {

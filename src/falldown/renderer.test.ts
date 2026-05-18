@@ -164,7 +164,7 @@ describe("FalldownRenderer hand hide", () => {
 
     const { transport: t2, ctx: ctx2, renderer: r2 } = makeRenderer();
     const hands = new HandState();
-    hands.setHidden("left", true);
+    hands.setVisibility("left", "hide");
     r2.handState = hands;
     t2.clock.seek(0.5);
     r2.renderFrame();

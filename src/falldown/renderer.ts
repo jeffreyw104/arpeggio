@@ -12,6 +12,8 @@ const LEFT = "#e08a3c";
 const NOTE_RADIUS = 4;
 /** Shadow blur applied to a note while it is sounding. */
 const GLOW_BLUR = 12;
+/** Opacity multiplier for a "dim"-visibility hand's notes. */
+const DIM_ALPHA = 0.3;
 /** Opacity of a zero-velocity note; velocity scales linearly up to 1.0. */
 const MIN_NOTE_ALPHA = 0.5;
 const WHITE = "#e6e6ea";
@@ -95,17 +97,18 @@ export class FalldownRenderer {
     const layout = keyLayout(this.range(), this.width);
     const t = this.transport.clock.position;
 
-    const visible = this.transport.score.notes.filter(
-      (n) => !this.handState.isHidden(n.hand),
+    const allNotes = this.transport.score.notes;
+    const lit = allNotes.filter(
+      (n) => this.handState.visibility(n.hand) !== "hide",
     );
 
     if (this.showBeatGrid) this.drawBeatGrid(t);
-    this.drawNotes(layout, t, visible);
+    this.drawNotes(layout, t, allNotes);
 
     drawPiano(ctx, layout, {
       y: this.hitLineY,
       height: this.pianoHeight,
-      activeKeyColors: activeKeyColors(visible, t, RIGHT, LEFT),
+      activeKeyColors: activeKeyColors(lit, t, RIGHT, LEFT),
       whiteColor: WHITE,
       blackColor: BLACK,
     });
@@ -141,11 +144,12 @@ export class FalldownRenderer {
       pixelsPerSecond: this.pixelsPerSecond,
       rightColor: RIGHT,
       leftColor: LEFT,
-    });
+    }, this.handState);
     for (const rect of rects) {
       const radius = Math.min(NOTE_RADIUS, rect.width / 3, rect.height / 2);
       ctx.save();
-      ctx.globalAlpha = MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity;
+      ctx.globalAlpha =
+        (MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity) * (rect.dimmed ? DIM_ALPHA : 1);
       if (rect.playing) {
         ctx.shadowColor = rect.color;
         ctx.shadowBlur = GLOW_BLUR;

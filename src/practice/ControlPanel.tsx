@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
-import type { HandState } from "./hands";
+import type { HandState, HandVisibility } from "./hands";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
 
@@ -39,8 +39,12 @@ export function ControlPanel({
   const pulseRef = useRef<HTMLSpanElement>(null);
   const [muteLeft, setMuteLeft] = useState(handState.isMuted("left"));
   const [muteRight, setMuteRight] = useState(handState.isMuted("right"));
-  const [hideLeft, setHideLeft] = useState(handState.isHidden("left"));
-  const [hideRight, setHideRight] = useState(handState.isHidden("right"));
+  const [leftVis, setLeftVis] = useState<HandVisibility>(
+    handState.visibility("left"),
+  );
+  const [rightVis, setRightVis] = useState<HandVisibility>(
+    handState.visibility("right"),
+  );
 
   function handleBpm(value: string): void {
     const next = Number(value);
@@ -272,26 +276,34 @@ export function ControlPanel({
           Mute right
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={hideLeft}
+          Left hand{" "}
+          <select
+            value={leftVis}
             onChange={(e) => {
-              setHideLeft(e.target.checked);
-              handState.setHidden("left", e.target.checked);
+              const v = e.target.value as HandVisibility;
+              setLeftVis(v);
+              handState.setVisibility("left", v);
             }}
-          />{" "}
-          Hide left
+          >
+            <option value="show">Show</option>
+            <option value="dim">Dim</option>
+            <option value="hide">Hide</option>
+          </select>
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={hideRight}
+          Right hand{" "}
+          <select
+            value={rightVis}
             onChange={(e) => {
-              setHideRight(e.target.checked);
-              handState.setHidden("right", e.target.checked);
+              const v = e.target.value as HandVisibility;
+              setRightVis(v);
+              handState.setVisibility("right", v);
             }}
-          />{" "}
-          Hide right
+          >
+            <option value="show">Show</option>
+            <option value="dim">Dim</option>
+            <option value="hide">Hide</option>
+          </select>
         </label>
       </fieldset>
     </div>

@@ -26,13 +26,13 @@ describe("capturePracticeState", () => {
     t.clock.setLoop({ start: 1, end: 3 });
     const hands = new HandState();
     hands.setMuted("left", true);
-    hands.setHidden("right", true);
+    hands.setVisibility("right", "hide");
     const state = capturePracticeState(t, hands);
     expect(state.bpm).toBeCloseTo(90, 3);
     expect(state.loop).toEqual({ start: 1, end: 3 });
     expect(state.leftMuted).toBe(true);
     expect(state.rightMuted).toBe(false);
-    expect(state.rightHidden).toBe(true);
+    expect(state.rightVisibility).toBe("hide");
   });
 
   it("includes beat settings when given the beat argument", () => {
@@ -68,8 +68,8 @@ describe("applyPracticeState", () => {
         loop: { start: 2, end: 4 },
         leftMuted: false,
         rightMuted: true,
-        leftHidden: true,
-        rightHidden: false,
+        leftVisibility: "hide",
+        rightVisibility: "show",
       },
       t,
       hands,
@@ -77,7 +77,7 @@ describe("applyPracticeState", () => {
     expect(t.bpm).toBeCloseTo(75, 3);
     expect(t.clock.loop).toEqual({ start: 2, end: 4 });
     expect(hands.isMuted("right")).toBe(true);
-    expect(hands.isHidden("left")).toBe(true);
+    expect(hands.visibility("left")).toBe("hide");
   });
 
   it("round-trips through capture", () => {
@@ -91,5 +91,24 @@ describe("applyPracticeState", () => {
     const hands2 = new HandState();
     applyPracticeState(captured, t2, hands2);
     expect(capturePracticeState(t2, hands2)).toEqual(captured);
+  });
+
+  it("reads legacy leftHidden/rightHidden booleans", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    applyPracticeState(
+      {
+        bpm: 80,
+        loop: null,
+        leftMuted: false,
+        rightMuted: false,
+        leftHidden: true,
+        rightHidden: false,
+      },
+      t,
+      hands,
+    );
+    expect(hands.visibility("left")).toBe("hide");
+    expect(hands.visibility("right")).toBe("show");
   });
 });

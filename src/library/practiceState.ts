@@ -14,8 +14,8 @@ export function capturePracticeState(
     loop: loop ? { start: loop.start, end: loop.end } : null,
     leftMuted: hands.isMuted("left"),
     rightMuted: hands.isMuted("right"),
-    leftHidden: hands.isHidden("left"),
-    rightHidden: hands.isHidden("right"),
+    leftVisibility: hands.visibility("left"),
+    rightVisibility: hands.visibility("right"),
     ...(beat && {
       numerator: beat.numerator,
       denominator: beat.denominator,
@@ -34,6 +34,12 @@ export function applyPracticeState(
   transport.clock.setLoop(state.loop ? { ...state.loop } : null);
   hands.setMuted("left", state.leftMuted);
   hands.setMuted("right", state.rightMuted);
-  hands.setHidden("left", state.leftHidden);
-  hands.setHidden("right", state.rightHidden);
+  hands.setVisibility(
+    "left",
+    state.leftVisibility ?? (state.leftHidden ? "hide" : "show"),
+  );
+  hands.setVisibility(
+    "right",
+    state.rightVisibility ?? (state.rightHidden ? "hide" : "show"),
+  );
 }

@@ -3,6 +3,8 @@
  * (raw uploaded file bytes + metadata) and `practiceState` (per-piece settings).
  */
 
+import type { HandVisibility } from "../practice/hands";
+
 /** A stored uploaded piece. */
 export interface StoredPiece {
   id: string;
@@ -17,8 +19,12 @@ export interface StoredPracticeState {
   loop: { start: number; end: number } | null;
   leftMuted: boolean;
   rightMuted: boolean;
-  leftHidden: boolean;
-  rightHidden: boolean;
+  /** 3-way visibility. Optional: records saved before this used the booleans below. */
+  leftVisibility?: HandVisibility;
+  rightVisibility?: HandVisibility;
+  /** Legacy boolean visibility — read-only fallback for old records. */
+  leftHidden?: boolean;
+  rightHidden?: boolean;
   /** Beat-grid / metronome settings (optional for records saved before this). */
   numerator?: number;
   denominator?: number;
