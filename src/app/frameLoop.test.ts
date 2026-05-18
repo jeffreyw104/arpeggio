@@ -58,6 +58,36 @@ describe("FrameLoop", () => {
     raf.mockRestore();
   });
 
+  it("isolates a throwing consumer so the loop and other consumers survive", () => {
+    const raf = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation(() => 1);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const clock = new Clock(100);
+    clock.play();
+    const loop = new FrameLoop(clock);
+    // A consumer that throws (e.g. the audio backend before samples load)
+    // must not abort the rAF callback and freeze the falldown/score.
+    const bad = vi.fn(() => {
+      throw new Error("buffer is either not set or not loaded");
+    });
+    const good = vi.fn();
+    loop.onFrame(bad);
+    loop.onFrame(good);
+    loop.start();
+    const cb = raf.mock.calls[0][0];
+    cb(0);
+    cb(16);
+    // The throwing consumer ran but did not prevent the next one or stop the
+    // loop: `good` still ran twice and the loop kept re-scheduling.
+    expect(bad).toHaveBeenCalledTimes(2);
+    expect(good).toHaveBeenCalledTimes(2);
+    expect(raf.mock.calls.length).toBeGreaterThan(2);
+    expect(clock.position).toBeCloseTo(0.016, 6);
+    raf.mockRestore();
+    errSpy.mockRestore();
+  });
+
   it("stop() cancels the loop", () => {
     const raf = vi
       .spyOn(globalThis, "requestAnimationFrame")

@@ -125,6 +125,11 @@ export async function createAudioEngine(
 
   const piano: PianoSink = {
     playNote(midi, durationSeconds, velocity) {
+      // The Salamander samples stream from a CDN; until every buffer has
+      // loaded, triggerAttackRelease throws "buffer is either not set or not
+      // loaded". Skip silently rather than let the throw escape into the
+      // per-frame AudioEngine.update() call.
+      if (!sampler.loaded) return;
       sampler.triggerAttackRelease(
         Tone.Frequency(midi, "midi").toNote(),
         Math.max(durationSeconds, 0.05),

@@ -37,7 +37,16 @@ export class FrameLoop {
         if (delta > 0) this.clock.tick(delta);
       }
       this.lastTime = time;
-      for (const consumer of this.consumers) consumer();
+      // Isolate consumers: a throw from one (e.g. an audio backend whose
+      // samples have not loaded yet) must not abort the rAF callback, which
+      // would stop the loop and freeze every other consumer (falldown/score).
+      for (const consumer of this.consumers) {
+        try {
+          consumer();
+        } catch (err) {
+          console.error("FrameLoop consumer threw; skipping it this frame", err);
+        }
+      }
       this.handle = requestAnimationFrame(frame);
     };
     this.handle = requestAnimationFrame(frame);
