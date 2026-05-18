@@ -423,6 +423,7 @@ export function PracticeView({
         transport={transport}
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
+        falldown={falldown}
         mode={mode}
         countInBars={countInBars}
       />

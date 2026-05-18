@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { AudioEngine, type PianoSink, type ClickSink, type MetronomeSound } from "./engine";
+import {
+  AudioEngine,
+  type PianoSink,
+  type ClickSink,
+  type MetronomeSound,
+  type OutputSink,
+} from "./engine";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import { HandState } from "../practice/hands";
@@ -156,6 +162,25 @@ describe("AudioEngine", () => {
     t.clock.tick(0.2); // 0 -> 0.2 : the note at 0 and the note at 0.1 both fire
     engine.update();
     expect(piano.calls.sort((a, b) => a - b)).toEqual([48, 60]);
+  });
+
+  it("setVolume forwards to the output sink", () => {
+    const levels: number[] = [];
+    const piano = { playNote: () => {} };
+    const click = { sound: "click" as MetronomeSound, playClick: () => {} };
+    const output: OutputSink = { setVolume: (level) => levels.push(level) };
+    const t = new Transport(score);
+    const engine = new AudioEngine(t, piano, click, output);
+    engine.setVolume(0.5);
+    engine.setVolume(0);
+    expect(levels).toEqual([0.5, 0]);
+  });
+
+  it("setVolume is a no-op when there is no output sink", () => {
+    const piano = { playNote: () => {} };
+    const click = { sound: "click" as MetronomeSound, playClick: () => {} };
+    const engine = new AudioEngine(new Transport(score), piano, click);
+    expect(() => engine.setVolume(0.3)).not.toThrow();
   });
 
   it("metronomeSound proxies the click sink's sound", () => {

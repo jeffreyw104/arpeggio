@@ -4,6 +4,7 @@ import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
+import type { FalldownRenderer } from "../falldown/renderer";
 
 const score = {
   source: "midi",
@@ -23,10 +24,12 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
     metronome: { timeSignature: { numerator: 4, denominator: 4 } },
     playClick: vi.fn(),
   } as unknown as AudioEngine;
+  const falldown = { zoom: 1 } as unknown as FalldownRenderer;
   const props = {
     transport,
     settingsOpen: false,
     audioEngine,
+    falldown,
     mode: "play" as const,
     countInBars: 0,
     ...overrides,
@@ -46,7 +49,9 @@ describe("FloatingHud", () => {
 
   it("seeks the clock when the slider moves", () => {
     const { transport } = renderHud();
-    fireEvent.change(screen.getByRole("slider"), { target: { value: "2" } });
+    fireEvent.change(screen.getByRole("slider", { name: /seek/i }), {
+      target: { value: "2" },
+    });
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
@@ -86,7 +91,7 @@ describe("FloatingHud", () => {
     renderHud();
     const hud = document.querySelector(".floating-hud") as HTMLElement;
     const before = hud.style.left;
-    fireEvent.pointerDown(screen.getByRole("slider"), {
+    fireEvent.pointerDown(screen.getByRole("slider", { name: /seek/i }), {
       clientX: 100,
       clientY: 100,
     });

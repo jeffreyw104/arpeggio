@@ -136,6 +136,15 @@ describe("FalldownRenderer", () => {
     caf.mockRestore();
   });
 
+  it("scales pixelsPerSecond by the zoom field", () => {
+    const { renderer } = makeRenderer();
+    const base = renderer.pixelsPerSecond;
+    renderer.zoom = 2;
+    expect(renderer.pixelsPerSecond).toBeCloseTo(base * 2, 6);
+    renderer.zoom = 0.5;
+    expect(renderer.pixelsPerSecond).toBeCloseTo(base * 0.5, 6);
+  });
+
   it("applies velocity-driven opacity and glow while a note is sounding", () => {
     // score note: midi 60, start 0.5, duration 0.5, velocity 0.7, hand right
     // At t=0.75 the note is visible and sounding → alpha ≈ 0.85, shadowBlur=12

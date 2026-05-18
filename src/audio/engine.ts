@@ -30,6 +30,13 @@ export interface ClickSink {
   playClick(accent: boolean): void;
 }
 
+/** Controls the master output level. Real implementation drives Tone's
+ *  destination volume. */
+export interface OutputSink {
+  /** Set the master volume, 0 (silent) to 1 (full). */
+  setVolume(level: number): void;
+}
+
 /**
  * Drives audio output from the transport clock. Call `update()` once per frame,
  * after the clock has been ticked. Pure wiring — the two sinks do the sound.
@@ -56,6 +63,7 @@ export class AudioEngine {
     private readonly transport: Transport,
     private readonly piano: PianoSink,
     private readonly click: ClickSink,
+    private readonly output: OutputSink | null = null,
   ) {
     this.metronome = new Metronome(transport.score);
     this.score = transport.score;
@@ -129,6 +137,11 @@ export class AudioEngine {
   /** Play a single metronome click immediately. Used by the count-in. */
   playClick(accent: boolean): void {
     this.click.playClick(accent);
+  }
+
+  /** Set the master output volume, 0 (silent) to 1 (full). */
+  setVolume(level: number): void {
+    this.output?.setVolume(level);
   }
 }
 
@@ -217,7 +230,15 @@ export async function createAudioEngine(
     },
   };
 
-  return new AudioEngine(transport, piano, click);
+  // Master output level — drives Tone's destination volume in decibels.
+  const output: OutputSink = {
+    setVolume(level) {
+      Tone.getDestination().volume.value =
+        level <= 0 ? -Infinity : Tone.gainToDb(level);
+    },
+  };
+
+  return new AudioEngine(transport, piano, click, output);
 }
 
 /**

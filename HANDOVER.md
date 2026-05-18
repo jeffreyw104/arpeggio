@@ -1,8 +1,9 @@
 # Arpeggio — Session Handover
 
-_Last updated: 2026-05-18. Branch: `main` (everything below is merged & pushed
-& deployed). The **top-bar** feature plus a **liquid-glass** styling round just
-shipped. **Practice mode** is the next feature — not yet designed; see "Next"._
+_Last updated: 2026-05-18. Branch: **`fix/chrome-polish`** (unmerged).
+**Practice mode** plus three redesign rounds are merged & deployed on `main`.
+This branch is a long UI-polish round; the volume/zoom slider feature is now
+finished and the full gate is green — see "Current status"._
 
 ## What this is
 
@@ -15,18 +16,40 @@ tempo, hands-separate, metronome, a saved library.
 - **Live:** https://arpeggio-piano.vercel.app/ (auto-deploys on every push to `main`)
 - **Repo:** github.com/jeffreyw104/arpeggio
 - **Design specs:** `docs/superpowers/specs/` · **Plans:** `docs/superpowers/plans/`
-- **Master plan + progress dashboard:** `implementation.md`
 
 ## Current status
 
-**v1, a post-v1 UI-polish round, and the top-bar feature are all complete.**
-All work below is merged to `main`, pushed, and live on Vercel.
+**On `main`:** v1, Practice mode, and three Practice-mode redesign rounds are
+all merged, pushed, and live on Vercel. `main` is clean and green.
 
-- 219 unit/component tests (Vitest, 39 files) + 5 Playwright e2e specs — all green.
-- `npm run lint`, `npm run typecheck`, `npm run build` all clean.
-- Working tree clean. (`HANDOVER.md` itself is intentionally untracked.)
-- Merged branches `feature/ui-polish-floating-hud` and `feature/top-bar`
-  (the latter remote-only now) still exist — safe to delete.
+**On `fix/chrome-polish` (current branch, NOT merged):** 10 commits of UI
+polish on top of `main` — typography unification, fully-collapsing accordion
+sections, the Play/Practice mode switch (reverted to two plain buttons after
+centering trouble), a darker theme, a midee-inspired HUD restyle, green accent
+on pill highlights, compact tempo steppers, and select-arrow clip fixes.
+
+**The HUD volume + zoom (note height) slider feature is complete** and the full
+gate is green (lint, typecheck, 263 Vitest tests, build, 7 Playwright e2e). The
+modified files:
+
+- `src/audio/engine.ts` — `OutputSink` interface, `AudioEngine` optional 4th
+  ctor arg `output`, `AudioEngine.setVolume(level)`, and `createAudioEngine`
+  wires a real `OutputSink` driving `Tone.getDestination().volume`
+  (`-Infinity` at 0, else `Tone.gainToDb`).
+- `src/falldown/renderer.ts` — public `zoom = 1` field; `pixelsPerSecond` is a
+  getter `(this.hitLineY / 2.5) * this.zoom`.
+- `src/ui/FloatingHud.tsx` — required prop `falldown: FalldownRenderer | null`;
+  `volume`/`zoom` state and handlers; two `.hud-minislider` range inputs
+  (Vol + Zoom); `aria-label="Seek"` on the scrubber.
+- `src/styles/theme.css` — `.hud-mini` / `.hud-mini-label` / `.hud-minislider`
+  styles, plus a `.practice-view--extended .control-panel` rule that drops the
+  settings drawer below the accordion bar (the Practice-mode drawer bug).
+- `src/app/PracticeView.tsx` — passes `falldown={falldown}` to `<FloatingHud>`.
+- Tests: `FloatingHud.test.tsx` passes a `falldown` stub and queries sliders by
+  name; new `AudioEngine.setVolume` and `FalldownRenderer` zoom tests.
+
+> The branch is unmerged and the user has **not** authorized merging this
+> polish round to `main`. The changes are uncommitted — commit when ready.
 
 ## How to verify (run from repo root)
 
@@ -38,18 +61,18 @@ npm run lint && npm run typecheck && npm test && npm run build && npm run e2e
 
 ## Tech stack
 
-Vite + TypeScript + React 19 · Canvas2D (falldown) · Verovio WASM (score
-engraving) · Tone.js (audio) · `@tonejs/midi` (MIDI parsing) · `fflate` (`.mxl`
-unzip) · IndexedDB (library storage) · Vitest + Playwright · Vercel · PWA.
-UI font is **Rubik** (Google Fonts, with a system-stack fallback).
+Vite + TypeScript + React 19 (`react-jsx`, no `import React`) · Canvas2D
+(falldown) · Verovio WASM (score engraving) · Tone.js (audio) · `@tonejs/midi`
+(MIDI parsing) · `fflate` (`.mxl` unzip) · IndexedDB (library storage) ·
+Vitest + Testing Library + Playwright · Vercel · PWA.
 
 ## Architecture (the load-bearing idea)
 
 **One master clock + one Score model; everything else only reads from them.**
 
 - `src/model/score.ts` — the canonical `Score` (notes, measures, pedal, time
-  signatures, tempo map, `musicXml`). No title field — the piece name comes
-  from the imported file name, threaded through `App`'s `Session`.
+  signatures, tempo map, `musicXml`). Piece name comes from the imported file
+  name, threaded through `App`'s `Session`.
 - `src/import/` — `importFile(file)` → `Score`.
 - `src/transport/` — `Clock` (master clock) and `Transport` (BPM, looping,
   speed-up, preserve/flatten tempo).
@@ -58,98 +81,57 @@ UI font is **Rubik** (Google Fonts, with a system-stack fallback).
 - `src/falldown/` — `FalldownRenderer` (Canvas2D falling notes + piano + beat
   grid + on-beat hit-line pulse).
 - `src/score-view/` — Verovio wrapper, `ScoreView` (engraved SVG).
-- `src/ui/` — `TopBar` + `FloatingHud` + `MetronomeMenu` (the practice chrome).
+- `src/ui/` — `TopBar`, `FloatingHud`, `ModeSwitch`, the Practice accordion bar.
 - `src/practice/` — `HandState` (3-way per-hand visibility), `ControlPanel`.
 - `src/app/PracticeView.tsx` — the assembled practice screen.
 
-### The practice-screen chrome (after the top-bar feature)
+### The practice-screen chrome
 
-- **`TopBar`** (`src/ui/TopBar.tsx`) — a fixed, always-visible, floating
-  "liquid-glass" strip across the top. Holds: Library button, the now-playing
-  piece name, the view-mode switch (Both / Falldown only / Score only), and the
-  `⚙` settings gear. Purely presentational; state lives in `PracticeView`. Its
-  layout has a flex spacer reserving room for a future mode switcher.
-- **`FloatingHud`** (`src/ui/FloatingHud.tsx`) — slimmed to transport only:
-  play/pause, seek, time, the metronome control. Draggable, auto-fading
-  (2.5 s idle), defaults to **bottom-center**. Liquid-glass styled.
-- **`MetronomeMenu`** (`src/ui/MetronomeMenu.tsx`) — the dropdown from the
-  metronome `▾`; Tempo, time signature, accent, subdivision. Opens **upward**
-  (the HUD sits at the bottom).
-- **`ControlPanel`** (`src/practice/ControlPanel.tsx`) — the `⚙` settings
-  drawer: loop measure, gradual speed-up, note labels, beat grid, full-88,
-  flatten tempo, per-hand mute + 3-way Show/Dim/Hide.
-- **Score panel** — zoom −/+ buttons overlaid top-right; the score container
-  has top padding so the engraved music clears the floating bar.
-- **Liquid glass** — shared `--glass-*` CSS tokens in `theme.css` `:root` drive
-  the frosted background, blur, highlight rim, and shadow on the bar and HUD.
+- **`TopBar`** — fixed liquid-glass strip: Library button, now-playing piece
+  name (absolutely centered), the **Play/Practice mode switch** (two plain
+  `aria-pressed` buttons in `.top-bar-modes`), and the `⚙` settings gear.
+- **`FloatingHud`** — transport HUD: play/pause, seek scrubber, time, a Speed
+  stepper (Play mode), and the new Vol/Zoom mini-sliders. Draggable,
+  auto-fades after 2.5 s idle. Restyled after `aayushdutt/midee`.
+- **Accordion control bar** — Practice-mode-only bar with collapsible sections
+  (Loop, Metronome, etc.). Open section gets a green accent highlight.
+- **`ControlPanel`** — the `⚙` settings drawer: display prefs (note labels,
+  beat grid, full-88, flatten tempo), per-hand mute + 3-way Show/Dim/Hide.
 
-## What shipped recently
+### Styling
 
-- **Top-bar feature** — spec `docs/superpowers/specs/2026-05-18-top-bar-design.md`,
-  plan `docs/superpowers/plans/2026-05-18-top-bar.md`. New `TopBar` component;
-  Library + view-mode switch + settings gear moved off the HUD into it; new
-  now-playing piece-name label; HUD slimmed to transport-only and moved to
-  bottom-center; Rubik font fix on chrome buttons (native `<button>` does not
-  inherit `font-family`).
-- **Liquid-glass styling round** — the bar and HUD became floating rounded
-  panels with frosted-glass blur, an inner highlight rim, and a soft shadow,
-  via shared `--glass-*` tokens. The bar detached from the viewport edges and
-  is slightly taller (50 px). Metronome dropdown opens upward. Score panel
-  padded so the music clears the bar.
-
-## Next — practice mode (NOT yet designed or built)
-
-The deferred scope from the top-bar spec §8. The user wants a switchable
-**Practice mode**, so practice tooling gets real estate instead of being buried
-in the `⚙` settings drawer:
-
-- A Play/Practice **mode switcher** in the top bar. The bar already reserves a
-  flex-spacer slot for it. Design it so a 3rd mode *could* slot in later — but
-  the user explicitly does **not** want a separate Learn mode ("Practice is my
-  Learn").
-- An **expanded Practice-mode HUD** surfacing the practice tooling as
-  first-class controls: loop region, gradual speed-up, tempo, hands (3-way
-  show/dim/hide + mute).
-- **Metronome becomes Practice-mode-only.**
-- **Adjustable playback speed for Listen/Play mode.**
-- Re-divide the `⚙` settings drawer vs. the Practice HUD — display prefs (note
-  labels, beat grid, full-88, flatten tempo) stay in the drawer.
-- The user is open to additional practice-feature ideas — brainstorm with them.
-
-**To resume:** invoke `superpowers:brainstorming` for practice mode (the user
-already accepted the visual-companion tool in prior sessions — offer it again).
-Then spec → `superpowers:writing-plans` → `superpowers:subagent-driven-development`.
-Do the work on a new branch off `main` (e.g. `feature/practice-mode`).
+Liquid-glass design tokens in `theme.css` `:root` (`--glass-bg`, `--glass-blur`,
+`--glass-border`, `--glass-shadow`). Accent is green `--accent: #4a8`
+(`rgb(68,170,136)`), with `--accent-soft` and `--accent-glow`. The midee study
+informed the HUD: 32px pill controls, ghost secondary buttons, an accent-circle
+play button, an accent-filled scrubber. Native `<button>`/`<input>`/`<select>`
+don't inherit `font-family`/`font-size` — a global rule in `theme.css` fixes it.
 
 ## How the project is built (workflow)
 
 The superpowers flow: `brainstorming` → a spec in `docs/superpowers/specs/` →
 `writing-plans` → a plan in `docs/superpowers/plans/` →
-`subagent-driven-development` (fresh implementer subagent per task, then a
-spec-compliance review and a code-quality review per task). Each feature on its
-own branch, merged to `main` after review; `main` auto-deploys.
-
-## Known limitations / backlog
-
-- **MIDI-imported score is approximate** — the engraved score for a MIDI file
-  comes from an in-app MIDI→MusicXML conversion; bar lines / meter can be rough.
-  The falldown is always exact.
-- **Metronome vs. rubato** — the metronome/beat-grid follow `score.measures`; a
-  steady audible pulse can't perfectly track heavy internal tempo changes.
-- **Offline audio** — Tone.js Salamander samples load from a CDN; first-load
-  audio needs network.
-- **HUD time-signature/subdivision restore** — the `MetronomeMenu` reads live
-  state when opened, but if a saved practice state changed the time signature,
-  the menu shows the score's original until reopened. Minor; pre-existing-style.
-- Design backlog (top-bar spec §8 + earlier specs), explicitly NOT yet built:
-  practice mode (next), raw-MIDI import-settings panel, in-app score editing,
-  PDF/OMR import, Tauri desktop app, multi-user/cloud, color themes, metronome
-  count-in, practice-time tracking.
+`subagent-driven-development`. Big feature rounds use the full flow; small
+polish is done directly. Each feature on its own branch, merged to `main` after
+review; `main` auto-deploys to Vercel.
 
 ## Conventions
 
 Strict TypeScript (`noUnusedLocals`/`noUnusedParameters`). React 19 `react-jsx`
-(no `import React`). `react-hooks/immutability` lint rule — writing through to
-imperative objects (renderer/audio engine) needs an `eslint-disable-next-line`.
-Commit per bite-sized step. Each feature on its own branch, merged to `main`
-after review.
+(no `import React`). The `react-hooks/immutability` lint rule — writing through
+to imperative objects (renderer / audio engine) needs an
+`// eslint-disable-next-line react-hooks/immutability`. Commit per bite-sized
+step. `HANDOVER.md` itself is intentionally untracked.
+
+## Known limitations / backlog
+
+- **MIDI-imported score is approximate** — engraved score for a MIDI file comes
+  from an in-app MIDI→MusicXML conversion; bar lines / meter can be rough. The
+  falldown is always exact.
+- **Metronome vs. rubato** — the metronome/beat-grid follow `score.measures`; a
+  steady audible pulse can't perfectly track heavy internal tempo changes.
+- **Offline audio** — Tone.js Salamander samples load from a CDN; first-load
+  audio needs network.
+- Design backlog, not yet built: raw-MIDI import-settings panel, in-app score
+  editing, PDF/OMR import, Tauri desktop app, multi-user/cloud, color themes,
+  practice-time tracking.

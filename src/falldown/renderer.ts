@@ -45,7 +45,6 @@ export class FalldownRenderer {
   private height: number;
   private pianoHeight: number;
   private hitLineY: number;
-  private pixelsPerSecond: number;
   private rafHandle: number | null = null;
 
   /** Show the full 88-key keyboard instead of the auto-fitted range. */
@@ -56,6 +55,8 @@ export class FalldownRenderer {
   showBeatGrid = true;
   /** Brighten the hit line on each beat — driven by the metronome toggle. */
   showBeatPulse = false;
+  /** Falldown zoom — scales how tall the falling notes render. */
+  zoom = 1;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
   /** The time signature driving the beat grid; settable by the ControlPanel. */
@@ -72,7 +73,6 @@ export class FalldownRenderer {
     this.height = options.height;
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
-    this.pixelsPerSecond = this.hitLineY / 2.5;
     const ts = transport.score.timeSignatures[0];
     this.beatMeter = {
       numerator: ts?.numerator ?? 4,
@@ -86,7 +86,14 @@ export class FalldownRenderer {
     this.height = height;
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
-    this.pixelsPerSecond = this.hitLineY / 2.5;
+  }
+
+  /**
+   * Pixels per second the falldown scrolls — the base rate (a function of the
+   * hit-line height) scaled by `zoom`. Taller `zoom` makes notes render taller.
+   */
+  get pixelsPerSecond(): number {
+    return (this.hitLineY / 2.5) * this.zoom;
   }
 
   /** The active key range — full 88 or auto-fitted to the score. */

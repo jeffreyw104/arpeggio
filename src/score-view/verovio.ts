@@ -53,10 +53,11 @@ export async function loadVerovioToolkit(): Promise<VerovioToolkit> {
  */
 export async function renderScore(musicXml: string): Promise<RenderedScore> {
   const toolkit = await loadVerovioToolkit();
-  // Sensible engraving options: pages sized to content, automatic line breaks,
-  // and no header/footer so stacked pages have no large whitespace gaps.
+  // Sensible engraving options: every page rendered at the SAME full-page
+  // height (adjustPageHeight off) so the score-only view can size all pages to
+  // one uniform height and width; automatic line breaks; no header/footer.
   toolkit.setOptions({
-    adjustPageHeight: true,
+    adjustPageHeight: false,
     breaks: "auto",
     footer: "none",
     header: "none",

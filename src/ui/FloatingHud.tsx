@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
+import type { FalldownRenderer } from "../falldown/renderer";
 import type { PracticeMode } from "../layout/practiceMode";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 
@@ -14,6 +15,7 @@ interface FloatingHudProps {
   transport: Transport;
   settingsOpen: boolean;
   audioEngine: AudioEngine | null;
+  falldown: FalldownRenderer | null;
   mode: PracticeMode;
   /** Count-in bars (owned by PracticeView; the metronome section sets it). */
   countInBars: number;
@@ -139,6 +141,7 @@ export function FloatingHud({
   transport,
   settingsOpen,
   audioEngine,
+  falldown,
   mode,
   countInBars,
 }: FloatingHudProps): React.JSX.Element {
@@ -153,6 +156,22 @@ export function FloatingHud({
 
   const [countingIn, setCountingIn] = useState(false);
   const countInRef = useRef<CountInHandle | null>(null);
+
+  // Master output volume (0-1) and falldown zoom — per-session HUD sliders.
+  const [volume, setVolume] = useState(1);
+  const [zoom, setZoom] = useState(() => falldown?.zoom ?? 1);
+
+  function changeVolume(v: number): void {
+    setVolume(v);
+    audioEngine?.setVolume(v);
+  }
+
+  function changeZoom(z: number): void {
+    setZoom(z);
+    // The falldown renderer exposes plain mutable fields as its API.
+    // eslint-disable-next-line react-hooks/immutability
+    if (falldown) falldown.zoom = z;
+  }
 
   const [speedIndex, setSpeedIndex] = useState(() => {
     const ratio = transport.bpm / transport.referenceBpm;
@@ -235,6 +254,7 @@ export function FloatingHud({
       <input
         type="range"
         className="hud-scrubber"
+        aria-label="Seek"
         min={0}
         max={duration}
         step={0.01}
@@ -249,6 +269,33 @@ export function FloatingHud({
       <span className="hud-time">
         {formatTime(position)} / {formatTime(duration)}
       </span>
+
+      <label className="hud-mini">
+        <span className="hud-mini-label">Vol</span>
+        <input
+          type="range"
+          className="hud-minislider"
+          aria-label="Volume"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) => changeVolume(Number(e.target.value))}
+        />
+      </label>
+      <label className="hud-mini">
+        <span className="hud-mini-label">Zoom</span>
+        <input
+          type="range"
+          className="hud-minislider"
+          aria-label="Note zoom"
+          min={0.5}
+          max={2}
+          step={0.05}
+          value={zoom}
+          onChange={(e) => changeZoom(Number(e.target.value))}
+        />
+      </label>
 
       {mode === "play" && (
         <div className="hud-group">

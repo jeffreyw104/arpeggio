@@ -187,7 +187,10 @@ textarea {
   right: 10px;
   z-index: 25;
   display: flex;
-  flex-wrap: wrap;
+  /* One row only: never wrap. When open sections would overflow the bar,
+     ExtendedTopBar auto-collapses the oldest-opened section to make room. */
+  flex-wrap: nowrap;
+  overflow: hidden;
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
@@ -276,6 +279,58 @@ textarea {
   font-size: 0.78rem;
   color: var(--text-dim);
   white-space: nowrap;
+}
+
+/* The Vol / Zoom mini-sliders — a dim caption beside a compact range input,
+   styled to match the seek scrubber's slim accent track and haloed thumb. */
+.hud-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hud-mini-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.hud-minislider {
+  width: 64px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.4);
+  outline: none;
+  cursor: pointer;
+}
+
+.hud-minislider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.hud-minislider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
 /* Secondary HUD buttons (the speed steppers) — quiet ghost buttons. */
@@ -445,6 +500,12 @@ textarea {
   opacity: 1;
 }
 
+/* In Practice mode the accordion bar occupies the top of the view; drop the
+   zoom buttons below it so they are not covered. */
+.practice-view--extended .score-zoom {
+  top: 128px;
+}
+
 .score-zoom button {
   background: var(--panel);
   color: var(--text);
@@ -525,11 +586,12 @@ textarea {
   margin-bottom: 1rem;
 }
 
-/* Horizontal page layout for score-only view: pages sit side by side and the
-   container scrolls horizontally so the user never needs to scroll down. */
+/* Horizontal page layout for score-only view: every page is sized to the same
+   height (the panel's visible height, below the top bar) so the pages are
+   uniform and the user only ever scrolls sideways — never up or down. */
 .score-container.horizontal-pages {
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 
 .score-container.horizontal-pages .score-pages {
@@ -537,11 +599,24 @@ textarea {
   flex-direction: row;
   align-items: flex-start;
   gap: 1rem;
+  /* Fill the container's content box — its height already excludes the top
+     bar via `.score-container`'s padding-top (66px play / 120px practice). */
+  height: 100%;
 }
 
 .score-container.horizontal-pages .score-page {
   flex: 0 0 auto;
   margin-bottom: 0;
+  height: 100%;
+  width: auto;
+}
+
+/* The engraved SVG scales to the uniform page height; width follows from its
+   aspect ratio, so every page ends up the same height and width. */
+.score-container.horizontal-pages .score-page svg {
+  display: block;
+  height: 100%;
+  width: auto;
 }
 
 /* --- Import view --- */
@@ -597,6 +672,13 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* In Practice mode the accordion bar occupies the top of the view; drop the
+   settings drawer below it so it never opens behind the bar. */
+.practice-view--extended .control-panel {
+  top: 120px;
+  max-height: calc(100% - 144px);
 }
 
 .control-panel .control-group {
@@ -783,21 +865,37 @@ textarea {
 
 /* Standardised accordion controls — every button, input and select shares
    one height, shorter than the section pill so there is even breathing room
-   above and below the row. */
+   above and below the row. They never shrink, so their labels never clip. */
 .accordion-body button,
 .accordion-body select,
 .accordion-body input[type="text"],
 .accordion-body input[type="number"] {
   height: 1.5rem;
-  width: 3.4rem;
+  flex-shrink: 0;
   box-sizing: border-box;
   padding: 0 0.45rem;
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  /* Centre the value so the number sits evenly in the box. */
+}
+
+/* The BPM / time-signature fields are a fixed width with a centred value;
+   buttons and selects instead size to their own content. */
+.accordion-body input[type="text"],
+.accordion-body input[type="number"] {
+  width: 3.4rem;
   text-align: center;
+}
+
+/* Selects size to their widest option, with extra room on the right so the
+   value never overlaps the native dropdown arrow. */
+.accordion-body select {
+  padding-right: 1.4rem;
+}
+
+.accordion-body label {
+  flex-shrink: 0;
 }
 
 /* Drop the native number spinners — they crowd the value (clipping a 3-digit
