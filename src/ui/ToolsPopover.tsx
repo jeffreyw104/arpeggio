@@ -32,8 +32,8 @@ export function ToolsPopover({
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    // Use capture so clicks on child popovers / buttons inside fire before
-    // anything that might stop propagation.
+    // Bubble-phase pointerdown listener: closes the popover when the click
+    // target is outside the panel, detected via contains().
     document.addEventListener("pointerdown", handlePointerDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);

@@ -49,8 +49,7 @@ function loopMeasures(
 /**
  * The Tools popover body for Play mode: Loop (with Speed-up sub-group), Tempo,
  * Hands, Metronome, Volume, and Note-zoom — each in its own CollapsibleSection.
- * Unlike the old accordion bar there is no width constraint, so all sections
- * can be open at the same time.
+ * All sections are independent and can be open at the same time.
  */
 export function PlayTools({
   transport,
@@ -399,11 +398,12 @@ export function PlayTools({
         open={volumeOpen}
         onToggle={() => setVolumeOpen((o) => !o)}
       >
-        <label>
-          <span className="ext-sub-label">Vol</span>
+        <label className="hud-mini">
+          <span className="hud-mini-label">Vol</span>
           <input
             type="range"
             aria-label="Volume"
+            className="hud-minislider"
             min={0}
             max={1}
             step={0.01}
@@ -418,11 +418,12 @@ export function PlayTools({
         open={zoomOpen}
         onToggle={() => setZoomOpen((o) => !o)}
       >
-        <label>
-          <span className="ext-sub-label">Zoom</span>
+        <label className="hud-mini">
+          <span className="hud-mini-label">Zoom</span>
           <input
             type="range"
             aria-label="Note zoom"
+            className="hud-minislider"
             min={0.5}
             max={2}
             step={0.05}

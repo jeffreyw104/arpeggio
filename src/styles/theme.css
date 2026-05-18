@@ -11,7 +11,7 @@
   --hand-left: #e08a3c;
   --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Liquid-glass surface — shared by the top bar and the accordion bar.
+  /* Liquid-glass surface — shared by the top bar and the Tools popover.
      A near-black tint keeps the chrome dark and sleek while the blur still
      reads as frosted glass. */
   --glass-bg: linear-gradient(
@@ -213,17 +213,6 @@ textarea {
   color: var(--text);
   min-width: 3ch;
   text-align: center;
-}
-
-/* The Vol/Zoom mini-slider label — inline-flex so the caption sits beside
-   the slider without wrapping. */
-.top-bar .hud-mini {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-  color: var(--text);
-  white-space: nowrap;
 }
 
 /* The seek scrubber — a slim track with an accent-filled progress region and

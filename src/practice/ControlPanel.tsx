@@ -15,7 +15,7 @@ interface ControlPanelProps {
  * The settings-drawer panel: display preferences plus the metronome-sound
  * choice. Note labels, beat grid, and the full-88 toggle write through to the
  * falldown renderer. Practice tooling (loop, tempo, flatten, speed-up, hands)
- * lives in the extended top bar, not here.
+ * lives in the Tools popover, not here.
  */
 export function ControlPanel({
   falldown,

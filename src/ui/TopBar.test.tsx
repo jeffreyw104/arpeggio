@@ -92,6 +92,20 @@ describe("TopBar", () => {
     expect(props.onToggleSettings).toHaveBeenCalled();
   });
 
+  it("calls onToggleTools when the Tools button is clicked", () => {
+    const { props } = renderBar();
+    fireEvent.click(screen.getByRole("button", { name: /tools/i }));
+    expect(props.onToggleTools).toHaveBeenCalled();
+  });
+
+  it("reflects the toolsOpen prop in the Tools button aria-pressed", () => {
+    const { props } = renderBar({ toolsOpen: true });
+    expect(
+      screen.getByRole("button", { name: /tools/i }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(props.onToggleTools).not.toHaveBeenCalled();
+  });
+
   it("shows the arpeggio wordmark", () => {
     renderBar();
     expect(screen.getByText("arpeggio")).toBeInTheDocument();

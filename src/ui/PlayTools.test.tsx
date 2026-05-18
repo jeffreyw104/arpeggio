@@ -194,4 +194,33 @@ describe("PlayTools", () => {
       target: { value: "1.5" },
     });
   });
+
+  it("a collapsed section does not render its controls in the DOM", () => {
+    renderTools();
+    // Loop section is closed by default — the Loop measure button should not exist.
+    expect(
+      screen.queryByRole("button", { name: /loop measure/i }),
+    ).toBeNull();
+    // Opening the Loop section reveals the button.
+    open("Loop");
+    expect(
+      screen.getByRole("button", { name: /loop measure/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("enabling Speed-up after typing a Start BPM uses the typed value", () => {
+    const { transport } = renderTools();
+    open("Loop");
+    // Type a custom Start BPM before enabling speed-up.
+    fireEvent.change(screen.getByRole("spinbutton", { name: /start bpm/i }), {
+      target: { value: "80" },
+    });
+    // Enable speed-up — it should apply the typed start BPM.
+    fireEvent.click(screen.getByRole("checkbox", { name: /speed-up/i }));
+    expect(transport.speedUpActive).toBe(true);
+    // The input retains the typed value.
+    expect(
+      (screen.getByRole("spinbutton", { name: /start bpm/i }) as HTMLInputElement).value,
+    ).toBe("80");
+  });
 });
