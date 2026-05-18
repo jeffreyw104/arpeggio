@@ -61,27 +61,30 @@ describe("drawPiano", () => {
     const layout = keyLayout({ low: 60, high: 72 }, 800);
     const calls: string[] = [];
     const ctx = {
-      set fillStyle(v: string) {
-        calls.push(`fill=${v}`);
+      set fillStyle(v: string | CanvasGradient) {
+        if (typeof v === "string") calls.push(`fill=${v}`);
       },
       fillRect: () => calls.push("fillRect"),
       strokeRect: () => calls.push("strokeRect"),
       set strokeStyle(_v: string) {},
       set lineWidth(_v: number) {},
+      set shadowBlur(_v: number) {},
+      set shadowColor(_v: string) {},
+      save: () => {},
+      restore: () => {},
       createLinearGradient: () => ({ addColorStop: () => {} }),
     } as unknown as CanvasRenderingContext2D;
     drawPiano(ctx, layout, {
       y: 300,
       height: 100,
-      activeKeys: new Set([64]),
-      activeColor: "#4a8",
+      activeKeyColors: new Map([[64, "#e08a3c"]]),
       whiteColor: "#fff",
       blackColor: "#222",
     });
     expect(calls.filter((c) => c === "fillRect").length).toBeGreaterThanOrEqual(
       layout.keys.length,
     );
-    expect(calls).toContain("fill=#4a8"); // the active key was highlighted
+    expect(calls).toContain("fill=#e08a3c"); // the active key was tinted
   });
 
   it("shades white keys with a vertical gradient for depth", () => {
@@ -93,6 +96,10 @@ describe("drawPiano", () => {
       strokeRect: () => {},
       set strokeStyle(_v: string) {},
       set lineWidth(_v: number) {},
+      set shadowBlur(_v: number) {},
+      set shadowColor(_v: string) {},
+      save: () => {},
+      restore: () => {},
       createLinearGradient: () => {
         gradients++;
         return { addColorStop: () => {} };
@@ -101,8 +108,7 @@ describe("drawPiano", () => {
     drawPiano(ctx, layout, {
       y: 300,
       height: 100,
-      activeKeys: new Set<number>(),
-      activeColor: "#4a8",
+      activeKeyColors: new Map<number, string>(),
       whiteColor: "#fff",
       blackColor: "#222",
     });

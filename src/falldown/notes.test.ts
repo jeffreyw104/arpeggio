@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { noteRects, activeKeys, type FalldownConfig } from "./notes";
+import { noteRects, activeKeys, activeKeyColors, type FalldownConfig } from "./notes";
 import { keyLayout } from "./piano";
 import type { Note } from "../model/score";
 
@@ -60,5 +60,13 @@ describe("activeKeys", () => {
     expect(activeKeys(notes, 1.2)).toEqual(new Set([60])); // 60: [1,1.5)
     expect(activeKeys(notes, 5.5)).toEqual(new Set([64])); // 64: [5,6)
     expect(activeKeys(notes, 3)).toEqual(new Set());
+  });
+});
+
+describe("activeKeyColors", () => {
+  it("maps each sounding note's midi to its hand color", () => {
+    const map = activeKeyColors(notes, 1.2, "#4a90d9", "#e08a3c");
+    expect(map.get(60)).toBe("#4a90d9"); // note 60 is right-hand, sounding
+    expect(map.has(64)).toBe(false); // note 64 not sounding at t=1.2
   });
 });

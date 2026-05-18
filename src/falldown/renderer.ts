@@ -1,6 +1,6 @@
 import { autoFitRange, FULL_88, type KeyRange } from "./keyRange";
 import { keyLayout, drawPiano, midiToNoteName, type KeyboardLayout } from "./piano";
-import { noteRects, activeKeys } from "./notes";
+import { noteRects, activeKeyColors } from "./notes";
 import { beatGridLines } from "./beatGrid";
 import type { Transport } from "../transport/transport";
 import type { Note } from "../model/score";
@@ -8,7 +8,6 @@ import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
 const RIGHT = "#4a90d9";
 const LEFT = "#e08a3c";
-const ACTIVE = "#4aa988";
 /** Max corner radius for a falling note, in px. */
 const NOTE_RADIUS = 4;
 /** Shadow blur applied to a note while it is sounding. */
@@ -106,8 +105,7 @@ export class FalldownRenderer {
     drawPiano(ctx, layout, {
       y: this.hitLineY,
       height: this.pianoHeight,
-      activeKeys: activeKeys(visible, t),
-      activeColor: ACTIVE,
+      activeKeyColors: activeKeyColors(visible, t, RIGHT, LEFT),
       whiteColor: WHITE,
       blackColor: BLACK,
     });

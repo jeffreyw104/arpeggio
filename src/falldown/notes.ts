@@ -71,3 +71,22 @@ export function activeKeys(notes: Note[], t: number): Set<number> {
   }
   return active;
 }
+
+/**
+ * Map of midi -> hand color for every note sounding at time `t`. If two notes
+ * sound the same pitch the last one wins (rare; either color reads correctly).
+ */
+export function activeKeyColors(
+  notes: Note[],
+  t: number,
+  rightColor: string,
+  leftColor: string,
+): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const note of notes) {
+    if (t >= note.start && t < note.start + note.duration) {
+      map.set(note.midi, note.hand === "right" ? rightColor : leftColor);
+    }
+  }
+  return map;
+}

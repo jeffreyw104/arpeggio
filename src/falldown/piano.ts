@@ -18,8 +18,8 @@ export interface KeyboardLayout {
 export interface DrawPianoOptions {
   y: number; // top of the keyboard
   height: number; // keyboard height in px
-  activeKeys: Set<number>;
-  activeColor: string;
+  /** Midi -> color for every key currently sounding; absent = inactive. */
+  activeKeyColors: Map<number, string>;
   whiteColor: string;
   blackColor: string;
 }
@@ -145,21 +145,32 @@ export function drawPiano(
   ctx.lineWidth = 1;
   ctx.strokeStyle = "#000";
 
+  /** Outer glow drawn behind/around an active key. */
+  const halo = (x: number, w: number, h: number, color: string): void => {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, opts.y, w, h);
+    ctx.restore();
+  };
+
+  // The white-key depth gradient is geometry-identical for every key, so
+  // build it once per call rather than once per key.
+  const grad = ctx.createLinearGradient(0, opts.y, 0, opts.y + opts.height);
+  grad.addColorStop(0, "rgba(255,255,255,0.35)");
+  grad.addColorStop(0.12, "rgba(255,255,255,0)");
+  grad.addColorStop(0.85, "rgba(0,0,0,0)");
+  grad.addColorStop(1, "rgba(0,0,0,0.22)");
+
   // White keys first.
   for (const key of layout.keys) {
     if (key.black) continue;
-    ctx.fillStyle = opts.activeKeys.has(key.midi)
-      ? opts.activeColor
-      : opts.whiteColor;
+    const active = opts.activeKeyColors.get(key.midi);
+    if (active) halo(key.x, key.width, opts.height, active);
+    ctx.fillStyle = active ?? opts.whiteColor;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
     ctx.strokeRect(key.x, opts.y, key.width, opts.height);
-
-    // Depth: a soft top highlight fading to a bottom shadow, lit from above.
-    const grad = ctx.createLinearGradient(0, opts.y, 0, opts.y + opts.height);
-    grad.addColorStop(0, "rgba(255,255,255,0.35)");
-    grad.addColorStop(0.12, "rgba(255,255,255,0)");
-    grad.addColorStop(0.85, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.22)");
     ctx.fillStyle = grad;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
   }
@@ -168,9 +179,9 @@ export function drawPiano(
   for (const key of layout.keys) {
     if (!key.black) continue;
     const h = opts.height * 0.62;
-    ctx.fillStyle = opts.activeKeys.has(key.midi)
-      ? opts.activeColor
-      : opts.blackColor;
+    const active = opts.activeKeyColors.get(key.midi);
+    if (active) halo(key.x, key.width, h, active);
+    ctx.fillStyle = active ?? opts.blackColor;
     ctx.fillRect(key.x, opts.y, key.width, h);
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.fillRect(key.x, opts.y, key.width, Math.max(1, h * 0.08));
