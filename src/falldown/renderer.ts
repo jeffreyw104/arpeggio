@@ -148,8 +148,9 @@ export class FalldownRenderer {
     for (const rect of rects) {
       const radius = Math.min(NOTE_RADIUS, rect.width / 3, rect.height / 2);
       ctx.save();
-      ctx.globalAlpha =
-        (MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity) * (rect.dimmed ? DIM_ALPHA : 1);
+      const velocityAlpha =
+        MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity;
+      ctx.globalAlpha = velocityAlpha * (rect.dimmed ? DIM_ALPHA : 1);
       if (rect.playing) {
         ctx.shadowColor = rect.color;
         ctx.shadowBlur = GLOW_BLUR;

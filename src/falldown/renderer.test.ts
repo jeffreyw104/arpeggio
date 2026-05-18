@@ -156,6 +156,25 @@ describe("FalldownRenderer resize", () => {
 });
 
 describe("FalldownRenderer hand hide", () => {
+  it("draws dimmed notes at reduced alpha", () => {
+    // score note: midi 64, start 1.0, duration 0.5, velocity 0.7, hand left
+    // At t=1.2 the left-hand note is on-screen and the hand is set to "dim".
+    // undimmed alpha = 0.5 + 0.5*0.7 = 0.85; dimmed = 0.85 * 0.3 ≈ 0.255
+    const { transport, ctx, renderer } = makeRenderer();
+    const hands = new HandState();
+    hands.setVisibility("left", "dim");
+    renderer.handState = hands;
+    transport.clock.seek(1.2);
+    renderer.renderFrame();
+
+    const alphaEntries = ctx.calls
+      .filter((c) => c.startsWith("globalAlpha="))
+      .map((c) => parseFloat(c.split("=")[1]));
+    expect(alphaEntries.length).toBeGreaterThan(0);
+    // At least one alpha should be well below 0.5 (the dimmed value ≈ 0.255).
+    expect(alphaEntries.some((a) => a < 0.5)).toBe(true);
+  });
+
   it("draws fewer note rects when a hand is hidden", () => {
     const { transport, ctx, renderer } = makeRenderer();
     transport.clock.seek(0.5);
