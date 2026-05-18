@@ -182,9 +182,11 @@ export function FloatingHud({
 
   function handleMetronome(checked: boolean): void {
     setMetronomeOn(checked);
-    // The audio engine is an imperative object the HUD writes through to.
+    // The audio engine and renderer are imperative objects written through to.
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.enabled = checked;
+    // eslint-disable-next-line react-hooks/immutability
+    if (falldown) falldown.showBeatPulse = checked;
   }
 
   // Self-contained rAF loop driving the metronome pulse indicator's opacity

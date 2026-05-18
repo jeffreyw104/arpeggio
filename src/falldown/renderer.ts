@@ -54,6 +54,8 @@ export class FalldownRenderer {
   showLabels = false;
   /** Draw the horizontal beat-grid overlay. */
   showBeatGrid = true;
+  /** Brighten the hit line on each beat — driven by the metronome toggle. */
+  showBeatPulse = false;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
   /** The time signature driving the beat grid; settable by the ControlPanel. */
@@ -118,15 +120,16 @@ export class FalldownRenderer {
       blackColor: BLACK,
     });
 
-    // Brighten the hit line on each beat.
-    const pulse = this.transport.clock.playing
-      ? beatPulse(
-          this.transport.score.measures,
-          this.beatMeter.numerator,
-          t,
-          BEAT_PULSE_DECAY,
-        )
-      : 0;
+    // Brighten the hit line on each beat while the metronome is enabled.
+    const pulse =
+      this.transport.clock.playing && this.showBeatPulse
+        ? beatPulse(
+            this.transport.score.measures,
+            this.beatMeter.numerator,
+            t,
+            BEAT_PULSE_DECAY,
+          )
+        : 0;
     this.drawHitLinePulse(pulse);
   }
 

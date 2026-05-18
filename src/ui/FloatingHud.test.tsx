@@ -4,6 +4,7 @@ import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
+import type { FalldownRenderer } from "../falldown/renderer";
 
 const score = {
   source: "midi",
@@ -79,6 +80,13 @@ describe("FloatingHud", () => {
     const { props } = renderHud();
     fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
     expect(props.audioEngine!.metronome.enabled).toBe(true);
+  });
+
+  it("enables the falldown beat pulse with the metronome toggle", () => {
+    const falldown = { showBeatPulse: false } as unknown as FalldownRenderer;
+    renderHud({ falldown });
+    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
+    expect(falldown.showBeatPulse).toBe(true);
   });
 
   it("opens the metronome settings dropdown", () => {

@@ -105,11 +105,19 @@ describe("FalldownRenderer", () => {
     renderer.renderFrame();
   });
 
-  it("renders the beat-pulse effects while playing without throwing", () => {
-    const { transport, renderer } = makeRenderer();
+  it("draws the hit-line beat pulse only when showBeatPulse is on", () => {
+    const { transport, ctx, renderer } = makeRenderer();
+    renderer.showBeatGrid = false; // isolate: only the pulse strokes a line
     transport.clock.play();
     transport.clock.tick(0.5); // onto a beat — beats fall at 0, 0.5, 1, ...
+
     renderer.renderFrame();
+    expect(ctx.calls.some((c) => c.startsWith("stroke("))).toBe(false);
+
+    renderer.showBeatPulse = true;
+    ctx.calls.length = 0;
+    renderer.renderFrame();
+    expect(ctx.calls.some((c) => c.startsWith("stroke("))).toBe(true);
   });
 
   it("start() then stop() runs and cancels the animation loop", () => {
