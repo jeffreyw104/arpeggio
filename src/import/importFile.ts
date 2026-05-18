@@ -1,3 +1,4 @@
+import { unzipSync } from "fflate";
 import type { Score } from "../model/score";
 import { detectType } from "./detectType";
 import { parseMidi } from "./midi/parseMidi";
@@ -23,6 +24,31 @@ export async function importFile(file: File): Promise<Score> {
   }
   if (format === "musicxml") {
     return parseMusicXml(new TextDecoder("utf-8").decode(bytes));
+  }
+  if (format === "mxl") {
+    const files = unzipSync(bytes);
+    let entryName: string | null = null;
+
+    const container = files["META-INF/container.xml"];
+    if (container) {
+      const containerXml = new TextDecoder("utf-8").decode(container);
+      const match = containerXml.match(/full-path="([^"]+)"/);
+      if (match) entryName = match[1];
+    }
+    if (entryName === null || files[entryName] === undefined) {
+      entryName =
+        Object.keys(files).find(
+          (name) =>
+            !name.startsWith("META-INF/") &&
+            /\.(musicxml|xml)$/i.test(name),
+        ) ?? null;
+    }
+    if (entryName === null || files[entryName] === undefined) {
+      throw new Error(
+        `Unsupported or unrecognized file (no MusicXML in archive): ${file.name}`,
+      );
+    }
+    return parseMusicXml(new TextDecoder("utf-8").decode(files[entryName]));
   }
   throw new Error(`Unsupported or unrecognized file: ${file.name}`);
 }

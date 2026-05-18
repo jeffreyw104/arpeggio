@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
+    "fflate": "^0.8.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "tone": "^15.1.22",

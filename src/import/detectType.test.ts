@@ -23,9 +23,9 @@ describe("detectType", () => {
     expect(detectType("notes.txt", bytesOf("hello world"))).toBe("unknown");
   });
 
-  it("returns unknown for a compressed .mxl (zip) file", () => {
-    // .mxl support is out of scope for v1; PK zip header must not misdetect.
+  it("detects a compressed .mxl from the zip header", () => {
+    // .mxl is compressed MusicXML; the "PK" zip magic bytes identify it.
     const zip = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
-    expect(detectType("song.mxl", zip)).toBe("unknown");
+    expect(detectType("song.mxl", zip)).toBe("mxl");
   });
 });
