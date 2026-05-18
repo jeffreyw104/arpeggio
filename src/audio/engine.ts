@@ -21,6 +21,10 @@ export const METRONOME_SOUNDS: ReadonlyArray<{
 /** Plays piano notes. Real implementation uses a Tone.js sampler. */
 export interface PianoSink {
   playNote(midi: number, durationSeconds: number, velocity: number): void;
+  /** Begin a sustained note (live input). */
+  attackNote(midi: number, velocity: number): void;
+  /** End a sustained note (live input). */
+  releaseNote(midi: number): void;
 }
 
 /** Plays metronome clicks. Real implementation uses Tone.js synths. */
@@ -139,6 +143,16 @@ export class AudioEngine {
     this.click.playClick(accent);
   }
 
+  /** Sound a live-input note press through the piano. */
+  playInputNote(midi: number, velocity: number): void {
+    this.piano.attackNote(midi, velocity);
+  }
+
+  /** End a live-input note. */
+  releaseInputNote(midi: number): void {
+    this.piano.releaseNote(midi);
+  }
+
   /** Set the master output volume, 0 (silent) to 1 (full). */
   setVolume(level: number): void {
     this.output?.setVolume(level);
@@ -207,6 +221,18 @@ export async function createAudioEngine(
         undefined,
         velocity,
       );
+    },
+    attackNote(midi, velocity) {
+      if (!sampler.loaded) return;
+      sampler.triggerAttack(
+        Tone.Frequency(midi, "midi").toNote(),
+        undefined,
+        velocity,
+      );
+    },
+    releaseNote(midi) {
+      if (!sampler.loaded) return;
+      sampler.triggerRelease(Tone.Frequency(midi, "midi").toNote());
     },
   };
   const click: ClickSink = {

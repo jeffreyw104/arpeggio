@@ -34,6 +34,8 @@ function fakes() {
     playNote(midi) {
       this.calls.push(midi);
     },
+    attackNote() {},
+    releaseNote() {},
   };
   const click: ClickSink & { count: number } = {
     sound: "click",
@@ -136,7 +138,7 @@ describe("AudioEngine", () => {
 
   it("playClick forwards to the click sink", () => {
     const clicks: boolean[] = [];
-    const piano = { playNote: () => {} };
+    const piano = { playNote: () => {}, attackNote: () => {}, releaseNote: () => {} };
     const click = { sound: "click" as MetronomeSound, playClick: (accent: boolean) => clicks.push(accent) };
     const t = new Transport(score);
     const engine = new AudioEngine(t, piano, click);
@@ -166,7 +168,7 @@ describe("AudioEngine", () => {
 
   it("setVolume forwards to the output sink", () => {
     const levels: number[] = [];
-    const piano = { playNote: () => {} };
+    const piano = { playNote: () => {}, attackNote: () => {}, releaseNote: () => {} };
     const click = { sound: "click" as MetronomeSound, playClick: () => {} };
     const output: OutputSink = { setVolume: (level) => levels.push(level) };
     const t = new Transport(score);
@@ -177,14 +179,14 @@ describe("AudioEngine", () => {
   });
 
   it("setVolume is a no-op when there is no output sink", () => {
-    const piano = { playNote: () => {} };
+    const piano = { playNote: () => {}, attackNote: () => {}, releaseNote: () => {} };
     const click = { sound: "click" as MetronomeSound, playClick: () => {} };
     const engine = new AudioEngine(new Transport(score), piano, click);
     expect(() => engine.setVolume(0.3)).not.toThrow();
   });
 
   it("metronomeSound proxies the click sink's sound", () => {
-    const piano = { playNote: () => {} };
+    const piano = { playNote: () => {}, attackNote: () => {}, releaseNote: () => {} };
     const click = {
       sound: "click" as const,
       playClick: () => {},
@@ -195,6 +197,23 @@ describe("AudioEngine", () => {
     engine.metronomeSound = "woodblock";
     expect(engine.metronomeSound).toBe("woodblock");
     expect(click.sound).toBe("woodblock");
+  });
+
+  it("routes input notes to the piano sink as attack/release", () => {
+    const attacks: number[] = [];
+    const releases: number[] = [];
+    const piano = {
+      playNote: () => {},
+      attackNote: (midi: number) => attacks.push(midi),
+      releaseNote: (midi: number) => releases.push(midi),
+    };
+    const { click } = fakes();
+    const t = new Transport(score);
+    const engine = new AudioEngine(t, piano, click);
+    engine.playInputNote(60, 0.8);
+    engine.releaseInputNote(60);
+    expect(attacks).toEqual([60]);
+    expect(releases).toEqual([60]);
   });
 });
 
