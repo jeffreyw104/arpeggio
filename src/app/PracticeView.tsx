@@ -12,6 +12,7 @@ import { renderScore } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
+import { ExtendedTopBar } from "../ui/ExtendedTopBar";
 import { FloatingHud } from "../ui/FloatingHud";
 import { TopBar } from "../ui/TopBar";
 import { HandState } from "../practice/hands";
@@ -27,6 +28,7 @@ import {
   applyPracticeState,
 } from "../library/practiceState";
 import type { PracticeMode } from "../layout/practiceMode";
+import { measureJumpTarget } from "../transport/measureJump";
 
 interface PracticeViewProps {
   score: Score;
@@ -283,6 +285,25 @@ export function PracticeView({
     collapsedRef.current = hudCollapsed;
   }, [hudCollapsed]);
 
+  // Arrow keys jump the playhead one measure back/forward, in both modes.
+  // Ignored while a form control is focused (so typing a tempo is not stolen).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent): void {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      e.preventDefault();
+      const target = measureJumpTarget(
+        transport.score.measures,
+        transport.clock.position,
+        e.key === "ArrowRight" ? "next" : "prev",
+      );
+      transport.clock.seek(target);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [transport]);
+
   // Stow practice-only state and make playback "straight through" for Play.
   function suspendPractice(): void {
     const loop = transport.clock.loop;
@@ -358,8 +379,16 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
+  const extendedBarShown = mode === "practice" && !hudCollapsed && practiceReady;
+
   return (
-    <div className="practice-view">
+    <div
+      className={
+        extendedBarShown
+          ? "practice-view practice-view--extended"
+          : "practice-view"
+      }
+    >
       <Layout
         viewMode={viewMode}
         split={split}
@@ -395,8 +424,8 @@ export function PracticeView({
         onToggleSettings={() => setSettingsOpen((o) => !o)}
         mode={mode}
         onModeChange={handleModeChange}
-        extendedCollapsed={false}
-        onToggleExtended={() => {}}
+        extendedCollapsed={hudCollapsed}
+        onToggleExtended={() => setHudCollapsed((c) => !c)}
       />
       <FloatingHud
         transport={transport}
@@ -406,6 +435,9 @@ export function PracticeView({
         mode={mode}
         collapsed={hudCollapsed}
       />
+      {extendedBarShown && (
+        <ExtendedTopBar transport={transport} handState={handState} />
+      )}
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel falldown={falldown} audioEngine={audioEngine} />
       )}

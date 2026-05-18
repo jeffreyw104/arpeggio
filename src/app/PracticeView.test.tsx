@@ -13,6 +13,7 @@ vi.mock("../score-view/verovio", () => ({
 vi.mock("../audio/engine", () => ({
   createAudioEngine: vi.fn().mockResolvedValue({
     update: vi.fn(),
+    metronomeSound: "click",
     metronome: {
       enabled: false,
       subdivision: 1,
@@ -22,6 +23,12 @@ vi.mock("../audio/engine", () => ({
     },
   }),
   startAudioContext: vi.fn().mockResolvedValue(undefined),
+  METRONOME_SOUNDS: [
+    { value: "click", label: "Click" },
+    { value: "woodblock", label: "Woodblock" },
+    { value: "beep", label: "Beep" },
+    { value: "hitick", label: "Hi-tick" },
+  ],
 }));
 
 const score = {
@@ -124,5 +131,43 @@ describe("PracticeView", () => {
     // The readout must show a measure range again — proving the loop was
     // restored.  If suspend/restore dropped the loop it would show "—" instead.
     expect(await screen.findByText(/m\.\d/)).toBeInTheDocument();
+  });
+
+  it("shows the extended top bar in Practice mode and hides it when collapsed", async () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="redesign-ext"
+        pieceName="moonlight.mid"
+        onExit={() => {}}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: /^practice$/i, pressed: false }),
+    );
+    expect(
+      await screen.findByRole("button", { name: /loop measure/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /collapse control bar/i }),
+    );
+    expect(
+      screen.queryByRole("button", { name: /loop measure/i }),
+    ).toBeNull();
+  });
+
+  it("ArrowRight does not throw and keeps the view mounted", async () => {
+    render(
+      <PracticeView
+        score={score}
+        pieceId="redesign-arrow"
+        pieceName="moonlight.mid"
+        onExit={() => {}}
+      />,
+    );
+    await screen.findByRole("button", { name: /^play$/i, pressed: true });
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(document.querySelector(".practice-view")).toBeInTheDocument();
   });
 });
