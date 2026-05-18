@@ -26,10 +26,8 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
   const canvas = page.locator("canvas.falldown-canvas");
   await canvas.waitFor({ state: "visible", timeout: 15_000 });
-  // Scope to the HUD — the top bar also has a "Play" button (the mode switch).
-  const playBtn = page.locator(".floating-hud").getByRole("button", {
-    name: "Play",
-  });
+  // Scope to the transport play button in the top bar (the accent circle).
+  const playBtn = page.locator(".top-bar .hud-play-btn");
 
   const snapshot = () =>
     canvas.evaluate((c: HTMLCanvasElement) => {
@@ -90,7 +88,7 @@ test("arrow keys jump the playhead by measure", async ({ page }) => {
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });
-  const time = page.locator(".floating-hud > span").first();
+  const time = page.locator(".top-bar .hud-time");
   const before = await time.textContent();
   await page.locator("body").press("ArrowRight");
   await expect(time).not.toHaveText(before ?? "");

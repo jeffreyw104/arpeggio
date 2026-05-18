@@ -13,7 +13,6 @@ import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
 import { ExtendedTopBar } from "../ui/ExtendedTopBar";
-import { FloatingHud } from "../ui/FloatingHud";
 import { TopBar } from "../ui/TopBar";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
@@ -325,13 +324,9 @@ export function PracticeView({
         onToggleSettings={() => setSettingsOpen((o) => !o)}
         mode={mode}
         onModeChange={handleModeChange}
-      />
-      <FloatingHud
         transport={transport}
-        settingsOpen={settingsOpen}
         audioEngine={audioEngine}
         falldown={falldown}
-        mode={mode}
         countInBars={countInBars}
       />
       {extendedBarShown && (

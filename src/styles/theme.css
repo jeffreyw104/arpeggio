@@ -154,30 +154,7 @@ textarea {
   gap: 0.3rem;
 }
 
-/* --- Floating transport HUD --- */
-
-.floating-hud {
-  position: absolute;
-  z-index: 20;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: calc(100% - 32px);
-  padding: 0.5rem 0.7rem;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  /* A deeper, layered drop shadow so the HUD reads as clearly floating. */
-  box-shadow:
-    0 16px 44px rgba(0, 0, 0, 0.6),
-    0 4px 14px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: opacity 0.4s ease;
-  cursor: grab;
-}
+/* --- Transport controls (now children of .top-bar) --- */
 
 /* The extended control bar, flush below the top bar (Practice mode). */
 .extended-top-bar {
@@ -210,7 +187,9 @@ textarea {
   text-align: center;
 }
 
-.floating-hud label {
+/* The Vol/Zoom mini-slider label — inline-flex so the caption sits beside
+   the slider without wrapping. */
+.top-bar .hud-mini {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -219,17 +198,8 @@ textarea {
   white-space: nowrap;
 }
 
-.floating-hud.faded {
-  opacity: 0.2;
-}
-
-/* Hover must beat .faded — keep this rule after it (equal specificity). */
-.floating-hud:hover {
-  opacity: 1;
-}
-
 /* The seek scrubber — a slim track with an accent-filled progress region and
-   a white haloed thumb. `--pct` is set live by FloatingHud as playback runs. */
+   a white haloed thumb. `--pct` is set live by TopBar as playback runs. */
 .hud-scrubber {
   width: 200px;
   height: 4px;
@@ -333,32 +303,9 @@ textarea {
   cursor: pointer;
 }
 
-/* Secondary HUD buttons (the speed steppers) — quiet ghost buttons. */
-.floating-hud button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: inherit;
-  background: transparent;
-  color: var(--text-dim);
-  border: none;
-  border-radius: 7px;
-  padding: 0.25rem 0.4rem;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-
-.floating-hud button:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
-}
-
-/* The play / pause button — the HUD's anchor: an accent circle with a glow.
-   Selector carries two classes so it outranks the generic `.floating-hud
-   button` rule above. */
-.floating-hud .hud-play-btn {
+/* The play / pause button in the top bar — an accent circle with a glow.
+   Uses two-class specificity to outrank the generic `.top-bar button` rule. */
+.top-bar .hud-play-btn {
   width: 2.15rem;
   height: 2.15rem;
   padding: 0;
@@ -373,17 +320,17 @@ textarea {
     box-shadow 0.2s;
 }
 
-.floating-hud .hud-play-btn:hover {
+.top-bar .hud-play-btn:hover {
   background: var(--accent);
   filter: brightness(1.15);
   box-shadow: 0 5px 20px var(--accent-glow);
 }
 
-.floating-hud .hud-play-btn:active {
+.top-bar .hud-play-btn:active {
   transform: scale(0.92);
 }
 
-.floating-hud .hud-play-btn:disabled {
+.top-bar .hud-play-btn:disabled {
   filter: saturate(0.5) brightness(0.8);
   cursor: default;
 }
