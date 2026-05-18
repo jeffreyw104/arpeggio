@@ -429,9 +429,8 @@ export function PracticeView({
         transport={transport}
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
-        falldown={falldown}
         mode={mode}
-        collapsed={hudCollapsed}
+        countInBars={0}
       />
       {extendedBarShown && (
         <ExtendedTopBar transport={transport} handState={handState} />

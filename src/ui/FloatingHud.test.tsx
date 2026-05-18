@@ -4,7 +4,6 @@ import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
-import type { FalldownRenderer } from "../falldown/renderer";
 
 const score = {
   source: "midi",
@@ -21,22 +20,15 @@ const score = {
 function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
   const transport = new Transport(score);
   const audioEngine = {
-    metronome: {
-      enabled: false,
-      accentDownbeat: false,
-      subdivision: 1,
-      pulse: 0,
-      timeSignature: { numerator: 4, denominator: 4 },
-    },
+    metronome: { timeSignature: { numerator: 4, denominator: 4 } },
     playClick: vi.fn(),
   } as unknown as AudioEngine;
   const props = {
     transport,
     settingsOpen: false,
     audioEngine,
-    falldown: null as FalldownRenderer | null,
     mode: "play" as const,
-    collapsed: false,
+    countInBars: 0,
     ...overrides,
   };
   render(<FloatingHud {...props} />);
@@ -58,12 +50,11 @@ describe("FloatingHud", () => {
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
-  it("Play mode shows the speed stepper and no metronome", () => {
+  it("Play mode shows the speed stepper", () => {
     renderHud({ mode: "play" });
     expect(
       screen.getByRole("button", { name: /increase speed/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("checkbox", { name: /metronome/i })).toBeNull();
   });
 
   it("the Play-mode speed stepper changes the transport BPM", () => {
@@ -73,65 +64,41 @@ describe("FloatingHud", () => {
     expect(transport.bpm).toBeGreaterThan(ref);
   });
 
-  it("Practice mode shows the metronome and no speed stepper", () => {
+  it("Practice mode shows no speed stepper and no metronome", () => {
     renderHud({ mode: "practice" });
-    expect(
-      screen.getByRole("checkbox", { name: /metronome/i }),
-    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /increase speed/i }),
     ).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: /metronome/i })).toBeNull();
   });
 
-  it("the metronome toggle enables the metronome", () => {
-    const { props } = renderHud({ mode: "practice" });
-    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
-    expect(props.audioEngine!.metronome.enabled).toBe(true);
+  it("moves when dragged by its background", () => {
+    renderHud();
+    const hud = document.querySelector(".floating-hud") as HTMLElement;
+    fireEvent.pointerDown(hud, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 150, clientY: 130 });
+    fireEvent.pointerUp(window);
+    expect(hud.style.left).toBe("50px");
+    expect(hud.style.top).toBe("30px");
   });
 
-  it("Play mode is positioned top-left, Practice top-center", () => {
-    const { rerender } = render(
-      <FloatingHud
-        transport={new Transport(score)}
-        settingsOpen={false}
-        audioEngine={null}
-        falldown={null}
-        mode="play"
-        collapsed={false}
-      />,
-    );
-    expect(document.querySelector(".floating-hud")?.className).toContain(
-      "floating-hud--play",
-    );
-    rerender(
-      <FloatingHud
-        transport={new Transport(score)}
-        settingsOpen={false}
-        audioEngine={null}
-        falldown={null}
-        mode="practice"
-        collapsed={false}
-      />,
-    );
-    expect(document.querySelector(".floating-hud")?.className).toContain(
-      "floating-hud--practice",
-    );
-  });
-
-  it("raises the Practice HUD when the extended bar is collapsed", () => {
-    renderHud({ mode: "practice", collapsed: true });
-    expect(document.querySelector(".floating-hud")?.className).toContain(
-      "floating-hud--raised",
-    );
+  it("does not start a drag from a control", () => {
+    renderHud();
+    const hud = document.querySelector(".floating-hud") as HTMLElement;
+    const before = hud.style.left;
+    fireEvent.pointerDown(screen.getByRole("slider"), {
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window);
+    expect(hud.style.left).toBe(before);
   });
 
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {
-      const { transport } = renderHud({ mode: "practice" });
-      fireEvent.change(screen.getByLabelText(/count-in/i), {
-        target: { value: "1" },
-      });
+      const { transport } = renderHud({ mode: "practice", countInBars: 1 });
       fireEvent.click(screen.getByRole("button", { name: /play/i }));
       expect(screen.getByRole("button", { name: /play/i })).toBeDisabled();
       expect(transport.clock.playing).toBe(false);
