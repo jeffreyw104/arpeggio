@@ -77,8 +77,10 @@ describe("FloatingHud", () => {
     fireEvent.pointerMove(window, { clientX: 150, clientY: 130 });
     fireEvent.pointerUp(window);
     // The HUD shifted by the pointer delta (+50, +30).
-    expect(hud.style.left).not.toBe("");
-    expect(hud.style.top).not.toBe("");
+    // In jsdom getBoundingClientRect() returns zeros, so dx=100,dy=100 and
+    // final pos = {x: 150-100=50, y: 130-100=30} (no clamping: parent has no size).
+    expect(hud.style.left).toBe("50px");
+    expect(hud.style.top).toBe("30px");
   });
 
   it("does not start a drag from a control", () => {

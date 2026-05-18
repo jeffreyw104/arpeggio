@@ -42,7 +42,11 @@ function clamp(v: number, min: number, max: number): number {
  * pointer goes down on an interactive control (button/input/select). When the
  * parent has no measured size (e.g. jsdom) the position is left unclamped.
  */
-function useDraggable() {
+function useDraggable(): {
+  ref: React.RefObject<HTMLDivElement | null>;
+  pos: Position | null;
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+} {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<Position | null>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
@@ -51,7 +55,7 @@ function useDraggable() {
   useLayoutEffect(() => {
     const el = ref.current;
     const parent = el?.offsetParent as HTMLElement | null;
-    if (el && parent && parent.clientWidth > 0) {
+    if (el && parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
       setPos({ x: (parent.clientWidth - el.offsetWidth) / 2, y: 16 });
     } else {
       setPos({ x: 16, y: 16 });
@@ -74,7 +78,7 @@ function useDraggable() {
       const parent = el.offsetParent as HTMLElement | null;
       let x = e.clientX - d.dx;
       let y = e.clientY - d.dy;
-      if (parent && parent.clientWidth > 0) {
+      if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
         x = clamp(x, 0, parent.clientWidth - el.offsetWidth);
         y = clamp(y, 0, parent.clientHeight - el.offsetHeight);
       }
