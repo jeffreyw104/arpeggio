@@ -55,7 +55,7 @@ describe("ExtendedTopBar", () => {
 
   it("the exact tempo input sets an arbitrary BPM", () => {
     const { transport } = renderBar();
-    fireEvent.change(screen.getByLabelText(/tempo/i), {
+    fireEvent.change(screen.getByRole("spinbutton"), {
       target: { value: "137" },
     });
     expect(transport.bpm).toBe(137);

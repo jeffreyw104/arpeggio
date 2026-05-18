@@ -163,27 +163,24 @@ export function ExtendedTopBar({
         <span className="ext-box-label">Tempo</span>
         <button
           type="button"
+          aria-label="Decrease tempo"
           onClick={() => stepBpm(-5)}
         >
-          <span aria-hidden="true">−</span>
-          <span className="sr-only">Decrease tempo</span>
+          −
         </button>
-        <label htmlFor="ext-tempo-input" className="sr-only">
-          Tempo
-        </label>
         <input
-          id="ext-tempo-input"
           type="number"
+          aria-label="Tempo (BPM)"
           className="ext-tempo-input"
           value={bpm}
           onChange={(e) => applyBpm(e.target.value)}
         />
         <button
           type="button"
+          aria-label="Increase tempo"
           onClick={() => stepBpm(5)}
         >
-          <span aria-hidden="true">+</span>
-          <span className="sr-only">Increase tempo</span>
+          +
         </button>
         <label>
           <input
