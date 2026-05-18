@@ -3,30 +3,37 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ModeSwitch } from "./ModeSwitch";
 
 describe("ModeSwitch", () => {
-  it("renders a Play/Practice toggle reflecting the current mode", () => {
+  it("renders a Play and a Practice button", () => {
     render(<ModeSwitch mode="play" onModeChange={vi.fn()} />);
-    const toggle = screen.getByRole("switch", { name: /play.*practice/i });
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-  });
-
-  it("reads aria-checked true in Practice mode", () => {
-    render(<ModeSwitch mode="practice" onModeChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
     expect(
-      screen.getByRole("switch", { name: /play.*practice/i }),
-    ).toHaveAttribute("aria-checked", "true");
+      screen.getByRole("button", { name: "Practice" }),
+    ).toBeInTheDocument();
   });
 
-  it("flips to Practice when clicked from Play", () => {
+  it("marks the active mode with aria-pressed", () => {
+    render(<ModeSwitch mode="practice" onModeChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Practice" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Play" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("calls onModeChange with practice when Practice is clicked", () => {
     const onModeChange = vi.fn();
     render(<ModeSwitch mode="play" onModeChange={onModeChange} />);
-    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice" }));
     expect(onModeChange).toHaveBeenCalledWith("practice");
   });
 
-  it("flips to Play when clicked from Practice", () => {
+  it("calls onModeChange with play when Play is clicked", () => {
     const onModeChange = vi.fn();
     render(<ModeSwitch mode="practice" onModeChange={onModeChange} />);
-    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
     expect(onModeChange).toHaveBeenCalledWith("play");
   });
 });

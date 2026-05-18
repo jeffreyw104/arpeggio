@@ -103,9 +103,8 @@ describe("PracticeView", () => {
       />,
     );
 
-    // Switch to Practice mode (ModeSwitch toggle; one click from Play→Practice).
-    const modeSwitch = await screen.findByRole("switch", { name: /play.*practice/i });
-    fireEvent.click(modeSwitch);
+    // Switch to Practice mode (the Practice button in the mode switch).
+    fireEvent.click(await screen.findByRole("button", { name: "Practice" }));
 
     // Open the Loop accordion section so its controls are in the DOM.
     fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
@@ -119,12 +118,16 @@ describe("PracticeView", () => {
     expect(screen.getByText(/m\.\d/)).toBeInTheDocument();
 
     // Switch to Play mode — the extended bar unmounts, the loop is suspended.
-    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
+    // The mode "Play" button is disambiguated from the transport Play button
+    // by aria-pressed (only the mode buttons carry it).
+    fireEvent.click(
+      screen.getByRole("button", { name: "Play", pressed: false }),
+    );
 
     // Switch back to Practice mode — the accordion remounts (sections start
     // collapsed); re-open Loop to see the restored readout.
     fireEvent.click(
-      await screen.findByRole("switch", { name: /play.*practice/i }),
+      await screen.findByRole("button", { name: "Practice" }),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
 
@@ -143,7 +146,7 @@ describe("PracticeView", () => {
       />,
     );
     fireEvent.click(
-      await screen.findByRole("switch", { name: /play.*practice/i }),
+      await screen.findByRole("button", { name: "Practice" }),
     );
     // The accordion control bar renders with its section chips.
     expect(
@@ -163,7 +166,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    await screen.findByRole("switch", { name: /play.*practice/i });
+    await screen.findByRole("button", { name: "Practice" });
     fireEvent.keyDown(window, { key: "ArrowRight" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(document.querySelector(".practice-view")).toBeInTheDocument();

@@ -48,10 +48,10 @@ describe("TopBar", () => {
     );
   });
 
-  it("renders the Play/Practice toggle", () => {
+  it("renders the Play/Practice switch", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
-    expect(props.onModeChange).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Practice" }));
+    expect(props.onModeChange).toHaveBeenCalledWith("practice");
   });
 
   it("toggles settings and reflects the open state", () => {

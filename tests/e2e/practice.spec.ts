@@ -26,7 +26,10 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
   const canvas = page.locator("canvas.falldown-canvas");
   await canvas.waitFor({ state: "visible", timeout: 15_000 });
-  const playBtn = page.getByRole("button", { name: "Play" });
+  // Scope to the HUD — the top bar also has a "Play" button (the mode switch).
+  const playBtn = page.locator(".floating-hud").getByRole("button", {
+    name: "Play",
+  });
 
   const snapshot = () =>
     canvas.evaluate((c: HTMLCanvasElement) => {
@@ -61,8 +64,11 @@ test("the Play/Practice toggle reveals the accordion control bar", async ({
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();
 
-  // Flip the toggle to Practice — the accordion section chips appear.
-  await page.getByRole("switch", { name: /play.*practice/i }).click();
+  // Switch to Practice — the accordion section chips appear.
+  await page
+    .locator(".top-bar-modes")
+    .getByRole("button", { name: "Practice" })
+    .click();
   await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Metronome", exact: true })).toBeVisible();
 
@@ -73,8 +79,11 @@ test("the Play/Practice toggle reveals the accordion control bar", async ({
     "true",
   );
 
-  // Flip back to Play — the speed stepper is shown again.
-  await page.getByRole("switch", { name: /play.*practice/i }).click();
+  // Switch back to Play — the speed stepper is shown again.
+  await page
+    .locator(".top-bar-modes")
+    .getByRole("button", { name: "Play" })
+    .click();
   await expect(
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();

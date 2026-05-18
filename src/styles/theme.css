@@ -145,69 +145,11 @@ textarea {
   gap: 0.25rem;
 }
 
-/* Play / Practice toggle — a segmented control with a raised sliding thumb,
-   modelled on midee's mode switcher: the thumb gives the change a tactile
-   feel; the segments have breathing room above and below it. */
-.mode-switch {
-  /* One width drives both a segment and the thumb, so they always match. */
-  --mode-seg-w: 6.25rem;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 2rem;
-  padding: 3px;
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: inherit;
-}
-
-/* The sliding thumb — a transparent frosted-glass pill, exactly one segment
-   wide, so the segment's centred label sits centred on it. */
-.mode-switch-glass {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: var(--mode-seg-w);
-  border-radius: 999px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.24s cubic-bezier(0.34, 1.3, 0.64, 1);
-}
-
-.mode-switch[aria-checked="true"] .mode-switch-glass {
-  transform: translateX(100%);
-}
-
-/* Two segments of equal FIXED width — flex:1 does not equalise them inside a
-   shrink-wrapped control (each takes its own label width), which left the
-   labels off-centre. A fixed width makes both identical, so the thumb lines
-   up under either centred label. */
-.mode-switch-option {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--mode-seg-w);
-  height: 100%;
-  white-space: nowrap;
-  color: var(--text-dim);
-  transition: color 0.18s ease;
-}
-
-/* The selected segment reads in the green accent colour. */
-.mode-switch-option.is-active {
-  color: var(--accent);
-  font-weight: 600;
+/* Play / Practice switch — two buttons; the active one is the accent pill
+   (via the shared `.top-bar button[aria-pressed="true"]` rule). */
+.top-bar-modes {
+  display: flex;
+  gap: 0.3rem;
 }
 
 /* --- Floating transport HUD --- */
