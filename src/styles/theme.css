@@ -7,7 +7,7 @@
   --accent: #4a8;
   --hand-right: #4a90d9;
   --hand-left: #e08a3c;
-  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * {
