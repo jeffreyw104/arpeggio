@@ -1,0 +1,142 @@
+/**
+ * IndexedDB persistence for the piece library. Two object stores: `pieces`
+ * (raw uploaded file bytes + metadata) and `practiceState` (per-piece settings).
+ */
+
+/** A stored uploaded piece. */
+export interface StoredPiece {
+  id: string;
+  name: string;
+  data: ArrayBuffer;
+  addedAt: number;
+}
+
+/** Per-piece practice settings persisted across sessions. */
+export interface StoredPracticeState {
+  bpm: number;
+  loop: { start: number; end: number } | null;
+  leftMuted: boolean;
+  rightMuted: boolean;
+  leftHidden: boolean;
+  rightHidden: boolean;
+}
+
+const DB_NAME = "arpeggio";
+const DB_VERSION = 1;
+const PIECES = "pieces";
+const PRACTICE = "practiceState";
+
+/** Wrap an IDBRequest as a promise. */
+function promisify<T>(req: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+/** Open (once) the Arpeggio IndexedDB database, creating the stores. */
+function openDb(): Promise<IDBDatabase> {
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(PIECES)) {
+          db.createObjectStore(PIECES, { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains(PRACTICE)) {
+          db.createObjectStore(PRACTICE, { keyPath: "pieceId" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  return dbPromise;
+}
+
+/** Run `fn` against a store in a transaction and await the transaction. */
+async function withStore<T>(
+  store: string,
+  mode: IDBTransactionMode,
+  fn: (s: IDBObjectStore) => Promise<T> | T,
+): Promise<T> {
+  const db = await openDb();
+  const tx = db.transaction(store, mode);
+  const result = await fn(tx.objectStore(store));
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  return result;
+}
+
+/** Save an uploaded file's bytes; returns the new piece id. */
+export async function savePiece(
+  name: string,
+  data: ArrayBuffer,
+): Promise<string> {
+  const id =
+    globalThis.crypto?.randomUUID?.() ??
+    `p-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const piece: StoredPiece = { id, name, data, addedAt: Date.now() };
+  await withStore(PIECES, "readwrite", (s) => promisify(s.put(piece)));
+  return id;
+}
+
+/** All saved pieces, newest first. */
+export async function listPieces(): Promise<StoredPiece[]> {
+  const all = await withStore(PIECES, "readonly", (s) =>
+    promisify(s.getAll() as IDBRequest<StoredPiece[]>),
+  );
+  return all.sort((a, b) => b.addedAt - a.addedAt);
+}
+
+/** A saved piece by id, or undefined. */
+export async function getPiece(id: string): Promise<StoredPiece | undefined> {
+  return withStore(PIECES, "readonly", (s) =>
+    promisify(s.get(id) as IDBRequest<StoredPiece | undefined>),
+  );
+}
+
+/** Delete a saved piece and its practice state. */
+export async function deletePiece(id: string): Promise<void> {
+  await withStore(PIECES, "readwrite", (s) => promisify(s.delete(id)));
+  await withStore(PRACTICE, "readwrite", (s) => promisify(s.delete(id)));
+}
+
+/** Save per-piece practice settings. */
+export async function savePracticeState(
+  pieceId: string,
+  state: StoredPracticeState,
+): Promise<void> {
+  await withStore(PRACTICE, "readwrite", (s) =>
+    promisify(s.put({ pieceId, ...state })),
+  );
+}
+
+/** Retrieve per-piece practice settings, or undefined if none saved. */
+export async function getPracticeState(
+  pieceId: string,
+): Promise<StoredPracticeState | undefined> {
+  const record = await withStore(PRACTICE, "readonly", (s) =>
+    promisify(
+      s.get(pieceId) as IDBRequest<
+        (StoredPracticeState & { pieceId: string }) | undefined
+      >,
+    ),
+  );
+  if (!record) return undefined;
+  const state: StoredPracticeState & { pieceId?: string } = { ...record };
+  delete state.pieceId;
+  return state;
+}
+
+/** Remove every piece and practice-state record (used by tests). */
+export async function clearLibrary(): Promise<void> {
+  await withStore(PIECES, "readwrite", (s) => promisify(s.clear()));
+  await withStore(PRACTICE, "readwrite", (s) => promisify(s.clear()));
+}
