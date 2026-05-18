@@ -101,6 +101,11 @@ export class AudioEngine {
     this.prevPosition = cur;
     this.wasPlaying = playing;
   }
+
+  /** Play a single metronome click immediately. Used by the count-in. */
+  playClick(accent: boolean): void {
+    this.click.playClick(accent);
+  }
 }
 
 /**

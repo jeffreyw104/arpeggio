@@ -127,6 +127,17 @@ describe("AudioEngine", () => {
     expect(click.count).toBe(4); // stale grid (beats 0, 0.5, 1.0) would give 3
   });
 
+  it("playClick forwards to the click sink", () => {
+    const clicks: boolean[] = [];
+    const piano = { playNote: () => {} };
+    const click = { playClick: (accent: boolean) => clicks.push(accent) };
+    const t = new Transport(score);
+    const engine = new AudioEngine(t, piano, click);
+    engine.playClick(true);
+    engine.playClick(false);
+    expect(clicks).toEqual([true, false]);
+  });
+
   it("plays a note sitting exactly at the playback start position", () => {
     // A note at time 0 must sound when playback starts from 0, even though
     // the trigger window (prev, cur] would otherwise exclude the boundary.
