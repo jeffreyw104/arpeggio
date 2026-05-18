@@ -24,9 +24,6 @@ interface FloatingHudProps {
 /** Milliseconds of pointer inactivity before the HUD fades. */
 const IDLE_MS = 2500;
 
-/** Play-mode playback-speed multipliers, slowest to fastest. */
-const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5] as const;
-
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
 function formatTime(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
@@ -173,20 +170,6 @@ export function FloatingHud({
     if (falldown) falldown.zoom = z;
   }
 
-  const [speedIndex, setSpeedIndex] = useState(() => {
-    const ratio = transport.bpm / transport.referenceBpm;
-    let best = 2;
-    let bestDist = Infinity;
-    SPEED_STEPS.forEach((s, i) => {
-      const d = Math.abs(s - ratio);
-      if (d < bestDist) {
-        bestDist = d;
-        best = i;
-      }
-    });
-    return best;
-  });
-
   useEffect(() => {
     return () => countInRef.current?.cancel();
   }, []);
@@ -199,15 +182,6 @@ export function FloatingHud({
       setCountingIn(false);
     }
   }, [mode]);
-
-  function changeSpeed(delta: number): void {
-    const next = Math.max(
-      0,
-      Math.min(SPEED_STEPS.length - 1, speedIndex + delta),
-    );
-    setSpeedIndex(next);
-    transport.setBpm(transport.referenceBpm * SPEED_STEPS[next]);
-  }
 
   function handlePlayToggle(): void {
     if (clock.playing) {
@@ -297,26 +271,6 @@ export function FloatingHud({
         />
       </label>
 
-      {mode === "play" && (
-        <div className="hud-group">
-          <span className="hud-group-label">Speed</span>
-          <button
-            type="button"
-            aria-label="Decrease speed"
-            onClick={() => changeSpeed(-1)}
-          >
-            −
-          </button>
-          <span className="hud-tempo-readout">{SPEED_STEPS[speedIndex]}×</span>
-          <button
-            type="button"
-            aria-label="Increase speed"
-            onClick={() => changeSpeed(1)}
-          >
-            +
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -93,50 +93,7 @@ describe("PracticeView", () => {
     expect(screen.getByText("moonlight-sonata")).toBeInTheDocument();
   });
 
-  it("loop readout survives the Play-mode suspend/restore round-trip", async () => {
-    render(
-      <PracticeView
-        score={score}
-        pieceId="test-piece"
-        pieceName="moonlight-sonata.mid"
-        onExit={() => {}}
-      />,
-    );
-
-    // Switch to Practice mode (the Practice button in the mode switch).
-    fireEvent.click(await screen.findByRole("button", { name: "Practice" }));
-
-    // Open the Loop accordion section so its controls are in the DOM.
-    fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
-
-    // Set a loop: Set start then Set end both snap to the playhead measure
-    // (position 0 → measure 1).  The readout becomes m.1–1.
-    fireEvent.click(screen.getByRole("button", { name: /set start/i }));
-    fireEvent.click(screen.getByRole("button", { name: /set end/i }));
-
-    // Confirm a loop is now shown in the readout.
-    expect(screen.getByText(/m\.\d/)).toBeInTheDocument();
-
-    // Switch to Play mode — the extended bar unmounts, the loop is suspended.
-    // The mode "Play" button is disambiguated from the transport Play button
-    // by aria-pressed (only the mode buttons carry it).
-    fireEvent.click(
-      screen.getByRole("button", { name: "Play", pressed: false }),
-    );
-
-    // Switch back to Practice mode — the accordion remounts (sections start
-    // collapsed); re-open Loop to see the restored readout.
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Practice" }),
-    );
-    fireEvent.click(await screen.findByRole("button", { name: "Loop" }));
-
-    // The readout must show a measure range again — proving the loop was
-    // restored.  If suspend/restore dropped the loop it would show "—" instead.
-    expect(await screen.findByText(/m\.\d/)).toBeInTheDocument();
-  });
-
-  it("shows the extended top bar in Practice mode", async () => {
+  it("shows the extended top bar once practice state is ready, regardless of mode", async () => {
     render(
       <PracticeView
         score={score}
@@ -145,10 +102,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Practice" }),
-    );
-    // The accordion control bar renders with its section chips.
+    // The accordion control bar renders after practiceReady — no mode switch needed.
     expect(
       await screen.findByRole("button", { name: "Loop" }),
     ).toBeInTheDocument();

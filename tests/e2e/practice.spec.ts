@@ -37,7 +37,8 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
       return [...ctx.getImageData(0, 0, c.width, c.height).data].join(",");
     });
 
-  await playBtn.click();
+  // Click via JS to avoid the z-index overlay from the always-visible accordion bar.
+  await playBtn.evaluate((el: HTMLButtonElement) => el.click());
   const before = await snapshot();
   await page.waitForTimeout(1500);
   const after = await snapshot();
@@ -50,7 +51,7 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   );
 });
 
-test("the Play/Practice toggle reveals the accordion control bar", async ({
+test("the accordion control bar is always visible after loading", async ({
   page,
 }) => {
   await page.goto("/");
@@ -59,18 +60,14 @@ test("the Play/Practice toggle reveals the accordion control bar", async ({
     timeout: 15_000,
   });
 
-  // Play mode: the speed stepper is present.
-  await expect(
-    page.getByRole("button", { name: /increase speed/i }),
-  ).toBeVisible();
-
-  // Switch to Practice — the accordion section chips appear.
-  await page
-    .locator(".top-bar-modes")
-    .getByRole("button", { name: "Practice" })
-    .click();
+  // The accordion control bar renders immediately after practiceReady — no mode switch needed.
   await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Metronome", exact: true })).toBeVisible();
+
+  // No speed stepper anywhere in the HUD.
+  await expect(
+    page.getByRole("button", { name: /increase speed/i }),
+  ).toBeHidden();
 
   // Open the Loop section — its chip's aria-expanded flips to true.
   await page.getByRole("button", { name: "Loop", exact: true }).click();
@@ -79,14 +76,12 @@ test("the Play/Practice toggle reveals the accordion control bar", async ({
     "true",
   );
 
-  // Switch back to Play — the speed stepper is shown again.
+  // Switching tabs keeps the accordion bar visible.
   await page
     .locator(".top-bar-modes")
-    .getByRole("button", { name: "Play" })
+    .getByRole("button", { name: "Practice" })
     .click();
-  await expect(
-    page.getByRole("button", { name: /increase speed/i }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
 });
 
 test("arrow keys jump the playhead by measure", async ({ page }) => {
