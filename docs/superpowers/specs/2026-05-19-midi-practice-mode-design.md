@@ -34,8 +34,9 @@ rules are Arpeggio's own, intentionally stricter than midee's.
 - The MIDI-native visualizer (piano-roll reading lane, progress bar, minimap)
   that replaces approximate sheet music for MIDI files — that is **Spec 2**, a
   separate cycle. See "Follow-up" at the end.
-- Session accuracy reports / scoring, auto-advance looping, latency
-  calibration, free-play recording, sight-reading drills.
+- The features listed under "Backlog" below — including session accuracy
+  reports / scoring and auto-advance looping — are explicitly out of Spec 1's
+  scope but kept as tracked future work.
 
 ## Decisions captured during brainstorming
 
@@ -308,3 +309,18 @@ All three carry measure numbers and section markers so the player navigates by
 landmark, never by guessing with the scrubber — the "skip to known sections
 like sheet music" property. The library/home view labels each piece
 `♪ Notes only` (MIDI) vs `𝄞 Sheet music` (XML).
+
+## Backlog (tracked, not scheduled)
+
+Future work built on top of the MIDI Practice mode, each its own later cycle:
+
+- **Session accuracy report / scoring** — after a wait-mode run, show percent
+  correct, timing accuracy, and a per-measure flub heatmap over the score. The
+  matching FSM already distinguishes `wrong` / `staggered` / `matched` and
+  tracks the simultaneity spread, so the data needed for scoring is produced by
+  Spec 1 — this feature consumes it rather than re-deriving it.
+- **Auto-advance looping** — when a loop region is cleanly cleared N times in a
+  row, the loop advances to the next chunk (bar-by-bar mastery) or steps the
+  tempo up, tying into the existing speed-up ramp.
+- Looser ideas, not yet committed: latency calibration, free-play
+  record-and-transcribe, sight-reading drills.
