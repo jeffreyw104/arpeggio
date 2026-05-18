@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Metronome } from "./metronome";
 import type { Score } from "../model/score";
-import { averageBpm } from "../transport/tempoMap";
 
 const score = {
   source: "midi",
@@ -37,13 +36,24 @@ describe("Metronome", () => {
     expect(click).toHaveBeenCalledTimes(3);
   });
 
-  it("marks the first beat of a measure as accented", () => {
+  it("reports every click as unaccented by default", () => {
     const m = new Metronome(score);
     m.enabled = true;
+    expect(m.accentDownbeat).toBe(false);
     const accents: boolean[] = [];
     m.onClick((_time, accent) => accents.push(accent));
-    m.update(-0.01, 0.6); // beats 0.0 (accent) and 0.5 (not)
-    expect(accents).toEqual([true, false]);
+    m.update(-0.01, 2.6); // beats at 0,0.5,1,1.5,2,2.5 — 0 and 2 are measure starts
+    expect(accents.some((a) => a)).toBe(false);
+  });
+
+  it("accents the measure downbeats when accentDownbeat is on", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.accentDownbeat = true;
+    const accents: { time: number; accent: boolean }[] = [];
+    m.onClick((time, accent) => accents.push({ time, accent }));
+    m.update(-0.01, 2.6); // measure starts at t=0 and t=2 are accented
+    expect(accents.filter((a) => a.accent).map((a) => a.time)).toEqual([0, 2]);
   });
 
   it("respects the subdivision setting", () => {
@@ -77,46 +87,17 @@ describe("Metronome", () => {
     expect(m.pulse).toBeLessThan(right);
   });
 
-  it("uses the duration-weighted average tempo, not the first tempo", () => {
-    // Slow intro (60 bpm, 4 s) + fast section (180 bpm, 4 s) over 8 s.
-    // averageBpm = (4*1 + 4*3) / 8 * 60 = 120; first tempo = 60.
-    // At 4/4, 120 bpm: beatLen = (60/120)*(4/4) = 0.5 s.
-    // At 4/4, 60 bpm:  beatLen = (60/60)*(4/4)  = 1.0 s.
-    // Driving update(0, 1.1) should yield beats at 0, 0.5, 1.0 → 3 clicks (avg),
-    // not 2 clicks (first tempo only: 0, 1.0).
-    const multiTempoScore: Score = {
-      source: "midi",
-      notes: [],
-      measures: [],
-      pedalEvents: [],
-      timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
-      tempoMap: [
-        { start: 0, bpm: 60 },
-        { start: 4, bpm: 180 },
-      ],
-      durationSeconds: 8,
-      musicXml: "",
-      qualityWarning: null,
-    };
-    const avg = averageBpm(multiTempoScore); // 120
-    const beatLen = (60 / avg) * (4 / 4); // 0.5 s
-    const m = new Metronome(multiTempoScore);
-    m.enabled = true;
-    const times: number[] = [];
-    m.onClick((time) => times.push(time));
-    m.update(0, beatLen * 2 + 0.1); // covers 3 beats: 0, 0.5, 1.0
-    expect(times.length).toBe(3);
-    expect(times[1]).toBeCloseTo(beatLen, 9);
-  });
-
-  it("setTimeSignature(6, 4) accents every 6 beats", () => {
+  it("setTimeSignature(2, 4) changes beats-per-bar", () => {
     const m = new Metronome(score);
     m.enabled = true;
-    m.setTimeSignature(6, 4);
-    expect(m.timeSignature).toEqual({ numerator: 6, denominator: 4 });
+    m.accentDownbeat = true;
+    m.setTimeSignature(2, 4);
+    expect(m.timeSignature).toEqual({ numerator: 2, denominator: 4 });
+    // Each 2 s measure now has 2 beats: t=0,1 and t=2,3. Accents on 0 and 2.
     const accents: { time: number; accent: boolean }[] = [];
     m.onClick((time, accent) => accents.push({ time, accent }));
-    m.update(-0.01, 4); // beats at 0,0.5,...,4 — accents every 6 beats (0, 3.0)
-    expect(accents.filter((a) => a.accent).map((a) => a.time)).toEqual([0, 3]);
+    m.update(-0.01, 4);
+    expect(accents.map((a) => a.time)).toEqual([0, 1, 2, 3]);
+    expect(accents.filter((a) => a.accent).map((a) => a.time)).toEqual([0, 2]);
   });
 });

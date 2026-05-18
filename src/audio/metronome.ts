@@ -1,6 +1,5 @@
-import { metronomeBeats, type BeatGridSpec, type MetronomeBeat } from "./beats";
-import type { Score } from "../model/score";
-import { averageBpm } from "../transport/tempoMap";
+import { metronomeBeats, type MetronomeBeat } from "./beats";
+import type { Measure, Score } from "../model/score";
 
 /** A metronome click listener: receives the beat time and whether it's accented. */
 export type ClickListener = (time: number, accent: boolean) => void;
@@ -15,17 +14,25 @@ function clamp(value: number, min: number, max: number): number {
 /**
  * Tracks which metronome beats have been crossed as the clock advances. Drives
  * clicks via registered listeners and exposes a 0-1 `pulse` for a visual cue.
- * The beat grid is a perfectly regular metric grid derived from a time
- * signature + the score's reference tempo, independent of `score.measures`.
+ * The beat grid is phase-locked to `score.measures`: each measure's span is
+ * split into `beatsPerBar` beats, so downbeats land exactly on the barlines.
  * Pure logic — the actual click sound is wired by the AudioEngine.
  */
 export class Metronome {
   /** Whether the metronome fires clicks. */
   enabled = false;
 
-  private readonly bpm: number;
-  private readonly durationSeconds: number;
-  private spec: BeatGridSpec;
+  /**
+   * Whether the first beat of a measure reports `accent: true` (a distinct
+   * downbeat sound). OFF by default — all clicks sound the same.
+   */
+  accentDownbeat = false;
+
+  private readonly measures: Measure[];
+  private beatsPerBar: number;
+  private subdivisionValue: number;
+  /** Kept only so the `timeSignature` getter can report it; not used for timing. */
+  private denominator: number;
   private beats: MetronomeBeat[] = [];
   private readonly listeners = new Set<ClickListener>();
   private curPosition = 0;
@@ -35,41 +42,43 @@ export class Metronome {
 
   constructor(score: Score) {
     const ts = score.timeSignatures[0];
-    this.spec = {
-      numerator: ts?.numerator ?? 4,
-      denominator: ts?.denominator ?? 4,
-      subdivision: 1,
-    };
-    this.bpm = averageBpm(score);
-    this.durationSeconds = score.durationSeconds;
+    this.measures = score.measures;
+    this.beatsPerBar = ts?.numerator ?? 4;
+    this.denominator = ts?.denominator ?? 4;
+    this.subdivisionValue = 1;
     this.recompute();
   }
 
   /** Beat subdivision: 1 = on the beat, 2 = eighths, 4 = sixteenths. */
   get subdivision(): number {
-    return this.spec.subdivision;
+    return this.subdivisionValue;
   }
 
   set subdivision(value: number) {
-    this.spec = { ...this.spec, subdivision: Math.max(1, Math.floor(value)) };
+    this.subdivisionValue = Math.max(1, Math.floor(value));
     this.recompute();
   }
 
   /** The current time signature (counted beats per bar). */
   get timeSignature(): { numerator: number; denominator: number } {
-    return { numerator: this.spec.numerator, denominator: this.spec.denominator };
+    return { numerator: this.beatsPerBar, denominator: this.denominator };
   }
 
   /** Set the time signature, recompute the grid, and re-align immediately. */
   setTimeSignature(numerator: number, denominator: number): void {
-    this.spec = { ...this.spec, numerator, denominator };
+    this.beatsPerBar = numerator;
+    this.denominator = denominator;
     this.recompute();
     this.resync();
   }
 
-  /** Recompute the cached beat grid for the current spec. */
+  /** Recompute the cached beat grid for the current settings. */
   private recompute(): void {
-    this.beats = metronomeBeats(this.spec, this.bpm, this.durationSeconds);
+    this.beats = metronomeBeats(
+      this.measures,
+      this.beatsPerBar,
+      this.subdivisionValue,
+    );
   }
 
   /**
@@ -90,7 +99,8 @@ export class Metronome {
         )
         .sort((a, b) => a.time - b.time);
       for (const beat of crossed) {
-        for (const listener of this.listeners) listener(beat.time, beat.accent);
+        const accent = beat.accent && this.accentDownbeat;
+        for (const listener of this.listeners) listener(beat.time, accent);
         this.lastFiredTime = beat.time;
       }
     }

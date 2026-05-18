@@ -28,6 +28,7 @@ export function ControlPanel({
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
   const [full88, setFull88] = useState(falldown.full88);
   const [metronome, setMetronome] = useState(false);
+  const [accentDownbeat, setAccentDownbeat] = useState(false);
   const [subdivision, setSubdivision] = useState(1);
   const [timeSignature, setTimeSignature] = useState(
     `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`,
@@ -70,6 +71,13 @@ export function ControlPanel({
     // The audio engine is an imperative object the panel writes through to.
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.enabled = checked;
+  }
+
+  function handleAccentDownbeat(checked: boolean): void {
+    setAccentDownbeat(checked);
+    // The audio engine is an imperative object the panel writes through to.
+    // eslint-disable-next-line react-hooks/immutability
+    if (audioEngine) audioEngine.metronome.accentDownbeat = checked;
   }
 
   function handleSubdivision(value: string): void {
@@ -201,6 +209,14 @@ export function ControlPanel({
           Metronome
         </label>
         <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
+        <label>
+          <input
+            type="checkbox"
+            checked={accentDownbeat}
+            onChange={(e) => handleAccentDownbeat(e.target.checked)}
+          />{" "}
+          Accent downbeat
+        </label>
         <label>
           Time signature{" "}
           <input

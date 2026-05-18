@@ -107,6 +107,20 @@ describe("ControlPanel", () => {
     expect(fakeEngine.metronome.subdivision).toBe(4);
   });
 
+  it("toggles the accent-downbeat option on the audio engine", () => {
+    const fakeEngine = {
+      metronome: {
+        enabled: false,
+        subdivision: 1,
+        pulse: 0,
+        accentDownbeat: false,
+      },
+    } as unknown as AudioEngine;
+    setup(fakeEngine);
+    fireEvent.click(screen.getByLabelText(/accent downbeat/i));
+    expect(fakeEngine.metronome.accentDownbeat).toBe(true);
+  });
+
   it("sets the time signature via the single N/D text box", () => {
     const { falldown } = setup();
     fireEvent.change(screen.getByLabelText(/time signature/i), {
