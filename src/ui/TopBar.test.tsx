@@ -140,6 +140,33 @@ describe("TopBar", () => {
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
+  describe("MIDI status chip", () => {
+    it("shows connected dot and device name when status is connected", () => {
+      renderBar({
+        mode: "midi",
+        midiStatus: "connected",
+        midiDeviceName: "Piano",
+      });
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip).toBeInTheDocument();
+      expect(chip?.textContent).toMatch(/●/);
+      expect(chip?.textContent).toMatch(/Piano/);
+    });
+
+    it("shows disconnected dot and Connect keyboard when status is no-device", () => {
+      renderBar({ mode: "midi", midiStatus: "no-device" });
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip).toBeInTheDocument();
+      expect(chip?.textContent).toMatch(/○/);
+      expect(chip?.textContent).toMatch(/Connect keyboard/);
+    });
+
+    it("does not show the status chip in play mode", () => {
+      renderBar({ mode: "play" });
+      expect(document.querySelector(".midi-status-chip")).toBeNull();
+    });
+  });
+
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {

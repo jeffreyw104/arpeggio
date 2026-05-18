@@ -171,3 +171,52 @@ test("MIDI Practice tab: reading lane is visible and can be toggled", async ({
   await page.locator(".top-bar-modes").getByRole("button", { name: "Play" }).click();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 });
+
+test("MIDI Practice tab: Tools popover exposes MIDI controls and status chip shows disconnected state", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Switch to the MIDI Practice tab.
+  await page.getByRole("button", { name: "MIDI Practice" }).click();
+
+  // The status chip must appear in the top bar.
+  // Web MIDI is unavailable in Playwright → status is "unsupported" or "no-device"
+  // → chip shows the disconnected (○) state.
+  const chip = page.locator(".midi-status-chip");
+  await expect(chip).toBeVisible();
+  // Disconnected states all show "Connect keyboard" text.
+  await expect(chip).toContainText("Connect keyboard");
+
+  // Open the Tools popover.
+  const toolsBtn = page.locator(".top-bar").getByRole("button", { name: "Tools" });
+  await toolsBtn.click();
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
+
+  // Device select is present (shows "No device" when no MIDI hardware).
+  const deviceSelect = page.getByRole("combobox", { name: /midi device/i });
+  await expect(deviceSelect).toBeVisible();
+
+  // "Wait for me" and "Input sound" checkboxes are present.
+  await expect(
+    page.getByRole("checkbox", { name: /wait for me/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: /input sound/i }),
+  ).toBeVisible();
+
+  // Left / Right / Both hand buttons are present.
+  await expect(page.getByRole("button", { name: /^left$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^right$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^both$/i })).toBeVisible();
+
+  // The MIDI status line shows the computer-keyboard fallback message
+  // (Web MIDI unavailable in Playwright).
+  const statusLine = page.locator(".midi-status-line");
+  await expect(statusLine).toBeVisible();
+  await expect(statusLine).toContainText(/computer keyboard/i);
+});

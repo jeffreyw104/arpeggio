@@ -463,6 +463,10 @@ export function PracticeView({
         countInBars={countInBars}
         laneCollapsed={laneCollapsed}
         onToggleLane={() => setLaneCollapsed((c) => !c)}
+        midiStatus={midiStatus}
+        midiDeviceName={
+          midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
+        }
       />
       <ToolsPopover open={toolsOpen} onClose={() => setToolsOpen(false)}>
         {practiceReady && mode === "play" && (

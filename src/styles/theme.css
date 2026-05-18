@@ -156,6 +156,28 @@ textarea {
 
 /* --- Transport controls (now children of .top-bar) --- */
 
+/* MIDI device status chip — quiet pill shown on the MIDI tab before Tools▾. */
+.midi-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Connected dot uses the accent colour; disconnected dot stays dim. */
+.midi-status-chip[aria-label^="MIDI connected"] {
+  color: var(--accent);
+}
+
 /* The Tools floating panel — anchored below the top bar's right side. */
 .tools-popover {
   position: absolute;

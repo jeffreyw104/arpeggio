@@ -5,6 +5,7 @@ import type { TabMode } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
+import type { MidiStatus } from "../midi/MidiInput";
 
 interface TopBarProps {
   pieceName: string;
@@ -24,6 +25,10 @@ interface TopBarProps {
   laneCollapsed: boolean;
   /** MIDI tab: toggle the reading lane collapsed state. */
   onToggleLane: () => void;
+  /** MIDI tab: current MIDI connection status. */
+  midiStatus?: MidiStatus;
+  /** MIDI tab: name of the connected device (when status is "connected"). */
+  midiDeviceName?: string;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -67,6 +72,8 @@ export function TopBar({
   countInBars,
   laneCollapsed,
   onToggleLane,
+  midiStatus,
+  midiDeviceName,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
@@ -152,6 +159,22 @@ export function TopBar({
       <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <span className="top-bar-piece">{displayName(pieceName)}</span>
       <span className="top-bar-spacer" />
+      {mode === "midi" && midiStatus !== undefined && (
+        <span
+          className="midi-status-chip"
+          aria-label={
+            midiStatus === "connected"
+              ? `MIDI connected: ${midiDeviceName ?? "device"}`
+              : "MIDI: Connect keyboard"
+          }
+        >
+          {midiStatus === "connected" ? (
+            <>&#9679; {midiDeviceName}</>
+          ) : (
+            <>&#9675; Connect keyboard</>
+          )}
+        </span>
+      )}
       <button
         type="button"
         aria-label="Tools"
