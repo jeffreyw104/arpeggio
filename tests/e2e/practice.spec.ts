@@ -47,7 +47,7 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   );
 });
 
-test("switching to Practice mode reveals the practice HUD controls", async ({
+test("switching to Practice mode reveals the extended control bar", async ({
   page,
 }) => {
   await page.goto("/");
@@ -60,26 +60,38 @@ test("switching to Practice mode reveals the practice HUD controls", async ({
   await expect(
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /set start/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /loop measure/i })).toHaveCount(0);
 
-  // Switch to Practice — the practice controls row appears.
+  // Switch to Practice — the extended bar and metronome checkbox appear.
   await page.locator(".top-bar-modes").getByRole("button", { name: "Practice" }).click();
   await expect(
-    page.getByRole("button", { name: /set start/i }),
+    page.getByRole("button", { name: /loop measure/i }),
   ).toBeVisible();
   await expect(
     page.getByRole("checkbox", { name: /metronome/i }),
   ).toBeVisible();
 
-  // Collapse the HUD — the practice controls row hides.
-  await page.getByRole("button", { name: /collapse hud/i }).click();
-  await expect(page.getByRole("button", { name: /set start/i })).toHaveCount(0);
+  // Collapse the extended bar — the loop controls hide.
+  await page.getByRole("button", { name: /collapse control bar/i }).click();
+  await expect(page.getByRole("button", { name: /loop measure/i })).toHaveCount(0);
 
   // Back to Play — the speed stepper is back.
   await page.locator(".top-bar-modes").getByRole("button", { name: "Play" }).click();
   await expect(
     page.getByRole("button", { name: /increase speed/i }),
   ).toBeVisible();
+});
+
+test("arrow keys jump the playhead by measure", async ({ page }) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+  const time = page.locator(".floating-hud > span").first();
+  const before = await time.textContent();
+  await page.locator("body").press("ArrowRight");
+  await expect(time).not.toHaveText(before ?? "");
 });
 
 test("switching view modes keeps the panels rendering", async ({ page }) => {
