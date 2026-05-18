@@ -207,7 +207,7 @@ export async function createAudioEngine(
           beepVoice.triggerAttackRelease(accent ? "E6" : "C6", 0.05);
           break;
         case "hitick":
-          tickVoice.triggerAttackRelease(0.02);
+          tickVoice.triggerAttackRelease(accent ? 0.035 : 0.018);
           break;
         case "click":
         default:

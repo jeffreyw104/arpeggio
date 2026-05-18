@@ -96,8 +96,12 @@ export function FloatingHud({
     return best;
   });
 
-  // Metronome on/off mirror. Re-synced on entering Practice mode because the
-  // mode-switch suspend/restore may have changed metronome.enabled directly.
+  // Metronome on/off mirror. Re-synced when entering Practice mode: the
+  // mode-switch suspend/restore in PracticeView mutates metronome.enabled
+  // imperatively *before* setMode commits, so by the time this effect runs the
+  // engine already holds the restored value. This effect also catches the
+  // initial-load case where audioEngine resolves to non-null after first
+  // render. Do not remove the [mode, audioEngine] deps.
   const [metronomeOn, setMetronomeOn] = useState(
     () => audioEngine?.metronome.enabled ?? false,
   );
