@@ -6,9 +6,9 @@ interface ModeSwitchProps {
 }
 
 /**
- * The Play / Practice toggle — a sliding on/off switch. "Practice" is the
- * checked state. Clicking it flips the mode. Purely presentational; the mode
- * state lives in PracticeView.
+ * The Play / Practice toggle — a pill showing both labels with a frosted
+ * liquid-glass selector that slides over the active mode. Clicking flips the
+ * mode. Purely presentational; the mode state lives in PracticeView.
  */
 export function ModeSwitch({
   mode,
@@ -24,11 +24,9 @@ export function ModeSwitch({
       className="mode-switch"
       onClick={() => onModeChange(practice ? "play" : "practice")}
     >
-      <span className="mode-switch-label">Play</span>
-      <span className="mode-switch-track">
-        <span className="mode-switch-knob" />
-      </span>
-      <span className="mode-switch-label">Practice</span>
+      <span className="mode-switch-glass" aria-hidden="true" />
+      <span className="mode-switch-option">Play</span>
+      <span className="mode-switch-option">Practice</span>
     </button>
   );
 }

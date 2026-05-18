@@ -48,6 +48,16 @@ textarea {
   user-select: text;
 }
 
+/* Native form controls do not inherit the page font — make them all match
+   the surrounding UI (Rubik, and the local size) rather than the UA default. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
 /* --- Practice view --- */
 
 .practice-view {
@@ -69,6 +79,9 @@ textarea {
   gap: 0.6rem;
   height: 50px;
   padding: 0 0.75rem;
+  /* One type size for the whole bar — every child inherits it so the
+     wordmark, Library, mode toggle, view switch and gear all match. */
+  font-size: 0.85rem;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -114,7 +127,6 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-dim);
-  font-size: 0.9rem;
   pointer-events: none;
 }
 
@@ -127,52 +139,56 @@ textarea {
   gap: 0.25rem;
 }
 
-/* Play / Practice slider toggle. */
+/* Play / Practice toggle: a pill showing both labels, with a frosted
+   liquid-glass selector that slides over the active mode. */
 .mode-switch {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--bg);
+  padding: 2px;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
-  padding: 0.2rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: inherit;
   color: var(--text-dim);
 }
 
-.mode-switch-label {
+/* The sliding selector — half the track, frosted glass, behind the labels. */
+.mode-switch-glass {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.22s ease;
+}
+
+.mode-switch[aria-checked="true"] .mode-switch-glass {
+  transform: translateX(100%);
+}
+
+/* Two equal-width labels, sitting above the glass. */
+.mode-switch-option {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  padding: 0.2rem 0.7rem;
+  text-align: center;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
-/* The active side's label brightens. */
-.mode-switch[aria-checked="false"] .mode-switch-label:first-of-type,
-.mode-switch[aria-checked="true"] .mode-switch-label:last-of-type {
+/* The active label brightens. */
+.mode-switch[aria-checked="false"] .mode-switch-option:first-of-type,
+.mode-switch[aria-checked="true"] .mode-switch-option:last-of-type {
   color: var(--text);
-}
-
-.mode-switch-track {
-  position: relative;
-  width: 34px;
-  height: 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.mode-switch-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  transition: left 0.2s ease;
-}
-
-.mode-switch[aria-checked="true"] .mode-switch-knob {
-  left: 20px;
 }
 
 /* --- Floating transport HUD --- */
@@ -208,6 +224,8 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
+  /* One type size for the whole accordion bar; children inherit it. */
+  font-size: 0.8rem;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -217,7 +235,6 @@ textarea {
 }
 
 .ext-loop-readout {
-  font-size: 0.82rem;
   color: var(--text);
   min-width: 3ch;
   text-align: center;
@@ -715,8 +732,6 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: inherit;
-  font-size: 0.78rem;
   background: transparent;
   color: var(--text);
   border: none;
@@ -731,10 +746,16 @@ textarea {
 }
 
 /* The body animates its width via a 0fr/1fr grid column — a smooth slide
-   from zero to content width without needing a measured pixel value. */
+   from zero to content width without needing a measured pixel value.
+   `min-width: 0` lets this flex item actually shrink to the 0fr track (a
+   flex item defaults to min-width:auto, which would otherwise pin it to its
+   content width and leave controls visible while "collapsed"); `overflow:
+   hidden` clips anything mid-transition. */
 .accordion-body {
   display: grid;
   grid-template-columns: 0fr;
+  min-width: 0;
+  overflow: hidden;
   transition: grid-template-columns 0.22s ease;
 }
 
