@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AudioEngine, type PianoSink, type ClickSink } from "./engine";
+import { AudioEngine, type PianoSink, type ClickSink, type MetronomeSound } from "./engine";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import { HandState } from "../practice/hands";
@@ -30,6 +30,7 @@ function fakes() {
     },
   };
   const click: ClickSink & { count: number } = {
+    sound: "click",
     count: 0,
     playClick() {
       this.count++;
@@ -130,7 +131,7 @@ describe("AudioEngine", () => {
   it("playClick forwards to the click sink", () => {
     const clicks: boolean[] = [];
     const piano = { playNote: () => {} };
-    const click = { playClick: (accent: boolean) => clicks.push(accent) };
+    const click = { sound: "click" as MetronomeSound, playClick: (accent: boolean) => clicks.push(accent) };
     const t = new Transport(score);
     const engine = new AudioEngine(t, piano, click);
     engine.playClick(true);
@@ -155,6 +156,20 @@ describe("AudioEngine", () => {
     t.clock.tick(0.2); // 0 -> 0.2 : the note at 0 and the note at 0.1 both fire
     engine.update();
     expect(piano.calls.sort((a, b) => a - b)).toEqual([48, 60]);
+  });
+
+  it("metronomeSound proxies the click sink's sound", () => {
+    const piano = { playNote: () => {} };
+    const click = {
+      sound: "click" as const,
+      playClick: () => {},
+    };
+    const transport = new Transport(score);
+    const engine = new AudioEngine(transport, piano, click);
+    expect(engine.metronomeSound).toBe("click");
+    engine.metronomeSound = "woodblock";
+    expect(engine.metronomeSound).toBe("woodblock");
+    expect(click.sound).toBe("woodblock");
   });
 });
 
