@@ -30,6 +30,7 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
       pulse: 0,
       timeSignature: { numerator: 4, denominator: 4 },
     },
+    playClick: vi.fn(),
   } as unknown as AudioEngine;
   const props = {
     transport,
@@ -178,5 +179,38 @@ describe("FloatingHud", () => {
     const hud = document.querySelector(".floating-hud") as HTMLElement;
     fireEvent(window, new Event("resize"));
     expect(hud).toBeInTheDocument();
+  });
+
+  it("count-in: play button is disabled during count-in then clock plays after", () => {
+    vi.useFakeTimers();
+    try {
+      const { transport } = renderHud({ mode: "practice", collapsed: false });
+
+      // Open the metronome settings dropdown.
+      fireEvent.click(screen.getByRole("button", { name: /metronome settings/i }));
+
+      // Set count-in to 1 bar.
+      fireEvent.change(screen.getByLabelText(/count-in/i), {
+        target: { value: "1" },
+      });
+
+      // Click play — starts the count-in (1 bar × 4 beats at 120 BPM = 2 s).
+      fireEvent.click(screen.getByRole("button", { name: /play/i }));
+
+      // While counting in, play button is disabled and clock is still paused.
+      expect(screen.getByRole("button", { name: /play/i })).toBeDisabled();
+      expect(transport.clock.playing).toBe(false);
+
+      // Advance past the full count-in (4 beats + completion beat = 5 × 500 ms = 2500 ms).
+      act(() => {
+        vi.advanceTimersByTime(2600);
+      });
+
+      // After the count-in completes, clock should be playing and button enabled.
+      expect(transport.clock.playing).toBe(true);
+      expect(screen.getByRole("button", { name: /pause/i })).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

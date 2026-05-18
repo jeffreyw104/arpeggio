@@ -216,6 +216,9 @@ export function FloatingHud({
   function handlePlayToggle(): void {
     if (clock.playing) {
       clock.pause();
+      countInRef.current?.cancel();
+      countInRef.current = null;
+      setCountingIn(false);
       return;
     }
     if (mode === "practice" && countInBars > 0 && audioEngine) {
