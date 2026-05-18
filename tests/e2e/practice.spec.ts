@@ -122,3 +122,51 @@ test("switching view modes keeps the panels rendering", async ({ page }) => {
   await page.getByRole("button", { name: /^both$/i }).click();
   await expect(page.locator("canvas")).toBeVisible();
 });
+
+test("MIDI Practice tab: reading lane is visible and can be toggled", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Switch to the MIDI Practice tab.
+  await page.getByRole("button", { name: "MIDI Practice" }).click();
+
+  // The reading-lane strip should be present (not collapsed by default).
+  const readingLane = page.locator("[data-testid='reading-lane']");
+  await expect(readingLane).toBeVisible();
+
+  // The in-lane collapse toggle button is visible when expanded.
+  const collapseBtn = page.getByRole("button", {
+    name: /collapse reading lane/i,
+  });
+  await expect(collapseBtn).toBeVisible();
+  await expect(collapseBtn).toHaveAttribute("aria-expanded", "true");
+
+  // Collapse via the in-lane toggle.
+  await collapseBtn.click();
+  const expandBtn = page.getByRole("button", {
+    name: /expand reading lane/i,
+  });
+  await expect(expandBtn).toHaveAttribute("aria-expanded", "false");
+
+  // The falldown canvas must still be present and visible.
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+
+  // Expand via the TopBar "Reading lane" button (always accessible in the bar).
+  const topBarToggle = page.locator(".top-bar").getByRole("button", {
+    name: /reading lane/i,
+  });
+  await topBarToggle.click();
+  await expect(
+    page.getByRole("button", { name: /collapse reading lane/i }),
+  ).toHaveAttribute("aria-expanded", "true");
+
+  // Switch back to Play tab — canvas must still be visible (not remounted).
+  // Use the ModeSwitch's Play button (has aria-pressed attribute).
+  await page.locator(".top-bar-modes").getByRole("button", { name: "Play" }).click();
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+});

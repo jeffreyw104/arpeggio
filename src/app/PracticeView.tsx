@@ -10,11 +10,12 @@ import {
 import { FalldownRenderer } from "../falldown/renderer";
 import { renderScore } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
-import { Layout } from "../layout/Layout";
+import { Divider } from "../layout/Divider";
 import type { ViewMode } from "../layout/viewMode";
 import { TopBar } from "../ui/TopBar";
 import { ToolsPopover } from "../ui/ToolsPopover";
 import { PlayTools } from "../ui/PlayTools";
+import { MidiTools } from "../ui/MidiTools";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
@@ -42,6 +43,16 @@ const DEFAULT_SCORE_ZOOM = 0.8;
 /**
  * The assembled practice screen: composes the transport, frame loop, falldown
  * renderer, audio engine, and engraved score view into a single playable view.
+ *
+ * STABILITY CONSTRAINT: The falldown <canvas> and score-container <div> must
+ * never be unmounted across play↔midi tab switches, because FalldownRenderer
+ * and ScoreView bind to their DOM nodes on mount.
+ *
+ * Both are rendered at fixed, unconditional React tree positions inside one
+ * stable content wrapper. The mode switch changes only CSS classes on the
+ * wrapper and the score-panel div — never the component type at those
+ * positions. No ternary switches the wrapper type of the canvas or
+ * score-container.
  */
 export function PracticeView({
   score,
@@ -74,6 +85,7 @@ export function PracticeView({
   const [split, setSplit] = useState(0.58);
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
+  const [laneCollapsed, setLaneCollapsed] = useState(false);
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the ControlPanel render against them in JSX.
@@ -281,23 +293,89 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
+  const isMidi = mode === "midi";
+
+  // In play mode, visibility of each panel depends on viewMode.
+  const showFalldownInPlay = viewMode !== "score";
+  const showScoreInPlay = viewMode !== "falldown";
+
+  // Falldown panel flex style — play mode only; MIDI mode CSS handles it.
+  const falldownPanelStyle = isMidi
+    ? undefined
+    : viewMode === "both"
+      ? {
+          display: showFalldownInPlay ? undefined : "none",
+          flexBasis: `${split * 100}%`,
+          flexGrow: 0,
+          flexShrink: 0,
+        }
+      : { display: showFalldownInPlay ? undefined : "none", flex: 1 };
+
+  // Score panel display style — play mode only; MIDI mode CSS handles it.
+  const scorePanelStyle = isMidi
+    ? undefined
+    : { display: showScoreInPlay ? undefined : "none", flex: 1 };
+
+  // The score-container uses horizontal-pages only in play score-only view.
+  const scoreContainerClass =
+    !isMidi && viewMode === "score"
+      ? "score-container horizontal-pages"
+      : "score-container";
+
+  // CSS classes for the score panel wrapper:
+  //   play mode  →  "practice-score-panel"
+  //   midi mode  →  "practice-score-panel reading-lane [reading-lane--collapsed]"
+  const scorePanelClass = [
+    "practice-score-panel",
+    isMidi ? "reading-lane" : "",
+    isMidi && laneCollapsed ? "reading-lane--collapsed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="practice-view">
-      <Layout
-        viewMode={viewMode}
-        split={split}
-        onSplitChange={setSplit}
-        falldown={<canvas ref={canvasRef} className="falldown-canvas" />}
-        score={
-          <>
-            <div
-              ref={scoreContainerRef}
-              className={
-                viewMode === "score"
-                  ? "score-container horizontal-pages"
-                  : "score-container"
-              }
-            />
+      {/*
+       * ONE stable content area. The falldown <canvas> (position A) and the
+       * score-container <div> (position B) are ALWAYS rendered here, never
+       * swapped between different component types. CSS classes on the wrapper
+       * and the score-panel div control the visual arrangement for each mode.
+       */}
+      <div
+        className={[
+          "practice-content",
+          `practice-content--${mode}`,
+          isMidi && laneCollapsed ? "practice-content--lane-collapsed" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {/* [A] Falldown panel — stable tree position, always rendered */}
+        <div className="practice-falldown-panel" style={falldownPanelStyle}>
+          <canvas ref={canvasRef} className="falldown-canvas" />
+        </div>
+
+        {/* Divider — play + both mode only */}
+        {!isMidi && viewMode === "both" && (
+          <Divider fraction={split} onChange={setSplit} />
+        )}
+
+        {/*
+         * [B] Score panel — stable tree position, always rendered as a <div>.
+         * The component type never changes; only the className does.
+         * In play mode: right flex column.
+         * In MIDI mode: reading-lane strip at top (~120 px, or 0 when collapsed).
+         */}
+        <div
+          className={scorePanelClass}
+          style={scorePanelStyle}
+          data-testid="reading-lane"
+        >
+          {/* The score-container ref is always this element, at this position */}
+          <div ref={scoreContainerRef} className={scoreContainerClass} />
+
+          {/* Play-mode score zoom buttons */}
+          {!isMidi && (
             <div className="score-zoom">
               <button type="button" aria-label="Zoom out" onClick={zoomOut}>
                 −
@@ -306,9 +384,27 @@ export function PracticeView({
                 +
               </button>
             </div>
-          </>
-        }
-      />
+          )}
+
+          {/* MIDI-mode reading-lane toggle */}
+          {isMidi && (
+            <button
+              type="button"
+              className="reading-lane-toggle"
+              aria-label={
+                laneCollapsed
+                  ? "Expand reading lane"
+                  : "Collapse reading lane"
+              }
+              aria-expanded={!laneCollapsed}
+              onClick={() => setLaneCollapsed((c) => !c)}
+            >
+              {laneCollapsed ? "▸ Reading lane" : "▾ Reading lane"}
+            </button>
+          )}
+        </div>
+      </div>
+
       <TopBar
         pieceName={pieceName}
         viewMode={viewMode}
@@ -323,12 +419,11 @@ export function PracticeView({
         transport={transport}
         audioEngine={audioEngine}
         countInBars={countInBars}
+        laneCollapsed={laneCollapsed}
+        onToggleLane={() => setLaneCollapsed((c) => !c)}
       />
-      <ToolsPopover
-        open={toolsOpen}
-        onClose={() => setToolsOpen(false)}
-      >
-        {practiceReady && (
+      <ToolsPopover open={toolsOpen} onClose={() => setToolsOpen(false)}>
+        {practiceReady && mode === "play" && (
           <PlayTools
             transport={transport}
             handState={handState}
@@ -337,6 +432,9 @@ export function PracticeView({
             countInBars={countInBars}
             onCountInBarsChange={setCountInBars}
           />
+        )}
+        {practiceReady && mode === "midi" && (
+          <MidiTools audioEngine={audioEngine} falldown={falldown} />
         )}
       </ToolsPopover>
       {falldown && practiceReady && settingsOpen && (

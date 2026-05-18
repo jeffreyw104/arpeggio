@@ -492,6 +492,113 @@ textarea {
   position: relative;
 }
 
+/* --- Practice content: single stable wrapper used by both tab modes --- */
+
+/* Play mode: horizontal split (falldown left, score right). */
+.practice-content--play {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  min-height: 0;
+}
+
+/* MIDI mode: vertical stack (reading-lane on top, falldown below). */
+.practice-content--midi {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Falldown panel — in play mode this is sized by inline style (split fraction);
+   in midi mode it fills the remaining height below the reading lane. */
+.practice-content--midi .practice-falldown-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Score panel in play mode behaves like the old layout-panel. */
+.practice-content--play .practice-score-panel {
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* --- Reading lane (score panel in MIDI mode) --- */
+
+/* The reading-lane strip: clips to ~one engraved system. */
+.reading-lane {
+  flex: 0 0 120px;
+  overflow: hidden;
+  position: relative;
+  background: #f4f4f2;
+  border-bottom: 2px solid var(--border);
+  transition: flex-basis 0.2s ease, opacity 0.2s ease;
+}
+
+/* Collapsed: zero height, invisible. */
+.reading-lane--collapsed {
+  flex-basis: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The score-container inside the reading lane fills the strip. */
+.reading-lane .score-container {
+  /* Remove the large top padding used in the full score panel — one system
+     does not need room for the floating top bar. */
+  padding: 4px 1rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The reading-lane toggle button: anchored to the bottom-right of the strip. */
+.reading-lane-toggle {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  z-index: 5;
+  background: var(--panel);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.reading-lane-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* When the lane is collapsed, show the toggle just below the top bar so the
+   user can expand it again. The collapsed state class is on the parent wrapper
+   (.practice-content--lane-collapsed), which brings the toggle into view. */
+.practice-content--lane-collapsed .reading-lane-toggle {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* --- MidiTools popover content --- */
+
+.midi-tools {
+  /* Reuses .play-tools layout (flex column of accordion sections). */
+}
+
+/* The disabled MIDI-input placeholder block. */
+.midi-tools-placeholder {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  text-align: center;
+  opacity: 0.7;
+}
+
 .divider {
   width: 6px;
   background: var(--border);

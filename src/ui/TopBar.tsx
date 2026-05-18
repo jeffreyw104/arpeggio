@@ -20,6 +20,10 @@ interface TopBarProps {
   transport: Transport;
   audioEngine: AudioEngine | null;
   countInBars: number;
+  /** MIDI tab: whether the reading lane is currently collapsed. */
+  laneCollapsed?: boolean;
+  /** MIDI tab: toggle the reading lane collapsed state. */
+  onToggleLane?: () => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -44,7 +48,8 @@ function formatTime(seconds: number): string {
 /**
  * The fixed top bar. Left: logo, Library, play/pause, seek scrubber, time,
  * and the Play/MIDI Practice toggle. Center: the now-playing piece name.
- * Right: Tools popover toggle, the view-mode switch, and the settings gear.
+ * Right: Tools popover toggle, view controls (Both/Falldown/Score in play mode;
+ * Reading lane toggle in midi mode), and the settings gear.
  */
 export function TopBar({
   pieceName,
@@ -60,6 +65,8 @@ export function TopBar({
   transport,
   audioEngine,
   countInBars,
+  laneCollapsed = false,
+  onToggleLane,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
@@ -153,18 +160,32 @@ export function TopBar({
       >
         Tools▾
       </button>
-      <div className="top-bar-views">
-        {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
-          <button
-            key={viewModeOption}
-            type="button"
-            aria-pressed={viewMode === viewModeOption}
-            onClick={() => onViewModeChange(viewModeOption)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+
+      {/* View controls vary by tab mode */}
+      {mode === "play" ? (
+        <div className="top-bar-views">
+          {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
+            <button
+              key={viewModeOption}
+              type="button"
+              aria-pressed={viewMode === viewModeOption}
+              onClick={() => onViewModeChange(viewModeOption)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-pressed={!laneCollapsed}
+          aria-label="Toggle reading lane"
+          onClick={onToggleLane}
+        >
+          Reading lane
+        </button>
+      )}
+
       <button
         type="button"
         aria-label="Settings"
