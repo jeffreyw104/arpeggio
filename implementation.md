@@ -19,17 +19,17 @@ This is the **master plan**. It locks in the file structure, the feature decompo
 
 ## Progress Dashboard
 
-| Feature | Name                 | Status      | Detailed plan                                                       | Tracking doc                            |
-| ------- | -------------------- | ----------- | ------------------------------------------------------------------- | --------------------------------------- |
-| A       | Scaffold & Deploy    | Done        | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md`    | `docs/features/A-scaffold-deploy.md`    |
-| B       | Import & Score Model | Done        | `docs/superpowers/plans/2026-05-17-feature-b-import-score-model.md` | `docs/features/B-import-score-model.md` |
-| C       | Transport & Playback | Done        | `docs/superpowers/plans/2026-05-18-feature-c-transport-playback.md` | `docs/features/C-transport-playback.md` |
-| D       | Audio & Metronome    | Done        | `docs/superpowers/plans/2026-05-18-feature-d-audio-metronome.md`    | `docs/features/D-audio-metronome.md`    |
-| E       | Falldown View        | Done        | `docs/superpowers/plans/2026-05-18-feature-e-falldown-view.md`      | `docs/features/E-falldown-view.md`      |
-| F       | Score View           | Done        | `docs/superpowers/plans/2026-05-18-feature-f-score-view.md`         | `docs/features/F-score-view.md`         |
-| G       | Layout & View Modes  | Done        | `docs/superpowers/plans/2026-05-18-feature-g-layout-view-modes.md`  | `docs/features/G-layout-view-modes.md`  |
-| H       | Practice Controls    | Done        | `docs/superpowers/plans/2026-05-18-feature-h-practice-controls.md`  | `docs/features/H-practice-controls.md`  |
-| I       | Library              | In progress | `docs/superpowers/plans/2026-05-18-feature-i-library.md`            | `docs/features/I-library.md`            |
+| Feature | Name                 | Status | Detailed plan                                                       | Tracking doc                            |
+| ------- | -------------------- | ------ | ------------------------------------------------------------------- | --------------------------------------- |
+| A       | Scaffold & Deploy    | Done   | `docs/superpowers/plans/2026-05-17-feature-a-scaffold-deploy.md`    | `docs/features/A-scaffold-deploy.md`    |
+| B       | Import & Score Model | Done   | `docs/superpowers/plans/2026-05-17-feature-b-import-score-model.md` | `docs/features/B-import-score-model.md` |
+| C       | Transport & Playback | Done   | `docs/superpowers/plans/2026-05-18-feature-c-transport-playback.md` | `docs/features/C-transport-playback.md` |
+| D       | Audio & Metronome    | Done   | `docs/superpowers/plans/2026-05-18-feature-d-audio-metronome.md`    | `docs/features/D-audio-metronome.md`    |
+| E       | Falldown View        | Done   | `docs/superpowers/plans/2026-05-18-feature-e-falldown-view.md`      | `docs/features/E-falldown-view.md`      |
+| F       | Score View           | Done   | `docs/superpowers/plans/2026-05-18-feature-f-score-view.md`         | `docs/features/F-score-view.md`         |
+| G       | Layout & View Modes  | Done   | `docs/superpowers/plans/2026-05-18-feature-g-layout-view-modes.md`  | `docs/features/G-layout-view-modes.md`  |
+| H       | Practice Controls    | Done   | `docs/superpowers/plans/2026-05-18-feature-h-practice-controls.md`  | `docs/features/H-practice-controls.md`  |
+| I       | Library              | Done   | `docs/superpowers/plans/2026-05-18-feature-i-library.md`            | `docs/features/I-library.md`            |
 
 Statuses: Not started / In progress / Blocked / Done.
 

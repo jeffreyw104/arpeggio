@@ -1,8 +1,8 @@
 # Feature I: Library
 
-**Status:** Not started
+**Status:** Done
 **Owner:** subagent
-**Detailed plan:** _(write before build)_
+**Detailed plan:** docs/superpowers/plans/2026-05-18-feature-i-library.md
 
 ## Scope
 
@@ -17,17 +17,37 @@ B (Import & Score Model), H (Practice Controls).
 ## Changes log
 
 - 2026-05-17 — Feature defined.
+- 2026-05-18 — Built (Tasks 1-4): `db.ts` (IndexedDB wrapper — `pieces` and
+  `practiceState` stores, transaction-awaited writes); `practiceState.ts`
+  (capture/apply tempo + loop + hand settings); `LibraryBrowser` (searchable
+  saved-pieces list with delete); app wiring — the landing combines the import
+  view and the library, importing saves the piece, opening a library entry
+  re-parses its bytes and restores its practice state, and `PracticeView` saves
+  practice state when the session ends. Added `fake-indexeddb` (dev) for tests.
 
 ## Keywords
 
-src/library/db.ts, src/library/practiceState.ts, src/library/LibraryBrowser.tsx,
-IndexedDB, per-piece state, search.
+src/library/db.ts, src/library/practiceState.ts,
+src/library/LibraryBrowser.tsx, savePiece, getPiece, listPieces,
+capturePracticeState, applyPracticeState, IndexedDB, per-piece state, search.
 
 ## Testing
 
-- Unit: IndexedDB store round-trip (save/load file + practice state);
-  search filtering.
-- Component: LibraryBrowser lists and selects pieces.
-- Manual checklist: file persists across reload; practice state restored on
-  reopening a piece.
-- Current status: not started.
+Test files (Vitest + RTL; run `npm test`):
+
+- `src/library/db.test.ts` — save/list/get/delete pieces, practice-state
+  round-trip (real `fake-indexeddb`).
+- `src/library/practiceState.test.ts` — capture, apply, round-trip.
+- `src/library/LibraryBrowser.test.tsx` — list, search filter, open, delete.
+- `tests/e2e/library.spec.ts` — Playwright: import a piece, reload, confirm it
+  is listed in the library (proves cross-session persistence).
+
+Automated status (verified 2026-05-18): `npm run lint`, `npm run typecheck`,
+`npm test` (164/164 total), `npm run build`, `npm run e2e` (3 specs) all pass.
+
+Manual checklist:
+
+- [ ] Import a piece, change tempo / set a loop / mute a hand, return to the
+      library; reopening the piece restores those settings.
+- [ ] The library persists across a full page reload; search filters the list;
+      delete removes a piece.
