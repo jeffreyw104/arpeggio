@@ -1,4 +1,6 @@
 import type { ViewMode } from "../layout/viewMode";
+import { ModeSwitch } from "./ModeSwitch";
+import type { PracticeMode } from "../layout/practiceMode";
 
 interface TopBarProps {
   pieceName: string;
@@ -7,6 +9,8 @@ interface TopBarProps {
   onOpenLibrary: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
+  mode: PracticeMode;
+  onModeChange: (m: PracticeMode) => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -32,6 +36,8 @@ export function TopBar({
   onOpenLibrary,
   settingsOpen,
   onToggleSettings,
+  mode,
+  onModeChange,
 }: TopBarProps): React.JSX.Element {
   return (
     <div className="top-bar">
@@ -39,7 +45,9 @@ export function TopBar({
         Library
       </button>
       <span className="top-bar-piece">{displayName(pieceName)}</span>
-      <span className="top-bar-spacer" />
+      <div className="top-bar-spacer">
+        <ModeSwitch mode={mode} onModeChange={onModeChange} />
+      </div>
       <div className="top-bar-views">
         {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
           <button

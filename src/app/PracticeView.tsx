@@ -277,6 +277,8 @@ export function PracticeView({
         onOpenLibrary={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
+        mode="play"
+        onModeChange={() => {}}
       />
       <FloatingHud
         transport={transport}

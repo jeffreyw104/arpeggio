@@ -10,6 +10,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     onOpenLibrary: vi.fn(),
     settingsOpen: false,
     onToggleSettings: vi.fn(),
+    mode: "play" as const,
+    onModeChange: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
@@ -44,6 +46,14 @@ describe("TopBar", () => {
       "aria-pressed",
       "false",
     );
+  });
+
+  it("renders the mode switch and emits onModeChange", () => {
+    const { props } = renderBar();
+    const practice = screen.getByRole("button", { name: /^practice$/i });
+    expect(practice).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(practice);
+    expect(props.onModeChange).toHaveBeenCalledWith("practice");
   });
 
   it("toggles settings and reflects the open state", () => {

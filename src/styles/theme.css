@@ -109,6 +109,8 @@ textarea {
 
 .top-bar-spacer {
   flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .top-bar-views {
