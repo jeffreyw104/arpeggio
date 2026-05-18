@@ -41,8 +41,10 @@ body {
   position: absolute;
   z-index: 20;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  max-width: calc(100% - 32px);
   padding: 0.4rem 0.6rem;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -50,6 +52,23 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
   cursor: grab;
   transition: opacity 0.4s ease;
+}
+
+.floating-hud label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.floating-hud select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1rem 0.2rem;
 }
 
 .floating-hud.faded {

@@ -98,31 +98,6 @@ describe("ControlPanel", () => {
     expect(transport.clock.rate).toBeLessThan(1);
   });
 
-  it("sets the metronome subdivision on the audio engine", () => {
-    const fakeEngine = {
-      metronome: { enabled: false, subdivision: 1, pulse: 0 },
-    } as unknown as AudioEngine;
-    setup(fakeEngine);
-    fireEvent.change(screen.getByLabelText(/subdivision/i), {
-      target: { value: "4" },
-    });
-    expect(fakeEngine.metronome.subdivision).toBe(4);
-  });
-
-  it("toggles the accent-downbeat option on the audio engine", () => {
-    const fakeEngine = {
-      metronome: {
-        enabled: false,
-        subdivision: 1,
-        pulse: 0,
-        accentDownbeat: false,
-      },
-    } as unknown as AudioEngine;
-    setup(fakeEngine);
-    fireEvent.click(screen.getByLabelText(/accent downbeat/i));
-    expect(fakeEngine.metronome.accentDownbeat).toBe(true);
-  });
-
   it("sets the time signature via the single N/D text box", () => {
     const { falldown } = setup();
     fireEvent.change(screen.getByLabelText(/time signature/i), {
@@ -140,10 +115,5 @@ describe("ControlPanel", () => {
     const { transport } = setup();
     fireEvent.click(screen.getByLabelText(/flatten tempo/i));
     expect(transport.tempoMode).toBe("flatten");
-  });
-
-  it("renders the metronome pulse indicator", () => {
-    setup();
-    expect(document.querySelector(".metronome-pulse")).toBeInTheDocument();
   });
 });

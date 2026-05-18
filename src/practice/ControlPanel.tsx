@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { HandState, HandVisibility } from "./hands";
 import type { FalldownRenderer } from "../falldown/renderer";
@@ -27,16 +27,12 @@ export function ControlPanel({
   const [showLabels, setShowLabels] = useState(falldown.showLabels);
   const [showBeatGrid, setShowBeatGrid] = useState(falldown.showBeatGrid);
   const [full88, setFull88] = useState(falldown.full88);
-  const [metronome, setMetronome] = useState(false);
-  const [accentDownbeat, setAccentDownbeat] = useState(false);
-  const [subdivision, setSubdivision] = useState(1);
   const [timeSignature, setTimeSignature] = useState(
     `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`,
   );
   const [flattenTempo, setFlattenTempo] = useState(
     transport.tempoMode === "flatten",
   );
-  const pulseRef = useRef<HTMLSpanElement>(null);
   const [muteLeft, setMuteLeft] = useState(handState.isMuted("left"));
   const [muteRight, setMuteRight] = useState(handState.isMuted("right"));
   const [leftVis, setLeftVis] = useState<HandVisibility>(
@@ -70,28 +66,6 @@ export function ControlPanel({
     }
   }
 
-  function handleMetronome(checked: boolean): void {
-    setMetronome(checked);
-    // The audio engine is an imperative object the panel writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.enabled = checked;
-  }
-
-  function handleAccentDownbeat(checked: boolean): void {
-    setAccentDownbeat(checked);
-    // The audio engine is an imperative object the panel writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.accentDownbeat = checked;
-  }
-
-  function handleSubdivision(value: string): void {
-    const next = Number(value);
-    setSubdivision(next);
-    // The audio engine is an imperative object the panel writes through to.
-    // eslint-disable-next-line react-hooks/immutability
-    if (audioEngine) audioEngine.metronome.subdivision = next;
-  }
-
   function handleTimeSignature(value: string): void {
     // Keep the raw string so typing is never blocked mid-edit.
     setTimeSignature(value);
@@ -112,22 +86,6 @@ export function ControlPanel({
     setFlattenTempo(checked);
     transport.setTempoMode(checked ? "flatten" : "preserve");
   }
-
-  // Self-contained rAF loop driving the metronome pulse indicator's opacity
-  // from the live `metronome.pulse` value. Does not touch the main FrameLoop.
-  useEffect(() => {
-    let frame = 0;
-    const tick = (): void => {
-      if (pulseRef.current) {
-        pulseRef.current.style.opacity = String(
-          audioEngine?.metronome.pulse ?? 0,
-        );
-      }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [audioEngine]);
 
   // The falldown renderer exposes plain mutable fields as its API (Task H-T3);
   // the panel writes through to them, mirroring local state for the inputs.
@@ -205,23 +163,6 @@ export function ControlPanel({
           Full 88 keys
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={metronome}
-            onChange={(e) => handleMetronome(e.target.checked)}
-          />{" "}
-          Metronome
-        </label>
-        <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
-        <label>
-          <input
-            type="checkbox"
-            checked={accentDownbeat}
-            onChange={(e) => handleAccentDownbeat(e.target.checked)}
-          />{" "}
-          Accent downbeat
-        </label>
-        <label>
           Time signature{" "}
           <input
             type="text"
@@ -229,18 +170,6 @@ export function ControlPanel({
             value={timeSignature}
             onChange={(e) => handleTimeSignature(e.target.value)}
           />
-        </label>
-        <label>
-          Subdivision{" "}
-          <select
-            value={subdivision}
-            onChange={(e) => handleSubdivision(e.target.value)}
-          >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-          </select>
         </label>
         <label>
           <input

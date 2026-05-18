@@ -259,6 +259,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         onExit={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
+        audioEngine={audioEngine}
       />
       {falldown && practiceReady && settingsOpen && (
         <ControlPanel

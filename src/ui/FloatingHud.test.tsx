@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
+import type { AudioEngine } from "../audio/engine";
 
 const score = {
   source: "midi",
@@ -18,6 +19,14 @@ const score = {
 
 function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
   const transport = new Transport(score);
+  const audioEngine = {
+    metronome: {
+      enabled: false,
+      accentDownbeat: false,
+      subdivision: 1,
+      pulse: 0,
+    },
+  } as unknown as AudioEngine;
   const props = {
     transport,
     viewMode: "both" as const,
@@ -27,6 +36,7 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
     onExit: vi.fn(),
     settingsOpen: false,
     onToggleSettings: vi.fn(),
+    audioEngine,
     ...overrides,
   };
   render(<FloatingHud {...props} />);
@@ -68,6 +78,26 @@ describe("FloatingHud", () => {
     const { props } = renderHud();
     fireEvent.click(screen.getByRole("button", { name: /settings/i }));
     expect(props.onToggleSettings).toHaveBeenCalled();
+  });
+
+  it("toggles the metronome on the audio engine", () => {
+    const { props } = renderHud();
+    fireEvent.click(screen.getByLabelText(/metronome/i));
+    expect(props.audioEngine!.metronome.enabled).toBe(true);
+  });
+
+  it("toggles the accent option on the audio engine", () => {
+    const { props } = renderHud();
+    fireEvent.click(screen.getByLabelText(/accent/i));
+    expect(props.audioEngine!.metronome.accentDownbeat).toBe(true);
+  });
+
+  it("sets the metronome subdivision on the audio engine", () => {
+    const { props } = renderHud();
+    fireEvent.change(screen.getByLabelText(/subdivision/i), {
+      target: { value: "4" },
+    });
+    expect(props.audioEngine!.metronome.subdivision).toBe(4);
   });
 
   it("moves when dragged by its background", () => {
