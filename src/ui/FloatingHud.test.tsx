@@ -69,4 +69,28 @@ describe("FloatingHud", () => {
     fireEvent.click(screen.getByRole("button", { name: /settings/i }));
     expect(props.onToggleSettings).toHaveBeenCalled();
   });
+
+  it("moves when dragged by its background", () => {
+    renderHud();
+    const hud = document.querySelector(".floating-hud") as HTMLElement;
+    fireEvent.pointerDown(hud, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 150, clientY: 130 });
+    fireEvent.pointerUp(window);
+    // The HUD shifted by the pointer delta (+50, +30).
+    expect(hud.style.left).not.toBe("");
+    expect(hud.style.top).not.toBe("");
+  });
+
+  it("does not start a drag from a control", () => {
+    renderHud();
+    const hud = document.querySelector(".floating-hud") as HTMLElement;
+    const before = hud.style.left;
+    fireEvent.pointerDown(screen.getByRole("slider"), {
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window);
+    expect(hud.style.left).toBe(before);
+  });
 });

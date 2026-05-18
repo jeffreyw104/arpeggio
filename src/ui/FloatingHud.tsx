@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { ViewMode } from "../layout/viewMode";
 
@@ -27,6 +27,73 @@ const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
   { mode: "score", label: "Score only" },
 ];
 
+interface Position {
+  x: number;
+  y: number;
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+/**
+ * Makes an element draggable within its offset parent. Returns the element
+ * ref, its position, and a pointerdown handler. Dragging is ignored when the
+ * pointer goes down on an interactive control (button/input/select). When the
+ * parent has no measured size (e.g. jsdom) the position is left unclamped.
+ */
+function useDraggable() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<Position | null>(null);
+  const drag = useRef<{ dx: number; dy: number } | null>(null);
+
+  // Center horizontally near the top once the element has been measured.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (el && parent && parent.clientWidth > 0) {
+      setPos({ x: (parent.clientWidth - el.offsetWidth) / 2, y: 16 });
+    } else {
+      setPos({ x: 16, y: 16 });
+    }
+  }, []);
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>): void {
+    if ((e.target as HTMLElement).closest("button, input, select")) return;
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    drag.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+  }
+
+  useEffect(() => {
+    function move(e: PointerEvent): void {
+      const el = ref.current;
+      const d = drag.current;
+      if (!el || !d) return;
+      const parent = el.offsetParent as HTMLElement | null;
+      let x = e.clientX - d.dx;
+      let y = e.clientY - d.dy;
+      if (parent && parent.clientWidth > 0) {
+        x = clamp(x, 0, parent.clientWidth - el.offsetWidth);
+        y = clamp(y, 0, parent.clientHeight - el.offsetHeight);
+      }
+      setPos({ x, y });
+    }
+    function up(): void {
+      drag.current = null;
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, []);
+
+  return { ref, pos, onPointerDown };
+}
+
 /**
  * The floating transport HUD: a compact overlay carrying every playback
  * control. Replaces the old fixed header band. Drag and idle-fade behavior
@@ -45,11 +112,18 @@ export function FloatingHud({
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
 
+  const { ref, pos, onPointerDown } = useDraggable();
+
   const { clock } = transport;
   const { playing, position, duration } = clock;
 
   return (
-    <div className="floating-hud">
+    <div
+      ref={ref}
+      className="floating-hud"
+      style={pos ? { left: pos.x, top: pos.y } : undefined}
+      onPointerDown={onPointerDown}
+    >
       <button type="button" onClick={onExit}>
         Library
       </button>
