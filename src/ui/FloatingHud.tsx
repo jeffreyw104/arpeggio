@@ -66,7 +66,7 @@ function useIdleFade(disabled: boolean): boolean {
 
 /**
  * Makes the HUD draggable within its offset parent. The initial position
- * depends on `mode`: Play spawns top-left, Practice spawns top-center. A drag
+ * depends on `mode`: Play spawns top-left, MIDI spawns top-center. A drag
  * is ignored when it starts on an interactive control.
  */
 function useDraggable(mode: TabMode): {

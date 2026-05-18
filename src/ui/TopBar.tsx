@@ -26,7 +26,7 @@ function displayName(fileName: string): string {
 
 /**
  * The fixed top bar. Left: the arpeggio wordmark, the Library button, and the
- * Play/Practice toggle. Center: the now-playing piece name. Right: the
+ * Play/MIDI Practice toggle. Center: the now-playing piece name. Right: the
  * view-mode switch and the settings gear. Purely presentational.
  */
 export function TopBar({

@@ -32,7 +32,7 @@ export interface StoredPracticeState {
   subdivision?: number;
   /** The last-used session mode (optional for records saved before this). */
   mode?: TabMode;
-  /** The Practice-HUD collapse state (optional for records saved before this). */
+  /** The HUD collapse state (optional for records saved before this). */
   hudCollapsed?: boolean;
 }
 
