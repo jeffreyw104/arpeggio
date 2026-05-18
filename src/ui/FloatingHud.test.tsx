@@ -30,11 +30,7 @@ function renderHud(overrides: Partial<Parameters<typeof FloatingHud>[0]> = {}) {
   } as unknown as AudioEngine;
   const props = {
     transport,
-    viewMode: "both" as const,
-    onViewModeChange: vi.fn(),
-    onExit: vi.fn(),
     settingsOpen: false,
-    onToggleSettings: vi.fn(),
     audioEngine,
     falldown: null,
     ...overrides,
@@ -58,22 +54,11 @@ describe("FloatingHud", () => {
     expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
-  it("calls onViewModeChange when a view-mode button is clicked", () => {
-    const { props } = renderHud();
-    fireEvent.click(screen.getByRole("button", { name: /score only/i }));
-    expect(props.onViewModeChange).toHaveBeenCalledWith("score");
-  });
-
-  it("calls the exit callback", () => {
-    const { props } = renderHud();
-    fireEvent.click(screen.getByRole("button", { name: /library/i }));
-    expect(props.onExit).toHaveBeenCalled();
-  });
-
-  it("toggles the settings drawer", () => {
-    const { props } = renderHud();
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    expect(props.onToggleSettings).toHaveBeenCalled();
+  it("does not render the relocated nav controls", () => {
+    renderHud();
+    expect(screen.queryByRole("button", { name: /library/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /score only/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Settings" })).toBeNull();
   });
 
   it("toggles the metronome on the audio engine", () => {

@@ -1,17 +1,12 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
-import type { ViewMode } from "../layout/viewMode";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
 import { MetronomeMenu } from "./MetronomeMenu";
 
 interface FloatingHudProps {
   transport: Transport;
-  viewMode: ViewMode;
-  onViewModeChange: (m: ViewMode) => void;
-  onExit: () => void;
   settingsOpen: boolean;
-  onToggleSettings: () => void;
   audioEngine: AudioEngine | null;
   falldown: FalldownRenderer | null;
 }
@@ -26,12 +21,6 @@ function formatTime(seconds: number): string {
   const secs = total % 60;
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
-
-const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
-  { mode: "both", label: "Both" },
-  { mode: "falldown", label: "Falldown only" },
-  { mode: "score", label: "Score only" },
-];
 
 interface Position {
   x: number;
@@ -84,12 +73,14 @@ function useDraggable(): {
   const [pos, setPos] = useState<Position | null>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 
-  // Center horizontally near the top once the element has been measured.
   useLayoutEffect(() => {
     const el = ref.current;
     const parent = el?.offsetParent as HTMLElement | null;
     if (el && parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
-      setPos({ x: (parent.clientWidth - el.offsetWidth) / 2, y: 16 });
+      setPos({
+        x: (parent.clientWidth - el.offsetWidth) / 2,
+        y: parent.clientHeight - el.offsetHeight - 16,
+      });
     } else {
       setPos({ x: 16, y: 16 });
     }
@@ -158,11 +149,7 @@ function useDraggable(): {
  */
 export function FloatingHud({
   transport,
-  viewMode,
-  onViewModeChange,
-  onExit,
   settingsOpen,
-  onToggleSettings,
   audioEngine,
   falldown,
 }: FloatingHudProps): React.JSX.Element {
@@ -224,9 +211,6 @@ export function FloatingHud({
       style={pos ? { left: pos.x, top: pos.y } : undefined}
       onPointerDown={onPointerDown}
     >
-      <button type="button" onClick={onExit}>
-        Library
-      </button>
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
@@ -271,24 +255,6 @@ export function FloatingHud({
           />
         )}
       </div>
-      {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
-        <button
-          key={mode}
-          type="button"
-          aria-pressed={viewMode === mode}
-          onClick={() => onViewModeChange(mode)}
-        >
-          {label}
-        </button>
-      ))}
-      <button
-        type="button"
-        aria-label="Settings"
-        aria-pressed={settingsOpen}
-        onClick={onToggleSettings}
-      >
-        ⚙
-      </button>
     </div>
   );
 }
