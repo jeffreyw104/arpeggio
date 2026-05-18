@@ -49,6 +49,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.65);
   const [scoreReady, setScoreReady] = useState(false);
+  const [scoreZoom, setScoreZoom] = useState(1);
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the ControlPanel render against them in JSX.
@@ -101,11 +102,20 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
 
     void (async () => {
       try {
-        const { svg, timemap } = await renderScore(transport.score.musicXml);
+        const { svgPages, timemap } = await renderScore(
+          transport.score.musicXml,
+        );
         if (cancelled) return;
         const container = scoreContainerRef.current;
         if (!container) return;
-        const scoreView = new ScoreView(container, transport, svg, timemap);
+        const scoreView = new ScoreView(
+          container,
+          transport,
+          svgPages,
+          timemap,
+        );
+        // scoreZoom starts at 1; the zoom buttons drive subsequent changes.
+        scoreView.setZoom(1);
         scoreViewRef.current = scoreView;
         loop.onFrame(() => scoreView.renderFrame());
         setScoreReady(true);
@@ -163,6 +173,28 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
       <div className="practice-header">
         <button type="button" onClick={onExit}>
           Library
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => {
+            const next = Math.max(0.5, Math.round((scoreZoom - 0.25) * 100) / 100);
+            setScoreZoom(next);
+            scoreViewRef.current?.setZoom(next);
+          }}
+        >
+          −
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => {
+            const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
+            setScoreZoom(next);
+            scoreViewRef.current?.setZoom(next);
+          }}
+        >
+          +
         </button>
         <TransportBar
           transport={transport}

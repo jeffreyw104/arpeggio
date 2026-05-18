@@ -38,7 +38,7 @@ function setup() {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const transport = new Transport(score);
-  const view = new ScoreView(container, transport, svg, timemap);
+  const view = new ScoreView(container, transport, [svg], timemap);
   return { container, transport, view };
 }
 
@@ -94,5 +94,30 @@ describe("ScoreView", () => {
     const { container, view } = setup();
     view.destroy();
     expect(container.querySelectorAll("[data-measure-index]")).toHaveLength(0);
+  });
+
+  it("stacks multiple pages and tags measures across all of them", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const transport = new Transport(score);
+    const pageA = `<svg xmlns="http://www.w3.org/2000/svg">
+      <g class="measure" id="a0"></g>
+      <g class="measure" id="a1"></g>
+    </svg>`;
+    const pageB = `<svg xmlns="http://www.w3.org/2000/svg">
+      <g class="measure" id="b0"></g>
+    </svg>`;
+    new ScoreView(container, transport, [pageA, pageB], timemap);
+    expect(container.querySelectorAll(".score-page")).toHaveLength(2);
+    const measures = container.querySelectorAll("[data-measure-index]");
+    expect(measures).toHaveLength(3);
+    expect(measures[2].getAttribute("data-measure-index")).toBe("2");
+  });
+
+  it("setZoom() applies CSS zoom to the pages wrapper", () => {
+    const { container, view } = setup();
+    view.setZoom(1.5);
+    const pages = container.querySelector(".score-pages") as HTMLElement;
+    expect(pages.style.zoom).toBe("1.5");
   });
 });

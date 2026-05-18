@@ -102,9 +102,24 @@ body {
 .score-container {
   width: 100%;
   height: 100%;
+  overflow-x: auto;
   overflow-y: auto;
   background: #f4f4f2;
   padding: 1rem;
+}
+
+/* The zoom wrapper; `zoom` is set in JS (ScoreView.setZoom). */
+.score-pages {
+  width: max-content;
+}
+
+/* Each engraved page: white background with a subtle border, separated from
+   the next page so multi-page scores read clearly. */
+.score-page {
+  background: #fff;
+  border: 1px solid #d8d8d4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin-bottom: 1rem;
 }
 
 /* --- Import view --- */

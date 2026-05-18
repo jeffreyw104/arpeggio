@@ -13,6 +13,7 @@ export class ScoreView {
   private readonly container: HTMLElement;
   private readonly transport: Transport;
   private readonly timemap: TimemapEntry[];
+  private readonly pagesEl: HTMLElement;
   private dragStart: number | null = null;
   private readonly onMouseDown: (e: MouseEvent) => void;
   private readonly onMouseUp: (e: MouseEvent) => void;
@@ -20,14 +21,26 @@ export class ScoreView {
   constructor(
     container: HTMLElement,
     transport: Transport,
-    svg: string,
+    svgPages: string[],
     timemap: TimemapEntry[],
   ) {
     this.container = container;
     this.transport = transport;
     this.timemap = timemap;
 
-    container.innerHTML = svg;
+    container.innerHTML = "";
+    const pagesEl = document.createElement("div");
+    pagesEl.className = "score-pages";
+    for (const svg of svgPages) {
+      const page = document.createElement("div");
+      page.className = "score-page";
+      page.innerHTML = svg;
+      pagesEl.appendChild(page);
+    }
+    container.appendChild(pagesEl);
+    this.pagesEl = pagesEl;
+
+    // Tag measures in document order across all pages.
     const measures = container.querySelectorAll("g.measure");
     measures.forEach((el, i) => {
       el.setAttribute("data-measure-index", String(i));
@@ -78,6 +91,14 @@ export class ScoreView {
       const note = this.container.querySelector("#" + CSS.escape(id));
       if (note) note.classList.add("current-note");
     }
+  }
+
+  /**
+   * Zoom the engraved notation. CSS `zoom` (not `transform: scale`) is used so
+   * the scaled pages still expand the scroll area. Targets Chromium browsers.
+   */
+  setZoom(zoom: number): void {
+    this.pagesEl.style.zoom = String(zoom);
   }
 
   /** Remove all listeners and injected content. */

@@ -14,15 +14,16 @@ export interface TimemapEntry {
 
 /** A loaded Verovio toolkit, narrowed to the methods this app uses. */
 export interface VerovioToolkit {
+  setOptions(options: object): void;
   loadData(data: string): boolean;
   renderToSVG(page: number): string;
   renderToTimemap(options?: object): TimemapEntry[];
   getPageCount(): number;
 }
 
-/** A rendered score: the engraved SVG plus the note on/off timemap. */
+/** A rendered score: one engraved SVG per page plus the note on/off timemap. */
 export interface RenderedScore {
-  svg: string;
+  svgPages: string[];
   timemap: TimemapEntry[];
 }
 
@@ -46,15 +47,29 @@ export async function loadVerovioToolkit(): Promise<VerovioToolkit> {
 }
 
 /**
- * Render a MusicXML string to an engraved SVG plus a note on/off timemap. The
- * SVG is page 1 (Verovio is configured for one tall page so the score scrolls
- * as a strip); the timemap drives live note highlighting.
+ * Render a MusicXML string to one engraved SVG per page plus a note on/off
+ * timemap. Every page is rendered so the score view can stack them into a
+ * single scrollable strip; the timemap drives live note highlighting.
  */
 export async function renderScore(musicXml: string): Promise<RenderedScore> {
   const toolkit = await loadVerovioToolkit();
+  // Sensible engraving options: pages sized to content, automatic line breaks,
+  // and no header/footer so stacked pages have no large whitespace gaps.
+  toolkit.setOptions({
+    adjustPageHeight: true,
+    breaks: "auto",
+    footer: "none",
+    header: "none",
+    scale: 40,
+  });
   toolkit.loadData(musicXml);
+  const pageCount = toolkit.getPageCount();
+  const svgPages: string[] = [];
+  for (let p = 1; p <= Math.max(1, pageCount); p++) {
+    svgPages.push(toolkit.renderToSVG(p));
+  }
   return {
-    svg: toolkit.renderToSVG(1),
+    svgPages,
     timemap: toolkit.renderToTimemap({ includeMeasures: true }),
   };
 }
