@@ -11,9 +11,16 @@ vi.mock("../score-view/verovio", () => ({
   }),
 }));
 vi.mock("../audio/engine", () => ({
-  createAudioEngine: vi
-    .fn()
-    .mockResolvedValue({ update: vi.fn(), metronome: { enabled: false } }),
+  createAudioEngine: vi.fn().mockResolvedValue({
+    update: vi.fn(),
+    metronome: {
+      enabled: false,
+      subdivision: 1,
+      pulse: 0,
+      timeSignature: { numerator: 4, denominator: 4 },
+      setTimeSignature: () => {},
+    },
+  }),
   startAudioContext: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -45,8 +52,8 @@ describe("PracticeView", () => {
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
-  it("renders the practice control panel once the renderer mounts", () => {
+  it("renders the practice control panel once the renderer mounts", async () => {
     render(<PracticeView score={score} pieceId="test-piece" onExit={() => {}} />);
-    expect(screen.getByLabelText(/tempo \(bpm\)/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/tempo \(bpm\)/i)).toBeInTheDocument();
   });
 });

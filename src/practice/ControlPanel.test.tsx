@@ -107,6 +107,17 @@ describe("ControlPanel", () => {
     expect(fakeEngine.metronome.subdivision).toBe(4);
   });
 
+  it("sets the time signature on the falldown renderer", () => {
+    const { falldown } = setup();
+    fireEvent.change(screen.getByLabelText(/time signature/i), {
+      target: { value: "6" },
+    });
+    fireEvent.change(screen.getByLabelText(/beat unit/i), {
+      target: { value: "4" },
+    });
+    expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 4 });
+  });
+
   it("flattens tempo changes on the transport", () => {
     const { transport } = setup();
     fireEvent.click(screen.getByLabelText(/flatten tempo/i));

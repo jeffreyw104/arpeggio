@@ -34,6 +34,28 @@ describe("capturePracticeState", () => {
     expect(state.rightMuted).toBe(false);
     expect(state.rightHidden).toBe(true);
   });
+
+  it("includes beat settings when given the beat argument", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    const state = capturePracticeState(t, hands, {
+      numerator: 6,
+      denominator: 4,
+      subdivision: 2,
+    });
+    expect(state.numerator).toBe(6);
+    expect(state.denominator).toBe(4);
+    expect(state.subdivision).toBe(2);
+  });
+
+  it("leaves beat settings undefined when the beat argument is omitted", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    const state = capturePracticeState(t, hands);
+    expect(state.numerator).toBeUndefined();
+    expect(state.denominator).toBeUndefined();
+    expect(state.subdivision).toBeUndefined();
+  });
 });
 
 describe("applyPracticeState", () => {

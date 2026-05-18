@@ -19,6 +19,10 @@ export interface StoredPracticeState {
   rightMuted: boolean;
   leftHidden: boolean;
   rightHidden: boolean;
+  /** Beat-grid / metronome settings (optional for records saved before this). */
+  numerator?: number;
+  denominator?: number;
+  subdivision?: number;
 }
 
 const DB_NAME = "arpeggio";

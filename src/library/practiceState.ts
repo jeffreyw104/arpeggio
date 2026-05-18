@@ -2,10 +2,11 @@ import type { Transport } from "../transport/transport";
 import type { HandState } from "../practice/hands";
 import type { StoredPracticeState } from "./db";
 
-/** Read the current tempo, loop, and hand settings into a plain object. */
+/** Read the current tempo, loop, hand, and beat settings into a plain object. */
 export function capturePracticeState(
   transport: Transport,
   hands: HandState,
+  beat?: { numerator: number; denominator: number; subdivision: number },
 ): StoredPracticeState {
   const loop = transport.clock.loop;
   return {
@@ -15,6 +16,11 @@ export function capturePracticeState(
     rightMuted: hands.isMuted("right"),
     leftHidden: hands.isHidden("left"),
     rightHidden: hands.isHidden("right"),
+    ...(beat && {
+      numerator: beat.numerator,
+      denominator: beat.denominator,
+      subdivision: beat.subdivision,
+    }),
   };
 }
 

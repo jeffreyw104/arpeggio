@@ -15,7 +15,11 @@ import type { ViewMode } from "../layout/viewMode";
 import { TransportBar } from "../ui/TransportBar";
 import { HandState } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
-import { getPracticeState, savePracticeState } from "../library/db";
+import {
+  getPracticeState,
+  savePracticeState,
+  type StoredPracticeState,
+} from "../library/db";
 import {
   capturePracticeState,
   applyPracticeState,
@@ -45,6 +49,8 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   const engineRef = useRef<AudioEngine | null>(null);
   const scoreViewRef = useRef<ScoreView | null>(null);
   const audioStartedRef = useRef(false);
+  const falldownRef = useRef<FalldownRenderer | null>(null);
+  const loadedStateRef = useRef<StoredPracticeState | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.65);
@@ -55,6 +61,10 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
   // exposing them as state lets the ControlPanel render against them in JSX.
   const [falldown, setFalldown] = useState<FalldownRenderer | null>(null);
   const [audioEngine, setAudioEngine] = useState<AudioEngine | null>(null);
+
+  // The practice-state restore is async; gate the ControlPanel on this so its
+  // inputs initialize from the restored values rather than stale defaults.
+  const [practiceReady, setPracticeReady] = useState(false);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -75,6 +85,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         });
         falldownInstance.handState = handState;
         loop.onFrame(() => falldownInstance.renderFrame());
+        falldownRef.current = falldownInstance;
         setFalldown(falldownInstance);
       }
     }
@@ -88,6 +99,16 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
         engine.handState = handState;
         engineRef.current = engine;
         loop.onFrame(() => engine.update());
+        const loaded = loadedStateRef.current;
+        if (loaded && loaded.numerator && loaded.denominator) {
+          engine.metronome.setTimeSignature(
+            loaded.numerator,
+            loaded.denominator,
+          );
+        }
+        if (loaded && loaded.subdivision) {
+          engine.metronome.subdivision = loaded.subdivision;
+        }
         setAudioEngine(engine);
       } catch {
         // Audio is non-essential for the visual practice view; ignore failures.
@@ -96,8 +117,21 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
 
     void (async () => {
       const state = await getPracticeState(pieceId);
-      if (cancelled || !state) return;
-      applyPracticeState(state, transport, handState);
+      if (cancelled) return;
+      if (state) {
+        loadedStateRef.current = state;
+        applyPracticeState(state, transport, handState);
+        if (state.numerator && state.denominator) {
+          const renderer = falldownRef.current;
+          if (renderer) {
+            renderer.beatMeter = {
+              numerator: state.numerator,
+              denominator: state.denominator,
+            };
+          }
+        }
+      }
+      setPracticeReady(true);
     })();
 
     void (async () => {
@@ -128,9 +162,17 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
       cancelled = true;
       loop.stop();
       scoreViewRef.current?.destroy();
+      const renderer = falldownRef.current;
+      const beat = renderer
+        ? {
+            numerator: renderer.beatMeter.numerator,
+            denominator: renderer.beatMeter.denominator,
+            subdivision: engineRef.current?.metronome.subdivision ?? 1,
+          }
+        : undefined;
       void savePracticeState(
         pieceId,
-        capturePracticeState(transport, handState),
+        capturePracticeState(transport, handState, beat),
       );
     };
   }, [transport, handState, pieceId]);
@@ -202,7 +244,7 @@ export function PracticeView({ score, pieceId, onExit }: PracticeViewProps) {
           onViewModeChange={setViewMode}
         />
       </div>
-      {falldown && (
+      {falldown && practiceReady && (
         <ControlPanel
           transport={transport}
           handState={handState}
