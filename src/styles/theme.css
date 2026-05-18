@@ -118,20 +118,11 @@ textarea {
   pointer-events: none;
 }
 
-.top-bar-extended-toggle {
-  font-size: 0.8rem;
-}
-
 .top-bar-spacer {
   flex: 1;
 }
 
 .top-bar-views {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.top-bar-modes {
   display: flex;
   gap: 0.25rem;
 }
@@ -225,46 +216,6 @@ textarea {
   box-shadow: var(--glass-shadow);
 }
 
-/* Each control group is its own bordered box. */
-.ext-box {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-}
-
-.ext-box-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-}
-
-.ext-box button {
-  font-family: inherit;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  padding: 0.2rem 0.5rem;
-  cursor: pointer;
-}
-
-.ext-box button:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.ext-box label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.82rem;
-  color: var(--text);
-  white-space: nowrap;
-}
-
 .ext-loop-readout {
   font-size: 0.82rem;
   color: var(--text);
@@ -280,14 +231,6 @@ textarea {
   border-radius: 4px;
   padding: 0.15rem 0.3rem;
   font-family: inherit;
-}
-
-.ext-box select {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.1rem 0.2rem;
 }
 
 .floating-hud label {
@@ -331,17 +274,6 @@ textarea {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
-}
-
-/* The metronome control: an on/off toggle plus its inline settings, boxed
-   together as one unit. */
-.hud-metronome {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
 }
 
 /* The metronome settings, laid out inline beside the toggle. */
@@ -763,10 +695,6 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-}
-
-.hud-collapse {
-  margin-left: auto;
 }
 
 /* One accordion section: a chip plus a width-animated body. */

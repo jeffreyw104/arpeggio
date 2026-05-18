@@ -151,4 +151,26 @@ describe("ExtendedTopBar accordion", () => {
     fireEvent.click(screen.getByRole("button", { name: /increase tempo/i }));
     expect(transport.bpm).toBe(125);
   });
+
+  it("auto-collapses the oldest-opened section when the bar overflows", () => {
+    renderBar();
+    // Force the accordion bar to always report an overflow so the
+    // auto-collapse layout effect fires (JSDOM reports 0 for both otherwise).
+    const bar = document.querySelector(".extended-top-bar") as HTMLElement;
+    Object.defineProperty(bar, "clientWidth", {
+      value: 100,
+      configurable: true,
+    });
+    Object.defineProperty(bar, "scrollWidth", {
+      value: 1000,
+      configurable: true,
+    });
+    const loop = screen.getByRole("button", { name: /^Loop$/ });
+    const tempo = screen.getByRole("button", { name: /^Tempo$/ });
+    fireEvent.click(loop); // opens Loop (only one open — no collapse)
+    expect(loop).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(tempo); // opening Tempo overflows -> oldest (Loop) collapses
+    expect(tempo).toHaveAttribute("aria-expanded", "true");
+    expect(loop).toHaveAttribute("aria-expanded", "false");
+  });
 });
