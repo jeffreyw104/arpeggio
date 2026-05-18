@@ -13,6 +13,9 @@ interface FloatingHudProps {
   onToggleSettings: () => void;
 }
 
+/** Milliseconds of pointer inactivity before the HUD fades. */
+const IDLE_MS = 2500;
+
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
 function formatTime(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
@@ -34,6 +37,38 @@ interface Position {
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
+}
+
+/**
+ * Returns whether the HUD should be faded: true after `IDLE_MS` with no
+ * pointer movement, reset to false on any movement. Never fades while
+ * `disabled` is true (e.g. the settings drawer is open).
+ */
+function useIdleFade(disabled: boolean): boolean {
+  const [faded, setFaded] = useState(false);
+
+  useEffect(() => {
+    // When disabled, ensure faded is cleared and skip the idle timer entirely.
+    // We call setFaded inside a no-op timeout so it is not synchronous in the
+    // effect body (satisfies react-hooks/set-state-in-effect).
+    if (disabled) {
+      const id = window.setTimeout(() => setFaded(false), 0);
+      return () => window.clearTimeout(id);
+    }
+    let timer = window.setTimeout(() => setFaded(true), IDLE_MS);
+    function onMove(): void {
+      setFaded(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setFaded(true), IDLE_MS);
+    }
+    window.addEventListener("pointermove", onMove);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointermove", onMove);
+    };
+  }, [disabled]);
+
+  return faded;
 }
 
 /**
@@ -117,6 +152,7 @@ export function FloatingHud({
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
 
   const { ref, pos, onPointerDown } = useDraggable();
+  const faded = useIdleFade(settingsOpen);
 
   const { clock } = transport;
   const { playing, position, duration } = clock;
@@ -124,7 +160,7 @@ export function FloatingHud({
   return (
     <div
       ref={ref}
-      className="floating-hud"
+      className={`floating-hud${faded ? " faded" : ""}`}
       style={pos ? { left: pos.x, top: pos.y } : undefined}
       onPointerDown={onPointerDown}
     >

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { FloatingHud } from "./FloatingHud";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
@@ -94,5 +94,32 @@ describe("FloatingHud", () => {
     fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
     fireEvent.pointerUp(window);
     expect(hud.style.left).toBe(before);
+  });
+
+  it("fades after the idle timeout and restores on pointer movement", () => {
+    vi.useFakeTimers();
+    try {
+      renderHud();
+      const hud = document.querySelector(".floating-hud") as HTMLElement;
+      expect(hud.className).not.toContain("faded");
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(hud.className).toContain("faded");
+      fireEvent.pointerMove(window, { clientX: 5, clientY: 5 });
+      expect(hud.className).not.toContain("faded");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never fades while the settings drawer is open", () => {
+    vi.useFakeTimers();
+    try {
+      renderHud({ settingsOpen: true });
+      const hud = document.querySelector(".floating-hud") as HTMLElement;
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(hud.className).not.toContain("faded");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
