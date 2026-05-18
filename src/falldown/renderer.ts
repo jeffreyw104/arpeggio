@@ -27,6 +27,9 @@ const LABEL = "#15151a";
 const BEAT_PULSE_DECAY = 0.22;
 /** Colour of the beat-pulse effects (matches the metronome pulse dot). */
 const PULSE_COLOR = "#44aa88";
+/** Key-lighting colours for live MIDI input. */
+const INPUT_CORRECT = "#44aa88";
+const INPUT_WRONG = "#d9534f";
 
 export interface FalldownRendererOptions {
   width: number;
@@ -61,6 +64,8 @@ export class FalldownRenderer {
   handState: HandFilter = NO_HAND_FILTER;
   /** The time signature driving the beat grid; settable by the ControlPanel. */
   beatMeter: { numerator: number; denominator: number };
+  /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
+  inputHighlights = new Map<number, "correct" | "wrong">();
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -119,10 +124,15 @@ export class FalldownRenderer {
     if (this.showBeatGrid) this.drawBeatGrid(t);
     this.drawNotes(layout, t, allNotes);
 
+    const keyColors = activeKeyColors(lit, t, RIGHT, LEFT);
+    for (const [midi, kind] of this.inputHighlights) {
+      keyColors.set(midi, kind === "correct" ? INPUT_CORRECT : INPUT_WRONG);
+    }
+
     drawPiano(ctx, layout, {
       y: this.hitLineY,
       height: this.pianoHeight,
-      activeKeyColors: activeKeyColors(lit, t, RIGHT, LEFT),
+      activeKeyColors: keyColors,
       whiteColor: WHITE,
       blackColor: BLACK,
     });

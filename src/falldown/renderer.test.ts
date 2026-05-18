@@ -179,6 +179,18 @@ describe("FalldownRenderer resize", () => {
   });
 });
 
+describe("FalldownRenderer inputHighlights", () => {
+  it("exposes a public mutable inputHighlights map and applies it without throwing", () => {
+    const { renderer } = makeRenderer();
+    // Field must be publicly assignable
+    renderer.inputHighlights = new Map([[60, "correct"], [61, "wrong"]]);
+    expect(renderer.inputHighlights.get(60)).toBe("correct");
+    expect(renderer.inputHighlights.get(61)).toBe("wrong");
+    // renderFrame must not throw with highlights set
+    expect(() => renderer.renderFrame()).not.toThrow();
+  });
+});
+
 describe("FalldownRenderer hand hide", () => {
   it("draws dimmed notes at reduced alpha", () => {
     // score note: midi 64, start 1.0, duration 0.5, velocity 0.7, hand left
