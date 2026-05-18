@@ -143,8 +143,45 @@ export class ScoreView {
   }
 
   /**
-   * Move and size `rect` to cover the FULL measure rectangle (barline to
-   * barline, full staff height) — MuseScore-style.
+   * Compute the clean measure rectangle: the union of the STAFF-LINE bounding
+   * boxes only — not the whole `g.measure` bbox.
+   *
+   * Verovio draws each staff's 5 horizontal lines as the direct `<path>`
+   * children of `g.staff`. Their union spans exactly barline-to-barline in x
+   * and from the topmost to the bottommost staff line in y (covering the gap
+   * between the two staves of a grand staff). Crucially it EXCLUDES notes,
+   * stems, beams and ledger lines, so the box is identical for every measure
+   * of the same width and never overflows into a neighbour.
+   *
+   * Falls back to the full `g.measure` bbox if no staff lines are found.
+   */
+  private measureBox(measureEl: Element): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const lines = measureEl.querySelectorAll("g.staff > path");
+    if (lines.length === 0) {
+      return (measureEl as SVGGraphicsElement).getBBox();
+    }
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    lines.forEach((line) => {
+      const b = (line as SVGGraphicsElement).getBBox();
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width);
+      maxY = Math.max(maxY, b.y + b.height);
+    });
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  /**
+   * Move and size `rect` to cover the clean measure rectangle (barline to
+   * barline, topmost to bottommost staff line) — MuseScore-style.
    *
    * The rect is inserted as the FIRST child of the measure `<g>` itself, so it
    * sits behind the notation and shares the measure's exact coordinate space.
@@ -152,14 +189,14 @@ export class ScoreView {
    * groups, so `getBBox()`'s local coords are only correct for a sibling of
    * the notation — appending to the root `<svg>`, as before, mis-placed it.)
    *
-   * `g.measure.getBBox()` spans the staff-line `<path>`s and barlines that
-   * Verovio draws inside every measure, so that bbox IS the full measure
-   * rectangle. The rect is removed from the DOM before measuring so it never
-   * inflates the measure's own bbox.
+   * The box comes from `measureBox` (staff lines only), so the highlight has
+   * the same shape in every measure and never spills past the barlines into an
+   * adjacent measure. The rect is removed from its previous parent first, so
+   * it is MOVED between measures, never duplicated.
    */
   private positionRect(rect: SVGRectElement, measureEl: Element): void {
     if (rect.parentNode) rect.parentNode.removeChild(rect);
-    const box = (measureEl as SVGGraphicsElement).getBBox();
+    const box = this.measureBox(measureEl);
     rect.setAttribute("x", String(box.x));
     rect.setAttribute("y", String(box.y));
     rect.setAttribute("width", String(box.width));

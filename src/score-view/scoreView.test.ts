@@ -20,11 +20,17 @@ const score = {
   qualityWarning: null,
 } satisfies Score;
 
-// A stand-in for Verovio output: three measures, each with one identified note.
+// A stand-in for Verovio output: three measures, each with a staff (whose
+// `<path>` children stand in for the engraved staff lines) and one note. The
+// staff-line `<path>` exercises ScoreView.measureBox's staff-line path rather
+// than its full-measure-bbox fallback.
+const measureSvg = (i: number) => `
+  <g class="measure" id="m${i}">
+    <g class="staff"><path/></g>
+    <g class="note" id="n${i}"><rect/></g>
+  </g>`;
 const svg = `<svg xmlns="http://www.w3.org/2000/svg">
-  <g class="measure" id="m0"><g class="note" id="n0"><rect/></g></g>
-  <g class="measure" id="m1"><g class="note" id="n1"><rect/></g></g>
-  <g class="measure" id="m2"><g class="note" id="n2"><rect/></g></g>
+  ${measureSvg(0)}${measureSvg(1)}${measureSvg(2)}
 </svg>`;
 
 // n0 sounds in measure 0 (0-2 s), n1 in measure 1, n2 in measure 2.
@@ -79,6 +85,18 @@ describe("ScoreView", () => {
     );
   });
 
+  it("keeps exactly one highlight rect even after many frames", () => {
+    const { container, transport, view } = setup();
+    for (const t of [0.5, 2.5, 4.5, 2.5, 0.5]) {
+      transport.clock.seek(t);
+      view.renderFrame();
+    }
+    // The rect is moved between measures, never duplicated.
+    expect(container.querySelectorAll("rect.measure-highlight")).toHaveLength(
+      1,
+    );
+  });
+
   it("re-renders without error while the clock is not playing", () => {
     const { container, transport, view } = setup();
     transport.clock.seek(2.5);
@@ -109,6 +127,17 @@ describe("ScoreView", () => {
     const rects = container.querySelectorAll("rect.measure-hover");
     expect(rects).toHaveLength(1); // one rect, moved — not duplicated
     expect(rects[0].parentElement).toBe(m2);
+  });
+
+  it("keeps exactly one hover rect across repeated cursor moves", () => {
+    const { container } = setup();
+    const m0 = container.querySelector('[data-measure-index="0"]')!;
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    const m2 = container.querySelector('[data-measure-index="2"]')!;
+    for (const m of [m0, m1, m2, m1, m0]) {
+      m.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    }
+    expect(container.querySelectorAll("rect.measure-hover")).toHaveLength(1);
   });
 
   it("clears the hover rect on mouseleave", () => {
