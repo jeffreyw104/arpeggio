@@ -3,6 +3,7 @@ import { capturePracticeState, applyPracticeState } from "./practiceState";
 import { Transport } from "../transport/transport";
 import { HandState } from "../practice/hands";
 import type { Score } from "../model/score";
+import { PRACTICE_MODES } from "../layout/practiceMode";
 
 const score = {
   source: "midi",
@@ -110,5 +111,27 @@ describe("applyPracticeState", () => {
     );
     expect(hands.visibility("left")).toBe("hide");
     expect(hands.visibility("right")).toBe("show");
+  });
+});
+
+describe("practice-mode persistence", () => {
+  it("round-trips mode and hudCollapsed", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    const captured = capturePracticeState(t, hands, undefined, {
+      mode: "practice",
+      hudCollapsed: true,
+    });
+    expect(captured.mode).toBe("practice");
+    expect(captured.hudCollapsed).toBe(true);
+    expect(PRACTICE_MODES).toContain(captured.mode);
+  });
+
+  it("omits mode and hudCollapsed when not given", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    const captured = capturePracticeState(t, hands);
+    expect(captured.mode).toBeUndefined();
+    expect(captured.hudCollapsed).toBeUndefined();
   });
 });

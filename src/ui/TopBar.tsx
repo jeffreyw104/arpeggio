@@ -1,4 +1,6 @@
 import type { ViewMode } from "../layout/viewMode";
+import { ModeSwitch } from "./ModeSwitch";
+import type { PracticeMode } from "../layout/practiceMode";
 
 interface TopBarProps {
   pieceName: string;
@@ -7,6 +9,8 @@ interface TopBarProps {
   onOpenLibrary: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
+  mode: PracticeMode;
+  onModeChange: (m: PracticeMode) => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -21,9 +25,9 @@ function displayName(fileName: string): string {
 }
 
 /**
- * The fixed top bar: navigation and feature controls (Library, the now-playing
- * piece name, the view-mode switch, the settings gear). Purely presentational —
- * all state lives in PracticeView.
+ * The fixed top bar. Left: the arpeggio wordmark, the Library button, and the
+ * Play/Practice toggle. Center: the now-playing piece name. Right: the
+ * view-mode switch and the settings gear. Purely presentational.
  */
 export function TopBar({
   pieceName,
@@ -32,21 +36,25 @@ export function TopBar({
   onOpenLibrary,
   settingsOpen,
   onToggleSettings,
+  mode,
+  onModeChange,
 }: TopBarProps): React.JSX.Element {
   return (
     <div className="top-bar">
+      <span className="top-bar-logo">arpeggio</span>
       <button type="button" onClick={onOpenLibrary}>
         Library
       </button>
+      <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <span className="top-bar-piece">{displayName(pieceName)}</span>
       <span className="top-bar-spacer" />
       <div className="top-bar-views">
-        {VIEW_MODE_OPTIONS.map(({ mode, label }) => (
+        {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
           <button
-            key={mode}
+            key={viewModeOption}
             type="button"
-            aria-pressed={viewMode === mode}
-            onClick={() => onViewModeChange(mode)}
+            aria-pressed={viewMode === viewModeOption}
+            onClick={() => onViewModeChange(viewModeOption)}
           >
             {label}
           </button>

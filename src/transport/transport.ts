@@ -50,6 +50,11 @@ export class Transport {
     return this._tempoMode;
   }
 
+  /** Whether gradual speed-up is currently running. */
+  get speedUpActive(): boolean {
+    return this._speedUp !== null;
+  }
+
   /** Set the absolute playback tempo; translates to a clock rate. */
   setBpm(bpm: number): void {
     this._bpm = bpm;
@@ -85,12 +90,14 @@ export class Transport {
 
   /**
    * Switch preserve/flatten; rebuilds the score from the original import.
-   * The clock position is converted through musical beats — invariant across
-   * tempo modes — so playback stays at the same musical point.
+   * The clock position AND any active loop are converted through musical
+   * beats — invariant across tempo modes — so playback and the loop region
+   * stay at the same musical point.
    */
   setTempoMode(mode: TempoMode): void {
     const oldScore = this._score;
     const oldPosition = this.clock.position;
+    const oldLoop = this.clock.loop;
     const beats = secondsToBeats(oldScore.tempoMap, oldPosition);
 
     this._tempoMode = mode;
@@ -99,5 +106,14 @@ export class Transport {
     const newPosition = beatsToSeconds(this._score.tempoMap, beats);
     this.clock.setDuration(this._score.durationSeconds);
     this.clock.seek(Math.min(newPosition, this._score.durationSeconds));
+
+    if (oldLoop) {
+      const startBeats = secondsToBeats(oldScore.tempoMap, oldLoop.start);
+      const endBeats = secondsToBeats(oldScore.tempoMap, oldLoop.end);
+      this.clock.setLoop({
+        start: beatsToSeconds(this._score.tempoMap, startBeats),
+        end: beatsToSeconds(this._score.tempoMap, endBeats),
+      });
+    }
   }
 }

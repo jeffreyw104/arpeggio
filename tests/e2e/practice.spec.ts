@@ -7,7 +7,7 @@ test("import a MIDI file and see the practice view", async ({ page }) => {
     'input[type="file"]',
     "src/test/fixtures/clean.mid",
   );
-  await expect(page.getByRole("button", { name: /play/i })).toBeVisible({
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.locator("canvas")).toBeVisible();
@@ -24,11 +24,9 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
 
   await page.goto("/");
   await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
-  const playBtn = page.getByRole("button", { name: /play/i });
-  await playBtn.waitFor({ state: "visible", timeout: 15_000 });
-
   const canvas = page.locator("canvas.falldown-canvas");
-  await canvas.waitFor({ state: "visible" });
+  await canvas.waitFor({ state: "visible", timeout: 15_000 });
+  const playBtn = page.getByRole("button", { name: "Play" });
 
   const snapshot = () =>
     canvas.evaluate((c: HTMLCanvasElement) => {
@@ -49,10 +47,55 @@ test("pressing Play animates the falldown canvas", async ({ page }) => {
   );
 });
 
+test("the Play/Practice toggle reveals the accordion control bar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Play mode: the speed stepper is present.
+  await expect(
+    page.getByRole("button", { name: /increase speed/i }),
+  ).toBeVisible();
+
+  // Flip the toggle to Practice — the accordion section chips appear.
+  await page.getByRole("switch", { name: /play.*practice/i }).click();
+  await expect(page.getByRole("button", { name: "Loop", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Metronome", exact: true })).toBeVisible();
+
+  // Open the Loop section — its chip's aria-expanded flips to true.
+  await page.getByRole("button", { name: "Loop", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Loop", exact: true })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+
+  // Flip back to Play — the speed stepper is shown again.
+  await page.getByRole("switch", { name: /play.*practice/i }).click();
+  await expect(
+    page.getByRole("button", { name: /increase speed/i }),
+  ).toBeVisible();
+});
+
+test("arrow keys jump the playhead by measure", async ({ page }) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+  const time = page.locator(".floating-hud > span").first();
+  const before = await time.textContent();
+  await page.locator("body").press("ArrowRight");
+  await expect(time).not.toHaveText(before ?? "");
+});
+
 test("switching view modes keeps the panels rendering", async ({ page }) => {
   await page.goto("/");
   await page.setInputFiles("input[type=\"file\"]", "src/test/fixtures/clean.mid");
-  await expect(page.getByRole("button", { name: /play/i })).toBeVisible({
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });
 

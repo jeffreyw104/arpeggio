@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ControlPanel } from "./ControlPanel";
-import { Transport } from "../transport/transport";
-import { HandState } from "./hands";
 import { FalldownRenderer } from "../falldown/renderer";
+import { Transport } from "../transport/transport";
+import type { AudioEngine } from "../audio/engine";
 import type { Score } from "../model/score";
 
 const score = {
@@ -29,69 +29,71 @@ function fakeCtx() {
   } as unknown as CanvasRenderingContext2D;
 }
 
-function setup() {
+function renderPanel() {
   const transport = new Transport(score);
-  const handState = new HandState();
   const falldown = new FalldownRenderer(fakeCtx(), transport, {
     width: 800,
     height: 600,
   });
+  const audioEngine = { metronomeSound: "click" } as unknown as AudioEngine;
   render(
     <ControlPanel
-      transport={transport}
-      handState={handState}
       falldown={falldown}
+      audioEngine={audioEngine}
     />,
   );
-  return { transport, handState, falldown };
+  return { falldown, audioEngine };
 }
 
 describe("ControlPanel", () => {
-  it("mutes a hand via the hand controls", () => {
-    const { handState } = setup();
-    fireEvent.click(screen.getByLabelText(/mute left/i));
-    expect(handState.isMuted("left")).toBe(true);
-  });
-
-  it("sets a hand to dim via the visibility control", () => {
-    const { handState } = setup();
-    fireEvent.change(screen.getByLabelText(/left hand/i), {
-      target: { value: "dim" },
-    });
-    expect(handState.visibility("left")).toBe("dim");
-  });
-
   it("toggles note labels on the falldown renderer", () => {
-    const { falldown } = setup();
+    const { falldown } = renderPanel();
     fireEvent.click(screen.getByLabelText(/note labels/i));
     expect(falldown.showLabels).toBe(true);
   });
 
   it("toggles the full-88 key range", () => {
-    const { falldown } = setup();
+    const { falldown } = renderPanel();
     fireEvent.click(screen.getByLabelText(/full 88/i));
     expect(falldown.full88).toBe(true);
   });
 
-  it("loops the current measure and clears the loop", () => {
-    const { transport } = setup();
-    transport.clock.seek(0.5); // inside measure 0
-    fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
-    expect(transport.clock.loop).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /clear loop/i }));
-    expect(transport.clock.loop).toBeNull();
+  it("no longer renders the flatten-tempo control", () => {
+    renderPanel();
+    expect(
+      screen.queryByRole("checkbox", { name: /flatten tempo/i }),
+    ).toBeNull();
   });
 
-  it("enables gradual speed-up", () => {
-    const { transport } = setup();
-    fireEvent.click(screen.getByLabelText(/gradual speed-up/i));
-    // with speed-up enabled the clock rate starts below 1
-    expect(transport.clock.rate).toBeLessThan(1);
+  it("changes the metronome sound on the audio engine", () => {
+    const { audioEngine } = renderPanel();
+    fireEvent.change(screen.getByLabelText(/metronome sound/i), {
+      target: { value: "woodblock" },
+    });
+    expect(audioEngine.metronomeSound).toBe("woodblock");
   });
 
-  it("flattens tempo changes on the transport", () => {
-    const { transport } = setup();
-    fireEvent.click(screen.getByLabelText(/flatten tempo/i));
-    expect(transport.tempoMode).toBe("flatten");
+  it("no longer renders loop, speed-up, or hand controls", () => {
+    renderPanel();
+    expect(
+      screen.queryByRole("button", { name: /loop measure/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("checkbox", { name: /gradual speed-up/i }),
+    ).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: /mute left/i })).toBeNull();
+  });
+
+  it("still renders the display preferences", () => {
+    renderPanel();
+    expect(
+      screen.getByRole("checkbox", { name: /note labels/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /beat grid/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /full 88/i }),
+    ).toBeInTheDocument();
   });
 });

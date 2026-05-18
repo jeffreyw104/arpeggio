@@ -1,26 +1,26 @@
 import { useState } from "react";
-import type { Transport } from "../transport/transport";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
 
-interface MetronomeMenuProps {
-  transport: Transport;
+interface MetronomeSettingsProps {
   falldown: FalldownRenderer | null;
   audioEngine: AudioEngine | null;
+  countInBars: number;
+  onCountInBarsChange: (bars: number) => void;
 }
 
 /**
- * The metronome settings dropdown: tempo, time signature, downbeat accent, and
- * beat subdivision. Rendered only while the dropdown is open, so its inputs
- * initialise from the live transport / renderer / audio-engine state each time
- * it opens.
+ * The metronome settings, laid out inline in the Practice-mode HUD: time
+ * signature, downbeat accent, beat subdivision, and count-in. Mounted with
+ * the Practice HUD, so its inputs initialise from the live renderer /
+ * audio-engine state when that HUD mounts.
  */
-export function MetronomeMenu({
-  transport,
+export function MetronomeSettings({
   falldown,
   audioEngine,
-}: MetronomeMenuProps): React.JSX.Element {
-  const [bpm, setBpm] = useState(() => Math.round(transport.bpm));
+  countInBars,
+  onCountInBarsChange,
+}: MetronomeSettingsProps): React.JSX.Element {
   const [timeSignature, setTimeSignature] = useState(() =>
     falldown
       ? `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`
@@ -32,12 +32,6 @@ export function MetronomeMenu({
   const [subdivision, setSubdivision] = useState(
     () => audioEngine?.metronome.subdivision ?? 1,
   );
-
-  function handleBpm(value: string): void {
-    const next = Number(value);
-    setBpm(next);
-    transport.setBpm(next);
-  }
 
   function handleTimeSignature(value: string): void {
     // Keep the raw string so typing is never blocked mid-edit.
@@ -69,18 +63,7 @@ export function MetronomeMenu({
   }
 
   return (
-    <div
-      className="hud-metronome-menu"
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      <label>
-        Tempo (BPM){" "}
-        <input
-          type="number"
-          value={bpm}
-          onChange={(e) => handleBpm(e.target.value)}
-        />
-      </label>
+    <div className="hud-metronome-settings">
       <label>
         Time signature{" "}
         <input
@@ -108,6 +91,17 @@ export function MetronomeMenu({
           <option value={2}>2</option>
           <option value={3}>3</option>
           <option value={4}>4</option>
+        </select>
+      </label>
+      <label>
+        Count-in{" "}
+        <select
+          value={countInBars}
+          onChange={(e) => onCountInBarsChange(Number(e.target.value))}
+        >
+          <option value={0}>Off</option>
+          <option value={1}>1 bar</option>
+          <option value={2}>2 bars</option>
         </select>
       </label>
     </div>

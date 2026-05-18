@@ -10,6 +10,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     onOpenLibrary: vi.fn(),
     settingsOpen: false,
     onToggleSettings: vi.fn(),
+    mode: "play" as const,
+    onModeChange: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
@@ -46,6 +48,12 @@ describe("TopBar", () => {
     );
   });
 
+  it("renders the Play/Practice toggle", () => {
+    const { props } = renderBar();
+    fireEvent.click(screen.getByRole("switch", { name: /play.*practice/i }));
+    expect(props.onModeChange).toHaveBeenCalled();
+  });
+
   it("toggles settings and reflects the open state", () => {
     const { props } = renderBar({ settingsOpen: true });
     const gear = screen.getByRole("button", { name: "Settings" });
@@ -53,4 +61,10 @@ describe("TopBar", () => {
     fireEvent.click(gear);
     expect(props.onToggleSettings).toHaveBeenCalled();
   });
+
+  it("shows the arpeggio wordmark", () => {
+    renderBar();
+    expect(screen.getByText("arpeggio")).toBeInTheDocument();
+  });
+
 });

@@ -98,13 +98,24 @@ textarea {
   color: var(--bg);
 }
 
+.top-bar-logo {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+/* The piece name is centered in the bar independently of the side groups. */
 .top-bar-piece {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   max-width: 28ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-dim);
   font-size: 0.9rem;
+  pointer-events: none;
 }
 
 .top-bar-spacer {
@@ -114,6 +125,54 @@ textarea {
 .top-bar-views {
   display: flex;
   gap: 0.25rem;
+}
+
+/* Play / Practice slider toggle. */
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.mode-switch-label {
+  transition: color 0.2s ease;
+}
+
+/* The active side's label brightens. */
+.mode-switch[aria-checked="false"] .mode-switch-label:first-of-type,
+.mode-switch[aria-checked="true"] .mode-switch-label:last-of-type {
+  color: var(--text);
+}
+
+.mode-switch-track {
+  position: relative;
+  width: 34px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mode-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: left 0.2s ease;
+}
+
+.mode-switch[aria-checked="true"] .mode-switch-knob {
+  left: 20px;
 }
 
 /* --- Floating transport HUD --- */
@@ -133,8 +192,45 @@ textarea {
   border: 1px solid var(--glass-border);
   border-radius: 18px;
   box-shadow: var(--glass-shadow);
-  cursor: grab;
   transition: opacity 0.4s ease;
+  cursor: grab;
+}
+
+/* The extended control bar, flush below the top bar (Practice mode). */
+.extended-top-bar {
+  position: absolute;
+  top: 68px;
+  left: 10px;
+  right: 10px;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
+}
+
+.ext-loop-readout {
+  font-size: 0.82rem;
+  color: var(--text);
+  min-width: 3ch;
+  text-align: center;
+}
+
+.ext-tempo-input {
+  width: 3.2rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+  font-family: inherit;
 }
 
 .floating-hud label {
@@ -180,20 +276,43 @@ textarea {
   color: var(--bg);
 }
 
-/* The metronome control: an on/off toggle plus a settings dropdown, boxed
-   together as one unit. */
-.hud-metronome {
+/* The metronome settings, laid out inline beside the toggle. */
+.hud-metronome-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hud-metronome-settings input[type="text"] {
+  width: 3rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+}
+
+.hud-metronome-settings select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1rem 0.2rem;
+}
+
+/* The hands control: a label plus a settings dropdown, boxed as one unit. */
+.hud-hands {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.25rem;
+  padding: 0.25rem 0.35rem;
   border: 1px solid var(--glass-border);
   border-radius: 10px;
 }
 
 /* The dropdown caret is a bare glyph, not its own boxed button. */
-.hud-metronome > button {
+.hud-hands > button {
   background: none;
   border: none;
   padding: 0;
@@ -202,12 +321,12 @@ textarea {
   cursor: pointer;
 }
 
-.hud-metronome > button:hover {
+.hud-hands > button:hover {
   color: var(--text);
   border-color: transparent;
 }
 
-.hud-metronome-menu {
+.hud-hands-menu {
   position: absolute;
   /* The HUD sits at the bottom of the viewport, so the menu opens upward. */
   bottom: calc(100% + 8px);
@@ -223,22 +342,49 @@ textarea {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
-.hud-metronome-menu input[type="text"],
-.hud-metronome-menu input[type="number"] {
-  width: 3.5rem;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0.1rem 0.3rem;
-}
-
-.hud-metronome-menu select {
+.hud-hands-menu select {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 0.1rem 0.2rem;
+}
+
+/* --- Practice-mode HUD: row 2 --- */
+
+.practice-hud-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding-top: 0.5rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.hud-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.hud-group-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.hud-loop-readout,
+.hud-tempo-readout {
+  font-size: 0.85rem;
+  color: var(--text);
+  min-width: 2.5ch;
+  text-align: center;
 }
 
 /* --- Score-panel zoom controls --- */
@@ -314,6 +460,12 @@ textarea {
   background: #f4f4f2;
   /* Extra top padding so the engraved music clears the floating top bar. */
   padding: 66px 1rem 1rem;
+}
+
+/* In Practice mode the extended bar reaches ~112px down; push the engraved
+   score below it so the music is never covered. Play mode is unchanged. */
+.practice-view--extended .score-container {
+  padding-top: 120px;
 }
 
 /* The zoom wrapper; `zoom` is set in JS (ScoreView.setZoom). */
@@ -535,4 +687,82 @@ textarea {
   font-size: 0.85rem;
   color: var(--text);
   opacity: 0.7;
+}
+
+.hud-transport-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* One accordion section: a chip plus a width-animated body. */
+.accordion-section {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.accordion-section.open {
+  border-color: rgba(122, 162, 255, 0.5);
+  background: rgba(122, 162, 255, 0.1);
+}
+
+.accordion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.accordion-caret {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+/* The body animates its width via a 0fr/1fr grid column — a smooth slide
+   from zero to content width without needing a measured pixel value. */
+.accordion-body {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.22s ease;
+}
+
+.accordion-section.open .accordion-body {
+  grid-template-columns: 1fr;
+}
+
+.accordion-body-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding-right: 0.4rem;
+}
+
+/* A thin divider between the loop controls and the speed-up sub-group. */
+.ext-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--glass-border);
+  margin: 0 0.2rem;
+}
+
+.ext-sub-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
 }

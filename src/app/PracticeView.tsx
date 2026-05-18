@@ -12,9 +12,11 @@ import { renderScore } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
 import { Layout } from "../layout/Layout";
 import type { ViewMode } from "../layout/viewMode";
+import { ExtendedTopBar } from "../ui/ExtendedTopBar";
 import { FloatingHud } from "../ui/FloatingHud";
 import { TopBar } from "../ui/TopBar";
 import { HandState } from "../practice/hands";
+import type { HandVisibility } from "../practice/hands";
 import { ControlPanel } from "../practice/ControlPanel";
 import {
   getPracticeState,
@@ -25,6 +27,8 @@ import {
   capturePracticeState,
   applyPracticeState,
 } from "../library/practiceState";
+import type { PracticeMode } from "../layout/practiceMode";
+import { measureJumpTarget } from "../transport/measureJump";
 
 interface PracticeViewProps {
   score: Score;
@@ -61,6 +65,27 @@ export function PracticeView({
   const audioStartedRef = useRef(false);
   const falldownRef = useRef<FalldownRenderer | null>(null);
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
+
+  // Practice-only state stowed while in Play mode (suspend & restore).
+  const suspendedRef = useRef<{
+    loop: { start: number; end: number } | null;
+    speedUp: boolean;
+    metronome: boolean;
+    leftMuted: boolean;
+    rightMuted: boolean;
+    leftVis: HandVisibility;
+    rightVis: HandVisibility;
+  } | null>(null);
+  // Each mode keeps its own tempo; snapshotted on switch, re-applied on return.
+  const practiceBpmRef = useRef<number>(transport.bpm);
+  const playBpmRef = useRef<number>(transport.referenceBpm);
+  const modeRef = useRef<PracticeMode>("play");
+  // True once the user has explicitly changed mode (prevents async init from
+  // overwriting a mode the user already set before state was loaded).
+  const userChangedModeRef = useRef(false);
+
+  const [mode, setMode] = useState<PracticeMode>("play");
+  const [countInBars, setCountInBars] = useState(0);
 
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.58);
@@ -151,6 +176,21 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
+      practiceBpmRef.current = transport.bpm;
+      playBpmRef.current = transport.referenceBpm;
+      const restoredMode: PracticeMode = state?.mode ?? "play";
+      if (restoredMode === "play") {
+        // Stow whatever applyPracticeState just applied, so Play is clean
+        // and a later switch to Practice restores it.
+        suspendPractice();
+        transport.setBpm(playBpmRef.current);
+      }
+      // Only apply the persisted mode and collapsed state if the user has not
+      // already changed the mode (prevents async load from overwriting a change
+      // made before the stored state resolved).
+      if (!userChangedModeRef.current) {
+        setMode(restoredMode);
+      }
       setPracticeReady(true);
     })();
 
@@ -190,12 +230,17 @@ export function PracticeView({
             subdivision: engineRef.current?.metronome.subdivision ?? 1,
           }
         : undefined;
+      // If we are in Play mode the practice state is suspended; momentarily
+      // restore it so the captured snapshot has the real loop/hand values.
+      if (modeRef.current === "play") restorePractice();
       void savePracticeState(
         pieceId,
-        capturePracticeState(transport, handState, beat),
+        capturePracticeState(transport, handState, beat, {
+          mode: modeRef.current,
+        }),
       );
     };
-  }, [transport, handState, pieceId]);
+  }, [transport, handState, pieceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
   // divider drag, or window resize). The renderer holds onto a fixed pixel
@@ -230,6 +275,92 @@ export function PracticeView({
     });
   }, [transport]);
 
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  // Arrow keys jump the playhead one measure back/forward, in both modes.
+  // Ignored while a form control is focused (so typing a tempo is not stolen).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent): void {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      e.preventDefault();
+      const target = measureJumpTarget(
+        transport.score.measures,
+        transport.clock.position,
+        e.key === "ArrowRight" ? "next" : "prev",
+      );
+      transport.clock.seek(target);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [transport]);
+
+  // Stow practice-only state and make playback "straight through" for Play.
+  function suspendPractice(): void {
+    const loop = transport.clock.loop;
+    suspendedRef.current = {
+      loop: loop ? { start: loop.start, end: loop.end } : null,
+      speedUp: transport.speedUpActive,
+      metronome: engineRef.current?.metronome.enabled ?? false,
+      leftMuted: handState.isMuted("left"),
+      rightMuted: handState.isMuted("right"),
+      leftVis: handState.visibility("left"),
+      rightVis: handState.visibility("right"),
+    };
+    transport.clearLoop();
+    transport.disableSpeedUp();
+    if (engineRef.current) {
+      engineRef.current.metronome.enabled = false;
+    }
+    if (falldownRef.current) {
+      falldownRef.current.showBeatPulse = false;
+    }
+    handState.setMuted("left", false);
+    handState.setMuted("right", false);
+    handState.setVisibility("left", "show");
+    handState.setVisibility("right", "show");
+  }
+
+  // Restore the practice-only state stowed by suspendPractice().
+  function restorePractice(): void {
+    const s = suspendedRef.current;
+    if (!s) return;
+    transport.clock.setLoop(s.loop ? { ...s.loop } : null);
+    if (s.speedUp) {
+      // Speed-up is a ramping process, not a stored value: restoring it restarts
+      // the ramp from startRate. Mid-ramp progress across a mode switch is lost.
+      transport.enableSpeedUp({ startRate: 0.5, targetRate: 1, step: 0.05 });
+    }
+    if (engineRef.current) {
+      engineRef.current.metronome.enabled = s.metronome;
+    }
+    if (falldownRef.current) {
+      falldownRef.current.showBeatPulse = s.metronome;
+    }
+    handState.setMuted("left", s.leftMuted);
+    handState.setMuted("right", s.rightMuted);
+    handState.setVisibility("left", s.leftVis);
+    handState.setVisibility("right", s.rightVis);
+  }
+
+  function handleModeChange(next: PracticeMode): void {
+    if (next === mode) return;
+    userChangedModeRef.current = true;
+    if (next === "play") {
+      practiceBpmRef.current = transport.bpm;
+      suspendPractice();
+      transport.setBpm(playBpmRef.current);
+    } else {
+      playBpmRef.current = transport.bpm;
+      restorePractice();
+      transport.setBpm(practiceBpmRef.current);
+    }
+    setMode(next);
+  }
+
   function zoomIn(): void {
     const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
     setScoreZoom(next);
@@ -242,8 +373,16 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
+  const extendedBarShown = mode === "practice" && practiceReady;
+
   return (
-    <div className="practice-view">
+    <div
+      className={
+        extendedBarShown
+          ? "practice-view practice-view--extended"
+          : "practice-view"
+      }
+    >
       <Layout
         viewMode={viewMode}
         split={split}
@@ -277,19 +416,28 @@ export function PracticeView({
         onOpenLibrary={onExit}
         settingsOpen={settingsOpen}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
+        mode={mode}
+        onModeChange={handleModeChange}
       />
       <FloatingHud
         transport={transport}
         settingsOpen={settingsOpen}
         audioEngine={audioEngine}
-        falldown={falldown}
+        mode={mode}
+        countInBars={countInBars}
       />
-      {falldown && practiceReady && settingsOpen && (
-        <ControlPanel
+      {extendedBarShown && (
+        <ExtendedTopBar
           transport={transport}
           handState={handState}
+          audioEngine={audioEngine}
           falldown={falldown}
+          countInBars={countInBars}
+          onCountInBarsChange={setCountInBars}
         />
+      )}
+      {falldown && practiceReady && settingsOpen && (
+        <ControlPanel falldown={falldown} audioEngine={audioEngine} />
       )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (

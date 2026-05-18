@@ -4,13 +4,29 @@ import { notesToTrigger } from "./scheduler";
 import { Metronome } from "./metronome";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
+/** A selectable metronome click sound. */
+export type MetronomeSound = "click" | "woodblock" | "beep" | "hitick";
+
+/** All metronome sounds, with display labels, in menu order. */
+export const METRONOME_SOUNDS: ReadonlyArray<{
+  value: MetronomeSound;
+  label: string;
+}> = [
+  { value: "click", label: "Click" },
+  { value: "woodblock", label: "Woodblock" },
+  { value: "beep", label: "Beep" },
+  { value: "hitick", label: "Hi-tick" },
+];
+
 /** Plays piano notes. Real implementation uses a Tone.js sampler. */
 export interface PianoSink {
   playNote(midi: number, durationSeconds: number, velocity: number): void;
 }
 
-/** Plays metronome clicks. Real implementation uses a Tone.js synth. */
+/** Plays metronome clicks. Real implementation uses Tone.js synths. */
 export interface ClickSink {
+  /** The currently selected click sound. */
+  sound: MetronomeSound;
   playClick(accent: boolean): void;
 }
 
@@ -101,6 +117,19 @@ export class AudioEngine {
     this.prevPosition = cur;
     this.wasPlaying = playing;
   }
+
+  /** The selected metronome click sound. */
+  get metronomeSound(): MetronomeSound {
+    return this.click.sound;
+  }
+  set metronomeSound(sound: MetronomeSound) {
+    this.click.sound = sound;
+  }
+
+  /** Play a single metronome click immediately. Used by the count-in. */
+  playClick(accent: boolean): void {
+    this.click.playClick(accent);
+  }
 }
 
 /**
@@ -129,11 +158,28 @@ export async function createAudioEngine(
     baseUrl: "https://tonejs.github.io/audio/salamander/",
   }).toDestination();
 
-  // Click: a short pitched blip; accented beats sound higher.
-  const clickSynth = new Tone.MembraneSynth({
+  // Four metronome voices, all synthesised (no sample assets).
+  const clickVoice = new Tone.MembraneSynth({
     volume: -6,
     envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.02 },
   }).toDestination();
+  const woodVoice = new Tone.MembraneSynth({
+    volume: -3,
+    octaves: 1.5,
+    pitchDecay: 0.008,
+    envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
+  }).toDestination();
+  const beepVoice = new Tone.Synth({
+    volume: -12,
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.02 },
+  }).toDestination();
+  const tickFilter = new Tone.Filter(3500, "highpass").toDestination();
+  const tickVoice = new Tone.NoiseSynth({
+    volume: -4,
+    noise: { type: "white" },
+    envelope: { attack: 0.001, decay: 0.018, sustain: 0, release: 0.01 },
+  }).connect(tickFilter);
 
   const piano: PianoSink = {
     playNote(midi, durationSeconds, velocity) {
@@ -151,8 +197,23 @@ export async function createAudioEngine(
     },
   };
   const click: ClickSink = {
+    sound: "click",
     playClick(accent) {
-      clickSynth.triggerAttackRelease(accent ? "C5" : "C4", 0.05);
+      switch (this.sound) {
+        case "woodblock":
+          woodVoice.triggerAttackRelease(accent ? "C6" : "G5", 0.03);
+          break;
+        case "beep":
+          beepVoice.triggerAttackRelease(accent ? "E6" : "C6", 0.05);
+          break;
+        case "hitick":
+          tickVoice.triggerAttackRelease(accent ? 0.035 : 0.018);
+          break;
+        case "click":
+        default:
+          clickVoice.triggerAttackRelease(accent ? "C5" : "C4", 0.05);
+          break;
+      }
     },
   };
 
