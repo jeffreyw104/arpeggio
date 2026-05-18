@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
-import type { HandState, HandVisibility } from "../practice/hands";
+import type { HandState } from "../practice/hands";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
-import { MetronomeMenu } from "./MetronomeMenu";
+import { MetronomeSettings } from "./MetronomeSettings";
+import { HandsMenu } from "./HandsMenu";
 
 interface PracticeHudControlsProps {
   transport: Transport;
@@ -46,9 +47,10 @@ function loopMeasures(
 
 /**
  * Row 2 of the Practice-mode HUD: the loop-range picker, tempo stepper,
- * gradual speed-up toggle, per-hand show/mute controls, and the metronome.
- * Each control mirrors live imperative state in local React state and writes
- * through on change. Mounting fresh (on a mode switch) re-reads live state.
+ * gradual speed-up toggle, a hands dropdown, and the metronome (toggle plus
+ * its inline settings). Each control mirrors live imperative state in local
+ * React state and writes through on change. Mounting fresh (on a mode switch)
+ * re-reads live state.
  */
 export function PracticeHudControls({
   transport,
@@ -65,21 +67,13 @@ export function PracticeHudControls({
   const [bpm, setBpm] = useState(() => Math.round(transport.bpm));
   const [speedUp, setSpeedUp] = useState(() => transport.speedUpActive);
 
-  const [leftVis, setLeftVis] = useState<HandVisibility>(() =>
-    handState.visibility("left"),
-  );
-  const [rightVis, setRightVis] = useState<HandVisibility>(() =>
-    handState.visibility("right"),
-  );
-  const [muteLeft, setMuteLeft] = useState(() => handState.isMuted("left"));
-  const [muteRight, setMuteRight] = useState(() => handState.isMuted("right"));
+  const [handsMenuOpen, setHandsMenuOpen] = useState(false);
+  const handsRef = useRef<HTMLDivElement>(null);
 
   const [metronomeOn, setMetronomeOn] = useState(
     () => audioEngine?.metronome.enabled ?? false,
   );
-  const [metronomeMenuOpen, setMetronomeMenuOpen] = useState(false);
   const pulseRef = useRef<HTMLSpanElement>(null);
-  const metronomeRef = useRef<HTMLDivElement>(null);
 
   function applyLoop(start: number, end: number): void {
     const first = Math.min(start, end);
@@ -150,17 +144,17 @@ export function PracticeHudControls({
     return () => cancelAnimationFrame(frame);
   }, [audioEngine]);
 
-  // Close the metronome dropdown when the pointer goes down outside it.
+  // Close the hands dropdown when the pointer goes down outside it.
   useEffect(() => {
-    if (!metronomeMenuOpen) return;
+    if (!handsMenuOpen) return;
     function onDown(e: PointerEvent): void {
-      if (!metronomeRef.current?.contains(e.target as Node)) {
-        setMetronomeMenuOpen(false);
+      if (!handsRef.current?.contains(e.target as Node)) {
+        setHandsMenuOpen(false);
       }
     }
     window.addEventListener("pointerdown", onDown);
     return () => window.removeEventListener("pointerdown", onDown);
-  }, [metronomeMenuOpen]);
+  }, [handsMenuOpen]);
 
   const loopReadout = loopRange
     ? `m.${loopRange.first + 1}–${loopRange.last + 1}`
@@ -214,63 +208,20 @@ export function PracticeHudControls({
         </label>
       </div>
 
-      <div className="hud-group">
+      <div className="hud-hands" ref={handsRef}>
         <span className="hud-group-label">Hands</span>
-        <label>
-          Left hand{" "}
-          <select
-            value={leftVis}
-            onChange={(e) => {
-              const v = e.target.value as HandVisibility;
-              setLeftVis(v);
-              handState.setVisibility("left", v);
-            }}
-          >
-            <option value="show">Show</option>
-            <option value="dim">Dim</option>
-            <option value="hide">Hide</option>
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={muteLeft}
-            onChange={(e) => {
-              setMuteLeft(e.target.checked);
-              handState.setMuted("left", e.target.checked);
-            }}
-          />{" "}
-          Mute L
-        </label>
-        <label>
-          Right hand{" "}
-          <select
-            value={rightVis}
-            onChange={(e) => {
-              const v = e.target.value as HandVisibility;
-              setRightVis(v);
-              handState.setVisibility("right", v);
-            }}
-          >
-            <option value="show">Show</option>
-            <option value="dim">Dim</option>
-            <option value="hide">Hide</option>
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={muteRight}
-            onChange={(e) => {
-              setMuteRight(e.target.checked);
-              handState.setMuted("right", e.target.checked);
-            }}
-          />{" "}
-          Mute R
-        </label>
+        <button
+          type="button"
+          aria-label="Hand settings"
+          aria-expanded={handsMenuOpen}
+          onClick={() => setHandsMenuOpen((o) => !o)}
+        >
+          ▾
+        </button>
+        {handsMenuOpen && <HandsMenu handState={handState} />}
       </div>
 
-      <div className="hud-metronome" ref={metronomeRef}>
+      <div className="hud-metronome">
         <label>
           <input
             type="checkbox"
@@ -279,23 +230,13 @@ export function PracticeHudControls({
           />{" "}
           Metronome
         </label>
-        <button
-          type="button"
-          aria-label="Metronome settings"
-          aria-expanded={metronomeMenuOpen}
-          onClick={() => setMetronomeMenuOpen((o) => !o)}
-        >
-          ▾
-        </button>
         <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
-        {metronomeMenuOpen && (
-          <MetronomeMenu
-            falldown={falldown}
-            audioEngine={audioEngine}
-            countInBars={countInBars}
-            onCountInBarsChange={onCountInBarsChange}
-          />
-        )}
+        <MetronomeSettings
+          falldown={falldown}
+          audioEngine={audioEngine}
+          countInBars={countInBars}
+          onCountInBarsChange={onCountInBarsChange}
+        />
       </div>
     </div>
   );

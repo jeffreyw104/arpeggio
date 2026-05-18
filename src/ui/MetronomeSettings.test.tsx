@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MetronomeMenu } from "./MetronomeMenu";
+import { MetronomeSettings } from "./MetronomeSettings";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
 
@@ -25,7 +25,7 @@ function renderMenu(
 ) {
   const { falldown, audioEngine } = fakes();
   return render(
-    <MetronomeMenu
+    <MetronomeSettings
       falldown={overrides.falldown ?? falldown}
       audioEngine={overrides.audioEngine ?? audioEngine}
       countInBars={overrides.countInBars ?? 0}
@@ -34,14 +34,14 @@ function renderMenu(
   );
 }
 
-describe("MetronomeMenu", () => {
+describe("MetronomeSettings", () => {
   it("initialises the time signature from the renderer's beat meter", () => {
     const { audioEngine } = fakes();
     const falldown = {
       beatMeter: { numerator: 3, denominator: 4 },
     } as unknown as FalldownRenderer;
     render(
-      <MetronomeMenu
+      <MetronomeSettings
         falldown={falldown}
         audioEngine={audioEngine}
         countInBars={0}
@@ -54,7 +54,7 @@ describe("MetronomeMenu", () => {
   it("writes a new time signature to the renderer and audio engine", () => {
     const { falldown, audioEngine, setTimeSignature } = fakes();
     render(
-      <MetronomeMenu
+      <MetronomeSettings
         falldown={falldown}
         audioEngine={audioEngine}
         countInBars={0}
@@ -71,7 +71,7 @@ describe("MetronomeMenu", () => {
   it("leaves the time signature unchanged for an invalid value", () => {
     const { falldown, audioEngine, setTimeSignature } = fakes();
     render(
-      <MetronomeMenu
+      <MetronomeSettings
         falldown={falldown}
         audioEngine={audioEngine}
         countInBars={0}
@@ -88,7 +88,7 @@ describe("MetronomeMenu", () => {
   it("toggles the downbeat accent on the audio engine", () => {
     const { falldown, audioEngine } = fakes();
     render(
-      <MetronomeMenu
+      <MetronomeSettings
         falldown={falldown}
         audioEngine={audioEngine}
         countInBars={0}
@@ -102,7 +102,7 @@ describe("MetronomeMenu", () => {
   it("sets the subdivision on the audio engine", () => {
     const { falldown, audioEngine } = fakes();
     render(
-      <MetronomeMenu
+      <MetronomeSettings
         falldown={falldown}
         audioEngine={audioEngine}
         countInBars={0}

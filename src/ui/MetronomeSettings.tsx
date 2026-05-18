@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
 
-interface MetronomeMenuProps {
+interface MetronomeSettingsProps {
   falldown: FalldownRenderer | null;
   audioEngine: AudioEngine | null;
   countInBars: number;
@@ -10,17 +10,17 @@ interface MetronomeMenuProps {
 }
 
 /**
- * The metronome settings dropdown: time signature, downbeat accent, beat
- * subdivision, and count-in. Rendered only while the dropdown is open, so its
- * inputs initialise from the live renderer / audio-engine state each time it
- * opens.
+ * The metronome settings, laid out inline in the Practice-mode HUD: time
+ * signature, downbeat accent, beat subdivision, and count-in. Mounted with
+ * the Practice HUD, so its inputs initialise from the live renderer /
+ * audio-engine state when that HUD mounts.
  */
-export function MetronomeMenu({
+export function MetronomeSettings({
   falldown,
   audioEngine,
   countInBars,
   onCountInBarsChange,
-}: MetronomeMenuProps): React.JSX.Element {
+}: MetronomeSettingsProps): React.JSX.Element {
   const [timeSignature, setTimeSignature] = useState(() =>
     falldown
       ? `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`
@@ -63,10 +63,7 @@ export function MetronomeMenu({
   }
 
   return (
-    <div
-      className="hud-metronome-menu"
-      onPointerDown={(e) => e.stopPropagation()}
-    >
+    <div className="hud-metronome-settings">
       <label>
         Time signature{" "}
         <input

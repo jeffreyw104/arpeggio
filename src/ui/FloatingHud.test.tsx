@@ -186,10 +186,7 @@ describe("FloatingHud", () => {
     try {
       const { transport } = renderHud({ mode: "practice", collapsed: false });
 
-      // Open the metronome settings dropdown.
-      fireEvent.click(screen.getByRole("button", { name: /metronome settings/i }));
-
-      // Set count-in to 1 bar.
+      // Set count-in to 1 bar (the metronome settings are inline in the HUD).
       fireEvent.change(screen.getByLabelText(/count-in/i), {
         target: { value: "1" },
       });

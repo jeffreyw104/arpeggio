@@ -84,6 +84,7 @@ describe("PracticeHudControls", () => {
 
   it("the hand visibility select writes through to hand state", () => {
     const { handState } = renderControls();
+    fireEvent.click(screen.getByRole("button", { name: /hand settings/i }));
     fireEvent.change(screen.getByLabelText(/left hand/i), {
       target: { value: "hide" },
     });
