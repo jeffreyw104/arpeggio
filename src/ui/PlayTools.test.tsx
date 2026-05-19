@@ -50,43 +50,54 @@ function renderTools(
   return { transport, handState, props };
 }
 
-/** Open a collapsible section by clicking its chip. */
-function open(label: string): void {
+/** Click a collapsible section chip to toggle it. */
+function toggle(label: string): void {
   fireEvent.click(screen.getByRole("button", { name: label }));
 }
+
+const SECTION_LABELS = [
+  "Loop",
+  "Tempo",
+  "Hands",
+  "Metronome",
+  "Volume",
+  "Note zoom",
+];
 
 describe("PlayTools", () => {
   it("renders the six section chips", () => {
     renderTools();
-    expect(screen.getByRole("button", { name: "Loop" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Tempo" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Hands" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Metronome" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Volume" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Note zoom" }),
-    ).toBeInTheDocument();
+    for (const label of SECTION_LABELS) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
   });
 
-  it("a chip toggles aria-expanded", () => {
+  it("every section starts open", () => {
+    renderTools();
+    for (const label of SECTION_LABELS) {
+      expect(screen.getByRole("button", { name: label })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    }
+  });
+
+  it("a chip toggles its section open and closed", () => {
     renderTools();
     const loop = screen.getByRole("button", { name: "Loop" });
-    expect(loop).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(loop);
     expect(loop).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(loop);
     expect(loop).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(loop);
+    expect(loop).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("multiple sections can be open simultaneously", () => {
+  it("sections collapse independently of one another", () => {
     renderTools();
-    fireEvent.click(screen.getByRole("button", { name: "Loop" }));
-    fireEvent.click(screen.getByRole("button", { name: "Tempo" }));
+    toggle("Loop"); // collapse Loop only
     expect(screen.getByRole("button", { name: "Loop" })).toHaveAttribute(
       "aria-expanded",
-      "true",
+      "false",
     );
     expect(screen.getByRole("button", { name: "Tempo" })).toHaveAttribute(
       "aria-expanded",
@@ -96,7 +107,6 @@ describe("PlayTools", () => {
 
   it("Loop measure loops the measure under the playhead", () => {
     const { transport } = renderTools();
-    open("Loop");
     transport.clock.seek(5);
     fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
     expect(transport.clock.loop).toEqual({ start: 4, end: 6 });
@@ -104,7 +114,6 @@ describe("PlayTools", () => {
 
   it("Set start then Set end builds a loop range", () => {
     const { transport } = renderTools();
-    open("Loop");
     transport.clock.seek(1); // measure 0
     fireEvent.click(screen.getByRole("button", { name: /set start/i }));
     transport.clock.seek(5); // measure 2
@@ -114,7 +123,6 @@ describe("PlayTools", () => {
 
   it("Clear removes the loop", () => {
     const { transport } = renderTools();
-    open("Loop");
     transport.clock.seek(1);
     fireEvent.click(screen.getByRole("button", { name: /loop measure/i }));
     fireEvent.click(screen.getByRole("button", { name: /clear loop/i }));
@@ -123,37 +131,33 @@ describe("PlayTools", () => {
 
   it("the speed-up toggle enables gradual speed-up", () => {
     const { transport } = renderTools();
-    open("Loop");
     fireEvent.click(screen.getByRole("checkbox", { name: /speed-up/i }));
     expect(transport.speedUpActive).toBe(true);
   });
 
   it("the Tempo + button steps the BPM up", () => {
     const { transport } = renderTools();
-    open("Tempo");
     fireEvent.click(screen.getByRole("button", { name: /increase tempo/i }));
     expect(transport.bpm).toBe(125);
   });
 
   it("the exact tempo input sets an arbitrary BPM", () => {
     const { transport } = renderTools();
-    open("Tempo");
-    fireEvent.change(screen.getByRole("spinbutton", { name: /tempo \(bpm\)/i }), {
-      target: { value: "137" },
-    });
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: /tempo \(bpm\)/i }),
+      { target: { value: "137" } },
+    );
     expect(transport.bpm).toBe(137);
   });
 
   it("the flatten checkbox switches the tempo mode", () => {
     const { transport } = renderTools();
-    open("Tempo");
     fireEvent.click(screen.getByRole("checkbox", { name: /flatten/i }));
     expect(transport.tempoMode).toBe("flatten");
   });
 
   it("the hand visibility select writes through to hand state", () => {
     const { handState } = renderTools();
-    open("Hands");
     fireEvent.change(screen.getByLabelText(/left hand/i), {
       target: { value: "hide" },
     });
@@ -162,7 +166,6 @@ describe("PlayTools", () => {
 
   it("the metronome toggle enables the metronome", () => {
     const { props } = renderTools();
-    open("Metronome");
     fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
     expect(props.audioEngine!.metronome.enabled).toBe(true);
   });
@@ -170,7 +173,6 @@ describe("PlayTools", () => {
   it("the count-in selector reports changes through onCountInBarsChange", () => {
     const onCountInBarsChange = vi.fn();
     renderTools({ onCountInBarsChange });
-    open("Metronome");
     fireEvent.change(screen.getByLabelText(/count-in/i), {
       target: { value: "2" },
     });
@@ -179,7 +181,6 @@ describe("PlayTools", () => {
 
   it("the Volume slider calls audioEngine.setVolume", () => {
     const { props } = renderTools();
-    open("Volume");
     fireEvent.change(screen.getByRole("slider", { name: /volume/i }), {
       target: { value: "0.5" },
     });
@@ -188,39 +189,37 @@ describe("PlayTools", () => {
 
   it("the Note zoom slider does not crash with null falldown", () => {
     renderTools({ falldown: null });
-    open("Note zoom");
-    // Should not throw; the zoom slider is present but falldown is null.
     fireEvent.change(screen.getByRole("slider", { name: /note zoom/i }), {
       target: { value: "1.5" },
     });
   });
 
-  it("a collapsed section does not render its controls in the DOM", () => {
+  it("collapsing a section removes its controls from the DOM", () => {
     renderTools();
-    // Loop section is closed by default — the Loop measure button should not exist.
-    expect(
-      screen.queryByRole("button", { name: /loop measure/i }),
-    ).toBeNull();
-    // Opening the Loop section reveals the button.
-    open("Loop");
+    // Loop starts open — its controls are present.
     expect(
       screen.getByRole("button", { name: /loop measure/i }),
     ).toBeInTheDocument();
+    // Collapsing the Loop section unmounts the body.
+    toggle("Loop");
+    expect(
+      screen.queryByRole("button", { name: /loop measure/i }),
+    ).toBeNull();
   });
 
   it("enabling Speed-up after typing a Start BPM uses the typed value", () => {
     const { transport } = renderTools();
-    open("Loop");
-    // Type a custom Start BPM before enabling speed-up.
     fireEvent.change(screen.getByRole("spinbutton", { name: /start bpm/i }), {
       target: { value: "80" },
     });
-    // Enable speed-up — it should apply the typed start BPM.
     fireEvent.click(screen.getByRole("checkbox", { name: /speed-up/i }));
     expect(transport.speedUpActive).toBe(true);
-    // The input retains the typed value.
     expect(
-      (screen.getByRole("spinbutton", { name: /start bpm/i }) as HTMLInputElement).value,
+      (
+        screen.getByRole("spinbutton", {
+          name: /start bpm/i,
+        }) as HTMLInputElement
+      ).value,
     ).toBe("80");
   });
 });

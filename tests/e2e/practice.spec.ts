@@ -73,17 +73,19 @@ test("the Tools popover opens and exposes loop controls", async ({
   const loopChip = page.getByRole("button", { name: "Loop", exact: true });
   await expect(loopChip).toBeVisible();
 
-  // Open the Loop section — its chip's aria-expanded flips to true.
-  await loopChip.click();
+  // Sections start open, so the Loop controls are visible without a click.
   await expect(loopChip).toHaveAttribute("aria-expanded", "true");
-
-  // Loop measure button is now visible.
   await expect(
     page.getByRole("button", { name: /loop measure/i }),
   ).toBeVisible();
 
-  // Close via Escape.
-  await page.keyboard.press("Escape");
+  // Clicking elsewhere does not close the popover — it floats until the Tools
+  // button is pressed again.
+  await page.locator(".top-bar-logo").click();
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
+
+  // Re-pressing the Tools button closes it.
+  await toolsBtn.click();
   await expect(page.getByRole("dialog", { name: "Tools" })).toBeHidden();
 });
 

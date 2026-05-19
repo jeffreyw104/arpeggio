@@ -1,50 +1,23 @@
-import { useEffect, useRef } from "react";
-
 interface ToolsPopoverProps {
   open: boolean;
-  onClose: () => void;
   children: React.ReactNode;
 }
 
 /**
- * A floating panel anchored below the top bar. Renders nothing when closed;
- * when open, traps focus-adjacent interactions via a click-outside listener and
- * an Escape key handler, both of which call `onClose`.
+ * A floating panel anchored below the top bar's Tools button. Renders nothing
+ * when closed. While open it stays put — clicking elsewhere (the score, the
+ * play button, anywhere) does NOT close it, so the player can keep working
+ * with the panel floating. It closes only when the Tools button is pressed
+ * again (which toggles `open`).
  */
 export function ToolsPopover({
   open,
-  onClose,
   children,
 }: ToolsPopoverProps): React.JSX.Element | null {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleKeyDown(e: KeyboardEvent): void {
-      if (e.key === "Escape") onClose();
-    }
-
-    function handlePointerDown(e: MouseEvent): void {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    // Bubble-phase pointerdown listener: closes the popover when the click
-    // target is outside the panel, detected via contains().
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [open, onClose]);
-
   if (!open) return null;
 
   return (
-    <div ref={panelRef} className="tools-popover" role="dialog" aria-label="Tools">
+    <div className="tools-popover" role="dialog" aria-label="Tools">
       {children}
     </div>
   );

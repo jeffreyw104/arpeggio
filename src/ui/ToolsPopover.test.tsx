@@ -1,13 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ToolsPopover } from "./ToolsPopover";
 
-function renderPopover(
-  open: boolean,
-  onClose = vi.fn(),
-): ReturnType<typeof render> {
+function renderPopover(open: boolean): ReturnType<typeof render> {
   return render(
-    <ToolsPopover open={open} onClose={onClose}>
+    <ToolsPopover open={open}>
       <span>Tools content</span>
     </ToolsPopover>,
   );
@@ -26,33 +23,15 @@ describe("ToolsPopover", () => {
     expect(screen.getByText("Tools content")).toBeInTheDocument();
   });
 
-  it("calls onClose when Escape is pressed", () => {
-    const onClose = vi.fn();
-    renderPopover(true, onClose);
+  it("stays open when Escape is pressed (toggle-only close)", () => {
+    renderPopover(true);
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("calls onClose when clicking outside the panel", () => {
-    const onClose = vi.fn();
-    renderPopover(true, onClose);
-    // Click on the document body — outside the panel.
+  it("stays open when clicking outside the panel", () => {
+    renderPopover(true);
     fireEvent.pointerDown(document.body);
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("does not call onClose when clicking inside the panel", () => {
-    const onClose = vi.fn();
-    renderPopover(true, onClose);
-    const panel = screen.getByRole("dialog");
-    fireEvent.pointerDown(panel);
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("does not fire the Escape listener when closed", () => {
-    const onClose = vi.fn();
-    renderPopover(false, onClose);
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

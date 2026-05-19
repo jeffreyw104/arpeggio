@@ -49,7 +49,7 @@ function loopMeasures(
 /**
  * The Tools popover body for Play mode: Loop (with Speed-up sub-group), Tempo,
  * Hands, Metronome, Volume, and Note-zoom — each in its own CollapsibleSection.
- * All sections are independent and can be open at the same time.
+ * All sections start open; each can be collapsed independently.
  */
 export function PlayTools({
   transport,
@@ -59,13 +59,14 @@ export function PlayTools({
   countInBars,
   onCountInBarsChange,
 }: PlayToolsProps): React.JSX.Element {
-  // Per-section open state — all start closed, independent of each other.
-  const [loopOpen, setLoopOpen] = useState(false);
-  const [tempoOpen, setTempoOpen] = useState(false);
-  const [handsOpen, setHandsOpen] = useState(false);
-  const [metronomeOpen, setMetronomeOpen] = useState(false);
-  const [volumeOpen, setVolumeOpen] = useState(false);
-  const [zoomOpen, setZoomOpen] = useState(false);
+  // Per-section open state — all start open so every control is laid out;
+  // the user can still collapse any section they do not need.
+  const [loopOpen, setLoopOpen] = useState(true);
+  const [tempoOpen, setTempoOpen] = useState(true);
+  const [handsOpen, setHandsOpen] = useState(true);
+  const [metronomeOpen, setMetronomeOpen] = useState(true);
+  const [volumeOpen, setVolumeOpen] = useState(true);
+  const [zoomOpen, setZoomOpen] = useState(true);
 
   // --- Loop state ---
   const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));

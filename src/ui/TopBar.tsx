@@ -51,10 +51,10 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * The fixed top bar. Left: logo, Library, play/pause, seek scrubber, time,
- * and the Play/MIDI Practice toggle. Center: the now-playing piece name.
- * Right: Tools popover toggle, view controls (Both/Falldown/Score in play mode;
- * Reading lane toggle in midi mode), and the settings gear.
+ * The fixed top bar. Left: logo, Library, the Tools popover toggle, play/pause,
+ * seek scrubber, time, and the Play/MIDI Practice toggle. Center: the
+ * now-playing piece name. Right: view controls (Both/Falldown/Score in play
+ * mode; Reading lane toggle in midi mode), and the settings gear.
  */
 export function TopBar({
   pieceName,
@@ -131,6 +131,14 @@ export function TopBar({
       </button>
       <button
         type="button"
+        aria-label="Tools"
+        aria-pressed={toolsOpen}
+        onClick={onToggleTools}
+      >
+        Tools
+      </button>
+      <button
+        type="button"
         className="hud-play-btn"
         aria-label={playing ? "Pause" : "Play"}
         disabled={countingIn}
@@ -175,15 +183,6 @@ export function TopBar({
           )}
         </span>
       )}
-      <button
-        type="button"
-        aria-label="Tools"
-        aria-pressed={toolsOpen}
-        onClick={onToggleTools}
-      >
-        Tools▾
-      </button>
-
       {/* View controls vary by tab mode */}
       {mode === "play" ? (
         <div className="top-bar-views">

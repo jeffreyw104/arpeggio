@@ -59,8 +59,9 @@ export function MidiTools({
   monitorOn,
   onMonitorOnChange,
 }: MidiToolsProps): React.JSX.Element {
-  const [volumeOpen, setVolumeOpen] = useState(false);
-  const [zoomOpen, setZoomOpen] = useState(false);
+  // Sections start open; the user can collapse any they do not need.
+  const [volumeOpen, setVolumeOpen] = useState(true);
+  const [zoomOpen, setZoomOpen] = useState(true);
 
   const [volume, setVolume] = useState(1);
   function changeVolume(v: number): void {

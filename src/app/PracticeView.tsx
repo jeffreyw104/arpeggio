@@ -468,7 +468,7 @@ export function PracticeView({
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
       />
-      <ToolsPopover open={toolsOpen} onClose={() => setToolsOpen(false)}>
+      <ToolsPopover open={toolsOpen}>
         {practiceReady && mode === "play" && (
           <PlayTools
             transport={transport}
