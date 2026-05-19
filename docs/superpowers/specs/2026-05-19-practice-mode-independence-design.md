@@ -74,18 +74,26 @@ within a session is delivered by the in-memory snapshots regardless.
 
 ## 2. Tool parity for the Practice tab
 
-The Practice Tools popover currently shows only MIDI sections (device, hands,
-wait-mode, monitor). It will additionally show every Play tool section:
-Volume, Note-zoom, General settings (note labels / beat grid / full-88),
-Metronome, and Count-in.
+The Practice Tools popover currently shows only MIDI sections (device,
+hands-I-play, wait-mode, monitor) plus the shared General settings section. It
+will additionally show the Play tab's **Loop**, **Tempo**, and **Metronome**
+(with count-in) sections — so the Practice tab has every practice tool: section
+looping, tempo / slow-down, the metronome, and the general display / volume /
+zoom settings, on top of its MIDI features. (Volume and Note-zoom already live
+inside the General settings section, which the Practice popover already shows.)
 
-Because settings are shared between tabs (see §1 — only transport state is
+Play's **Hands** section (per-hand show / dim / hide + mute) stays Play-only:
+the Practice tab's "Hands I play" control is its hand control, and Play's
+per-hand mute would conflict with the MIDI session's automatic hand-muting.
+
+Because settings are shared between tabs (§1 — only transport state is
 per-tab), the common sections in the Practice popover edit the **same** state
 objects as the Play popover; there is no duplicated state.
 
-**Implementation.** Extract the Play tool sections into a shared `CommonTools`
-component used by both popovers. `PlayTools` renders `CommonTools`. The
-Practice popover renders the MIDI sections first, then `CommonTools`.
+**Implementation.** Extract the shared sections (Loop, Tempo, Metronome,
+General settings) into a `CommonTools` component. `PlayTools` renders its Hands
+section plus `CommonTools`; the Practice popover (`MidiTools`) renders the MIDI
+sections plus `CommonTools`.
 
 ## 3. Reading-lane redesign — integrated frosted score backdrop
 
