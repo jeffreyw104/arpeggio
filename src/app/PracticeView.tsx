@@ -510,6 +510,9 @@ export function PracticeView({
         )}
         {practiceReady && mode === "midi" && (
           <MidiTools
+            transport={transport}
+            countInBars={countInBars}
+            onCountInBarsChange={setCountInBars}
             audioEngine={audioEngine}
             falldown={falldown}
             midiStatus={midiStatus}

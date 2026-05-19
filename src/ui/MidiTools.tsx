@@ -2,9 +2,13 @@ import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { Hand } from "../model/score";
 import type { MidiDevice, MidiStatus } from "../midi/MidiInput";
-import { GeneralSettings } from "./GeneralSettings";
+import { CommonTools } from "./CommonTools";
+import type { Transport } from "../transport/transport";
 
 interface MidiToolsProps {
+  transport: Transport;
+  countInBars: number;
+  onCountInBarsChange: (bars: number) => void;
   audioEngine: AudioEngine | null;
   falldown: FalldownRenderer | null;
   midiStatus: MidiStatus;
@@ -41,10 +45,14 @@ function handsPreset(hands: ReadonlySet<Hand>): "left" | "right" | "both" {
 
 /**
  * The Tools popover content for the MIDI Practice tab: MIDI device selection,
- * hand selection, wait-for-me, input-sound monitor, plus the shared General
- * settings section. Presentational — all state lives in PracticeView.
+ * hand selection, wait-for-me, and the input-sound monitor, followed by the
+ * sections shared with the Play tab (`CommonTools`: Loop, Tempo, Metronome,
+ * General settings). Presentational — all state lives in PracticeView.
  */
 export function MidiTools({
+  transport,
+  countInBars,
+  onCountInBarsChange,
   audioEngine,
   falldown,
   midiStatus,
@@ -137,7 +145,13 @@ export function MidiTools({
         <span>Input sound</span>
       </label>
 
-      <GeneralSettings falldown={falldown} audioEngine={audioEngine} />
+      <CommonTools
+        transport={transport}
+        audioEngine={audioEngine}
+        falldown={falldown}
+        countInBars={countInBars}
+        onCountInBarsChange={onCountInBarsChange}
+      />
     </div>
   );
 }
