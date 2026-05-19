@@ -126,7 +126,13 @@ describe("MidiSession", () => {
     const handState = new HandState();
     const session = new MidiSession(new Clock(10), score, handState);
 
-    // Default — player plays the right hand.
+    // Before the MIDI tab is shown, no hand mutes are applied — the play tab
+    // owns its own mute state.
+    expect(handState.isMuted("right")).toBe(false);
+    expect(handState.isMuted("left")).toBe(false);
+
+    // Activating the MIDI tab applies the mute for the played hand (right).
+    session.setActive(true);
     expect(handState.isMuted("right")).toBe(true);
     expect(handState.isMuted("left")).toBe(false);
 
@@ -137,6 +143,11 @@ describe("MidiSession", () => {
     session.setHandsIPlay(new Set(["left", "right"]));
     expect(handState.isMuted("left")).toBe(true);
     expect(handState.isMuted("right")).toBe(true);
+
+    // Leaving the MIDI tab clears the MIDI-imposed mutes.
+    session.setActive(false);
+    expect(handState.isMuted("right")).toBe(false);
+    expect(handState.isMuted("left")).toBe(false);
     session.dispose();
   });
 

@@ -49,7 +49,6 @@ export class MidiSession {
       buildSteps(score.notes, this.handsIPlay),
       this.liveNotes,
     );
-    this.applyHandMutes();
 
     // Route both input sources into the single live-notes store.
     this.midiInput.onNoteOn = (e: MidiNoteEvent) =>
@@ -131,6 +130,8 @@ export class MidiSession {
         this.midiStarted = true;
         void this.midiInput.start();
       }
+      // The MIDI tab plays the chosen hand(s) live, so mute them in the app.
+      this.applyHandMutes();
     } else {
       this.keyboardInput.disable();
       // Release any audio voices before dropping the held-notes map so that
@@ -142,6 +143,9 @@ export class MidiSession {
       }
       // Drop stale held notes so they do not leak across a tab switch.
       this.liveNotes.clear();
+      // Clear the MIDI-imposed hand mutes so the play tab is never left with a
+      // hand silenced (the play tab owns its own mute state).
+      for (const hand of HANDS) this.handState.setMuted(hand, false);
     }
     this.syncController();
   }
@@ -159,7 +163,9 @@ export class MidiSession {
   setHandsIPlay(hands: ReadonlySet<Hand>): void {
     this.handsIPlay = new Set(hands);
     this.controller.setSteps(buildSteps(this.score.notes, this.handsIPlay));
-    this.applyHandMutes();
+    // Hand mutes only apply while the MIDI tab is active; on the play tab the
+    // mutes stay under the user's own control.
+    if (this.active) this.applyHandMutes();
   }
 
   /** Listen to a specific MIDI device by id. */
