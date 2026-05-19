@@ -587,25 +587,8 @@ textarea {
   height: 400px;
   z-index: 4;
   overflow: hidden;
-  background: rgba(248, 248, 246, 0.74);
-  backdrop-filter: blur(7px) saturate(140%);
-  -webkit-backdrop-filter: blur(7px) saturate(140%);
-  /* Feather only the left and right edges so the pane is not a hard
-     rectangle; the top and bottom stay crisp. */
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
+  /* Solid dark panel; the engraving is inverted to white over it. */
+  background: #15151a;
 }
 
 /* The viewport clips the ribbon; vertical padding gives ledger-line headroom
@@ -624,10 +607,13 @@ textarea {
   will-change: transform;
 }
 
-/* ReadingLaneView scales the engraving; centre it in the lane. */
+/* ReadingLaneView scales the engraving; centre it, and invert the black
+   notation to white over the dark panel. hue-rotate(180deg) cancels the hue
+   flip from invert, so the green measure highlight stays green. */
 .reading-lane-track svg {
   display: block;
   margin-inline: auto;
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */
