@@ -222,3 +222,34 @@ test("MIDI Practice tab: Tools popover exposes MIDI controls and status chip sho
   await expect(statusLine).toBeVisible();
   await expect(statusLine).toContainText(/computer keyboard/i);
 });
+
+test("playback does not carry over between the Play and Practice tabs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const time = page.locator(".top-bar .hud-time");
+  const playBtn = page.locator(".top-bar .hud-play-btn");
+
+  // Play on the Play tab for a moment, then pause.
+  await playBtn.evaluate((el: HTMLButtonElement) => el.click());
+  await page.waitForTimeout(1200);
+  await playBtn.evaluate((el: HTMLButtonElement) => el.click());
+  const playTabTime = await time.textContent();
+
+  // Switch to MIDI Practice — its playhead is independent of the Play tab.
+  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  const practiceTime = await time.textContent();
+  expect(practiceTime).not.toBe(playTabTime);
+
+  // Switch back to Play — its playhead is restored where it was left.
+  await page
+    .locator(".top-bar-modes")
+    .getByRole("button", { name: "Play" })
+    .click();
+  expect(await time.textContent()).toBe(playTabTime);
+});
