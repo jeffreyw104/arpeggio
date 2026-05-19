@@ -594,31 +594,51 @@ textarea {
   -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
-/* The viewport clips the ribbon; vertical padding gives ledger-line headroom
-   so notes above and below the staff are never cut off. */
+/* The viewport clips the lane and is the positioning context for the overlay
+   highlight / hover markers. */
 .reading-lane-viewport {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: 16px 0;
 }
 
 /* The track holds the stacked-systems engraving; ReadingLaneView shifts it
-   vertically (transform) to jump between systems. The invert filter lives
+   vertically (transform) to jump between systems. The recolour filter lives
    here, not on the SVG, because the SVG carries a `zoom` style that can
-   suppress a filter on the same element. invert flips the black notation to
-   white over the dark panel; hue-rotate(180deg) cancels invert's hue flip so
-   the green measure highlight stays green. */
+   suppress a filter on the same element. invert flips the black notation
+   light; sepia + brightness warm it to a soft cream over the dark panel. The
+   green highlight is a separate overlay, so the filter never tints it. */
 .reading-lane-track {
   width: 100%;
   will-change: transform;
-  filter: invert(1) hue-rotate(180deg) brightness(0.96) sepia(0.3);
+  filter: invert(0.86) sepia(0.6) brightness(1.04);
 }
 
 /* ReadingLaneView scales the engraving; centre it in the lane. */
 .reading-lane-track svg {
   display: block;
   margin-inline: auto;
+}
+
+/* Current-measure highlight and hover marker — overlay divs positioned by
+   ReadingLaneView, OUTSIDE the recolour filter so they keep their exact
+   green. */
+.lane-highlight,
+.lane-hover {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  border-radius: 3px;
+  z-index: 2;
+}
+
+.lane-highlight {
+  background: rgba(68, 170, 136, 0.3);
+}
+
+.lane-hover {
+  background: rgba(68, 170, 136, 0.14);
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */

@@ -11,22 +11,33 @@ const TOP_MARGIN = 14;
 /** Display scale of the lane engraving. */
 const LANE_ZOOM = 1;
 
+/** A measure rectangle in viewport-local pixels. */
+interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 /**
  * The MIDI Practice reading lane. Shows the score engraved as stacked systems
  * (see `renderReadingLane`) and reveals ~two of them at a time: the system
  * holding the playhead at the top, the next previewing below. When the
  * playhead crosses into the next system the lane JUMPS down to it — a discrete
- * page-turn, never a continuous scroll.
+ * page-turn, never a continuous scroll. Hovering a bar marks it; clicking a
+ * bar seeks there.
  *
- * Like the split `ScoreView` it supports hovering a bar (a light highlight)
- * and clicking a bar to seek there.
+ * The engraving is recoloured by a CSS `filter` on the track. The green
+ * current-measure highlight and the hover marker are therefore rendered as
+ * overlay `<div>`s OUTSIDE the filtered track, so that filter never tints
+ * them — they keep their exact green.
  */
 export class ReadingLaneView {
   private readonly container: HTMLElement;
   private readonly transport: Transport;
   private readonly track: HTMLDivElement;
-  private highlightRect: SVGRectElement | null = null;
-  private hoverRect: SVGRectElement | null = null;
+  private readonly highlightEl: HTMLDivElement;
+  private readonly hoverEl: HTMLDivElement;
   private highlightedIndex = -1;
   private hoverIndex: number | null = null;
   private currentSystem: Element | null = null;
@@ -57,9 +68,15 @@ export class ReadingLaneView {
       .querySelectorAll("svg")
       .forEach((svg) => (svg.style.zoom = String(LANE_ZOOM)));
 
+    // Highlight + hover markers — overlay divs, siblings of (not inside) the
+    // filtered track, so the engraving's recolour filter never touches them.
+    this.highlightEl = document.createElement("div");
+    this.highlightEl.className = "lane-highlight";
+    this.hoverEl = document.createElement("div");
+    this.hoverEl.className = "lane-hover";
+    container.append(this.highlightEl, this.hoverEl);
+
     // Tag measures in document order so they map to score.measures indices.
-    // The invisible hit areas are built lazily (see buildHitRects) because
-    // measureBox needs a laid-out, non-display:none SVG.
     container
       .querySelectorAll("g.measure")
       .forEach((el, i) => el.setAttribute("data-measure-index", String(i)));
@@ -78,16 +95,12 @@ export class ReadingLaneView {
         idx === null
           ? null
           : this.container.querySelector(`[data-measure-index="${idx}"]`);
-      if (el) {
-        this.hoverRect = this.ensureRect(this.hoverRect, "measure-hover");
-        this.putRect(this.hoverRect, el);
-      } else {
-        this.detach(this.hoverRect);
-      }
+      if (el) this.position(this.hoverEl, el);
+      else this.hoverEl.style.display = "none";
     };
     this.onLeave = () => {
       this.hoverIndex = null;
-      this.detach(this.hoverRect);
+      this.hoverEl.style.display = "none";
     };
     container.addEventListener("click", this.onClick);
     container.addEventListener("mousemove", this.onMove);
@@ -115,23 +128,29 @@ export class ReadingLaneView {
     );
     if (!measureEl) return;
 
-    if (idx !== this.highlightedIndex) {
-      this.highlightRect = this.ensureRect(
-        this.highlightRect,
-        "measure-highlight",
-      );
-      this.putRect(this.highlightRect, measureEl);
-      this.highlightedIndex = idx;
-    }
-
-    // Jump only when the playhead enters a different engraved system, so the
-    // lane holds still while you read a line and page-turns between lines.
+    // Jump first — when the playhead enters a different engraved system the
+    // lane page-turns down to it — so the highlight below is placed against
+    // the post-jump positions.
     const system = measureEl.closest("g.system");
+    let jumped = false;
     if (system && system !== this.currentSystem) {
       this.currentSystem = system;
       const systemRect = system.getBoundingClientRect();
       this.ty += laneRect.top + TOP_MARGIN - systemRect.top;
       this.track.style.transform = `translateY(${this.ty}px)`;
+      jumped = true;
+    }
+
+    if (idx !== this.highlightedIndex || jumped) {
+      this.position(this.highlightEl, measureEl);
+      this.highlightedIndex = idx;
+      // The hovered bar shifted too if the lane jumped.
+      if (jumped && this.hoverIndex !== null) {
+        const hovered = this.container.querySelector(
+          `[data-measure-index="${this.hoverIndex}"]`,
+        );
+        if (hovered) this.position(this.hoverEl, hovered);
+      }
     }
   }
 
@@ -152,31 +171,40 @@ export class ReadingLaneView {
     });
   }
 
-  /** Lazily create an overlay rect with the given class. */
-  private ensureRect(
-    rect: SVGRectElement | null,
-    className: string,
-  ): SVGRectElement {
-    if (rect) return rect;
-    const created = document.createElementNS(SVG_NS, "rect");
-    created.setAttribute("class", className);
-    return created;
+  /** Position an overlay div over a measure's staff-line box. */
+  private position(el: HTMLDivElement, measureEl: Element): void {
+    const box = this.staffBox(measureEl);
+    el.style.left = `${box.left}px`;
+    el.style.top = `${box.top}px`;
+    el.style.width = `${box.width}px`;
+    el.style.height = `${box.height}px`;
+    el.style.display = "block";
   }
 
-  /** Size `rect` to a measure's staff-line box and insert it behind the ink. */
-  private putRect(rect: SVGRectElement, measureEl: Element): void {
-    if (rect.parentNode) rect.parentNode.removeChild(rect);
-    const box = measureBox(measureEl);
-    rect.setAttribute("x", String(box.x));
-    rect.setAttribute("y", String(box.y));
-    rect.setAttribute("width", String(box.width));
-    rect.setAttribute("height", String(box.height));
-    measureEl.insertBefore(rect, measureEl.firstChild);
-  }
-
-  /** Detach an overlay rect from the DOM. */
-  private detach(rect: SVGRectElement | null): void {
-    if (rect && rect.parentNode) rect.parentNode.removeChild(rect);
+  /** The measure's staff-line rectangle in viewport-local pixels. */
+  private staffBox(measureEl: Element): Box {
+    const vp = this.container.getBoundingClientRect();
+    const lines = measureEl.querySelectorAll("g.staff > path");
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    const rects =
+      lines.length > 0
+        ? [...lines].map((l) => l.getBoundingClientRect())
+        : [measureEl.getBoundingClientRect()];
+    for (const r of rects) {
+      left = Math.min(left, r.left);
+      top = Math.min(top, r.top);
+      right = Math.max(right, r.right);
+      bottom = Math.max(bottom, r.bottom);
+    }
+    return {
+      left: left - vp.left,
+      top: top - vp.top,
+      width: right - left,
+      height: bottom - top,
+    };
   }
 
   /** Remove all listeners and injected content. */
