@@ -592,6 +592,40 @@ textarea {
   background: rgba(21, 21, 26, 0.84);
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
+  /* Feather all four edges — a vertical and a horizontal fade intersected —
+     so the panel dissolves into the falldown rather than being a hard box. */
+  -webkit-mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 6%,
+      #000 94%,
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #000 5%,
+      #000 95%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 6%,
+      #000 94%,
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #000 5%,
+      #000 95%,
+      transparent 100%
+    );
+  mask-composite: intersect;
 }
 
 /* The viewport clips the lane and is the positioning context for the overlay
