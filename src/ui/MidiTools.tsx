@@ -37,10 +37,15 @@ function statusLine(status: MidiStatus, deviceName: string | null): string {
   }
 }
 
-/** Which "Hands I play" preset the current set corresponds to. */
-function handsPreset(hands: ReadonlySet<Hand>): "left" | "right" | "both" {
+/** Which "Hands I play" preset the current set corresponds to. "none" means no
+ *  hand is selected — nothing is muted and the piece plays in full. */
+function handsPreset(
+  hands: ReadonlySet<Hand>,
+): "left" | "right" | "both" | "none" {
   if (hands.has("left") && hands.has("right")) return "both";
-  return hands.has("left") ? "left" : "right";
+  if (hands.has("left")) return "left";
+  if (hands.has("right")) return "right";
+  return "none";
 }
 
 /**
@@ -101,25 +106,36 @@ export function MidiTools({
           <button
             type="button"
             aria-pressed={preset === "left"}
-            className={preset === "left" ? "is-active" : ""}
-            onClick={() => onHandsIPlayChange(new Set<Hand>(["left"]))}
+            onClick={() =>
+              onHandsIPlayChange(
+                preset === "left" ? new Set<Hand>() : new Set<Hand>(["left"]),
+              )
+            }
           >
             Left
           </button>
           <button
             type="button"
             aria-pressed={preset === "right"}
-            className={preset === "right" ? "is-active" : ""}
-            onClick={() => onHandsIPlayChange(new Set<Hand>(["right"]))}
+            onClick={() =>
+              onHandsIPlayChange(
+                preset === "right"
+                  ? new Set<Hand>()
+                  : new Set<Hand>(["right"]),
+              )
+            }
           >
             Right
           </button>
           <button
             type="button"
             aria-pressed={preset === "both"}
-            className={preset === "both" ? "is-active" : ""}
             onClick={() =>
-              onHandsIPlayChange(new Set<Hand>(["left", "right"]))
+              onHandsIPlayChange(
+                preset === "both"
+                  ? new Set<Hand>()
+                  : new Set<Hand>(["left", "right"]),
+              )
             }
           >
             Both
