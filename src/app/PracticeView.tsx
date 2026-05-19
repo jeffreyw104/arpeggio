@@ -247,11 +247,11 @@ export function PracticeView({
     // ScoreView, so the two views stay in sync across a layout switch.
     void (async () => {
       try {
-        const laneSvg = await renderReadingLane(transport.score.musicXml);
+        const laneSvgs = await renderReadingLane(transport.score.musicXml);
         if (cancelled) return;
         const container = laneContainerRef.current;
         if (!container) return;
-        const laneView = new ReadingLaneView(container, transport, laneSvg);
+        const laneView = new ReadingLaneView(container, transport, laneSvgs);
         laneViewRef.current = laneView;
         loop.onFrame(() => laneView.renderFrame());
       } catch {

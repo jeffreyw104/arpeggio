@@ -36,19 +36,26 @@ export class ReadingLaneView {
   private readonly onMove: (e: MouseEvent) => void;
   private readonly onLeave: () => void;
 
-  constructor(container: HTMLElement, transport: Transport, laneSvg: string) {
+  constructor(
+    container: HTMLElement,
+    transport: Transport,
+    laneSvgs: string[],
+  ) {
     this.container = container;
     this.transport = transport;
 
     container.innerHTML = "";
     const track = document.createElement("div");
     track.className = "reading-lane-track";
-    track.innerHTML = laneSvg;
+    // Stack every rendered page; each is cropped tight, so they read as one
+    // continuous run of systems.
+    track.innerHTML = laneSvgs.join("");
     container.appendChild(track);
     this.track = track;
 
-    const svg = track.querySelector("svg");
-    if (svg) svg.style.zoom = String(LANE_ZOOM);
+    track
+      .querySelectorAll("svg")
+      .forEach((svg) => (svg.style.zoom = String(LANE_ZOOM)));
 
     // Tag measures in document order so they map to score.measures indices.
     // The invisible hit areas are built lazily (see buildHitRects) because

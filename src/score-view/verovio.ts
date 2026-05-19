@@ -77,30 +77,32 @@ export async function renderScore(musicXml: string): Promise<RenderedScore> {
 
 /**
  * Render the score for the MIDI Practice reading lane: normal system breaks
- * (each line holds several measures) but every system stacked onto ONE tall
- * page, so there are no page-boundary gaps. The lane shows ~2 systems and
- * jumps down a system at a time. Rendered separately from `renderScore` so the
- * paginated split view keeps its own page-style engraving.
+ * (each line holds several measures), every page cropped tightly to its
+ * systems (`adjustPageHeight`) so the pages stack into one near-continuous
+ * run with no page whitespace. ALL pages are returned — Verovio caps the
+ * usable page height, so a long piece genuinely spans several pages and the
+ * lane must stack them all to cover the whole piece. The lane shows ~2
+ * systems and jumps down a system at a time. Rendered separately from
+ * `renderScore` so the paginated split view keeps its own page-style
+ * engraving.
  */
-export async function renderReadingLane(musicXml: string): Promise<string> {
+export async function renderReadingLane(musicXml: string): Promise<string[]> {
   const toolkit = await loadVerovioToolkit();
   toolkit.setOptions({
-    // adjustPageHeight must stay OFF: with it on, Verovio paginates at a
-    // default page height and ignores the huge pageHeight below, so a long
-    // piece spills onto pages 2+ (and the lane, rendering only page 1, would
-    // stop after the first page). Off, the huge pageHeight is honoured and
-    // every system lands on one page — the lane has no page-boundary gaps.
-    adjustPageHeight: false,
+    adjustPageHeight: true,
     breaks: "auto",
     footer: "none",
     header: "none",
     scale: 40,
-    // No pageWidth override: a lane line is laid out exactly like a line in
-    // the paginated score.
-    pageHeight: 100000,
+    // As tall as Verovio allows, to keep the page count (and the seams
+    // between stacked pages) as low as possible.
+    pageHeight: 60000,
   });
   toolkit.loadData(musicXml);
-  return toolkit.renderToSVG(1);
+  const pageCount = Math.max(1, toolkit.getPageCount());
+  const pages: string[] = [];
+  for (let p = 1; p <= pageCount; p++) pages.push(toolkit.renderToSVG(p));
+  return pages;
 }
 
 /** Count engraved measures in a Verovio SVG string (the `g.measure` elements). */
