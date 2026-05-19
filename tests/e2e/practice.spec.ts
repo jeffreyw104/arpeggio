@@ -125,7 +125,7 @@ test("switching view modes keeps the panels rendering", async ({ page }) => {
   await expect(page.locator("canvas")).toBeVisible();
 });
 
-test("MIDI Practice tab: reading lane is visible and can be toggled", async ({
+test("MIDI Practice tab: layout toggles between reading-lane and split", async ({
   page,
 }) => {
   await page.goto("/");
@@ -134,43 +134,40 @@ test("MIDI Practice tab: reading lane is visible and can be toggled", async ({
     timeout: 15_000,
   });
 
-  // Switch to the MIDI Practice tab.
+  // Switch to the MIDI Practice tab — the reading-lane layout is the default.
   await page.getByRole("button", { name: "MIDI Practice" }).click();
 
-  // The reading-lane strip should be present (not collapsed by default).
-  const readingLane = page.locator("[data-testid='reading-lane']");
-  await expect(readingLane).toBeVisible();
+  const laneBtn = page
+    .locator(".top-bar")
+    .getByRole("button", { name: "Reading lane" });
+  const splitBtn = page
+    .locator(".top-bar")
+    .getByRole("button", { name: "Split", exact: true });
 
-  // The in-lane collapse toggle button is visible when expanded.
-  const collapseBtn = page.getByRole("button", {
-    name: /collapse reading lane/i,
-  });
-  await expect(collapseBtn).toBeVisible();
-  await expect(collapseBtn).toHaveAttribute("aria-expanded", "true");
+  await expect(laneBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(splitBtn).toHaveAttribute("aria-pressed", "false");
 
-  // Collapse via the in-lane toggle.
-  await collapseBtn.click();
-
-  // After collapsing, the in-lane toggle is not rendered (it would be clipped
-  // by overflow:hidden on the collapsed lane). The TopBar "Reading lane" toggle
-  // is the only control for re-expanding — verify it shows the lane is collapsed.
-  const topBarToggle = page.locator(".top-bar").getByRole("button", {
-    name: /reading lane/i,
-  });
-  await expect(topBarToggle).toHaveAttribute("aria-pressed", "false");
-
-  // The falldown canvas must still be present and visible.
+  // The score panel and the falldown canvas are both present in lane layout.
+  await expect(page.locator("[data-testid='reading-lane']")).toBeVisible();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
-  // Expand via the TopBar "Reading lane" button (always accessible in the bar).
-  await topBarToggle.click();
-  await expect(
-    page.getByRole("button", { name: /collapse reading lane/i }),
-  ).toHaveAttribute("aria-expanded", "true");
+  // Switch to the split layout.
+  await splitBtn.click();
+  await expect(splitBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(laneBtn).toHaveAttribute("aria-pressed", "false");
+  // The canvas must still be the same element — never remounted.
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
-  // Switch back to Play tab — canvas must still be visible (not remounted).
-  // Use the ModeSwitch's Play button (has aria-pressed attribute).
-  await page.locator(".top-bar-modes").getByRole("button", { name: "Play" }).click();
+  // Back to the reading-lane layout.
+  await laneBtn.click();
+  await expect(laneBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+
+  // Switching back to the Play tab keeps the canvas visible (not remounted).
+  await page
+    .locator(".top-bar-modes")
+    .getByRole("button", { name: "Play" })
+    .click();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 });
 
