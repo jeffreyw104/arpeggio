@@ -505,7 +505,9 @@ export function PracticeView({
           className={`practice-lane-panel lane-theme-${laneTheme}`}
           data-testid="reading-lane"
         >
-          <div ref={laneContainerRef} className="reading-lane-viewport" />
+          <div className="practice-lane-bg">
+            <div ref={laneContainerRef} className="reading-lane-viewport" />
+          </div>
         </div>
       </div>
 
