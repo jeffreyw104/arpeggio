@@ -62,7 +62,7 @@ export class FalldownRenderer {
   zoom = 1;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
-  /** The time signature driving the beat grid; settable by the ControlPanel. */
+  /** The time signature driving the beat grid; set from the Tools popover. */
   beatMeter: { numerator: number; denominator: number };
   /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
   inputHighlights = new Map<number, "correct" | "wrong">();

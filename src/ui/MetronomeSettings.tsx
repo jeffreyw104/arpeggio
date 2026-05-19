@@ -1,6 +1,10 @@
 import { useState } from "react";
 import type { FalldownRenderer } from "../falldown/renderer";
-import type { AudioEngine } from "../audio/engine";
+import {
+  METRONOME_SOUNDS,
+  type AudioEngine,
+  type MetronomeSound,
+} from "../audio/engine";
 
 interface MetronomeSettingsProps {
   falldown: FalldownRenderer | null;
@@ -10,10 +14,10 @@ interface MetronomeSettingsProps {
 }
 
 /**
- * The metronome settings, laid out inline in the Practice-mode HUD: time
- * signature, downbeat accent, beat subdivision, and count-in. Mounted with
- * the Practice HUD, so its inputs initialise from the live renderer /
- * audio-engine state when that HUD mounts.
+ * The metronome settings, laid out inline in the Metronome Tools section:
+ * time signature, downbeat accent, beat subdivision, count-in, and the click
+ * sound. Mounted with the Tools popover, so its inputs initialise from the
+ * live renderer / audio-engine state.
  */
 export function MetronomeSettings({
   falldown,
@@ -31,6 +35,9 @@ export function MetronomeSettings({
   );
   const [subdivision, setSubdivision] = useState(
     () => audioEngine?.metronome.subdivision ?? 1,
+  );
+  const [metronomeSound, setMetronomeSound] = useState<MetronomeSound>(
+    () => audioEngine?.metronomeSound ?? "click",
   );
 
   function handleTimeSignature(value: string): void {
@@ -60,6 +67,12 @@ export function MetronomeSettings({
     setSubdivision(next);
     // eslint-disable-next-line react-hooks/immutability
     if (audioEngine) audioEngine.metronome.subdivision = next;
+  }
+
+  function handleMetronomeSound(value: MetronomeSound): void {
+    setMetronomeSound(value);
+    // eslint-disable-next-line react-hooks/immutability
+    if (audioEngine) audioEngine.metronomeSound = value;
   }
 
   return (
@@ -102,6 +115,21 @@ export function MetronomeSettings({
           <option value={0}>Off</option>
           <option value={1}>1 bar</option>
           <option value={2}>2 bars</option>
+        </select>
+      </label>
+      <label>
+        Sound{" "}
+        <select
+          value={metronomeSound}
+          onChange={(e) =>
+            handleMetronomeSound(e.target.value as MetronomeSound)
+          }
+        >
+          {METRONOME_SOUNDS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
         </select>
       </label>
     </div>

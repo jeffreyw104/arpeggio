@@ -33,8 +33,6 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     viewMode: "both" as const,
     onViewModeChange: vi.fn(),
     onOpenLibrary: vi.fn(),
-    settingsOpen: false,
-    onToggleSettings: vi.fn(),
     toolsOpen: false,
     onToggleTools: vi.fn(),
     mode: "play" as const,
@@ -84,14 +82,6 @@ describe("TopBar", () => {
     const { props } = renderBar();
     fireEvent.click(screen.getByRole("button", { name: "MIDI Practice" }));
     expect(props.onModeChange).toHaveBeenCalledWith("midi");
-  });
-
-  it("toggles settings and reflects the open state", () => {
-    const { props } = renderBar({ settingsOpen: true });
-    const gear = screen.getByRole("button", { name: "Settings" });
-    expect(gear).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(gear);
-    expect(props.onToggleSettings).toHaveBeenCalled();
   });
 
   it("calls onToggleTools when the Tools button is clicked", () => {

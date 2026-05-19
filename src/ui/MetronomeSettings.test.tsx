@@ -123,4 +123,13 @@ describe("MetronomeSettings", () => {
     fireEvent.change(select, { target: { value: "2" } });
     expect(onCountInBarsChange).toHaveBeenCalledWith(2);
   });
+
+  it("sets the metronome click sound on the audio engine", () => {
+    const { audioEngine } = fakes();
+    renderMenu({ audioEngine });
+    fireEvent.change(screen.getByLabelText(/sound/i), {
+      target: { value: "woodblock" },
+    });
+    expect(audioEngine.metronomeSound).toBe("woodblock");
+  });
 });

@@ -12,8 +12,6 @@ interface TopBarProps {
   viewMode: ViewMode;
   onViewModeChange: (m: ViewMode) => void;
   onOpenLibrary: () => void;
-  settingsOpen: boolean;
-  onToggleSettings: () => void;
   toolsOpen: boolean;
   onToggleTools: () => void;
   mode: TabMode;
@@ -54,15 +52,13 @@ function formatTime(seconds: number): string {
  * The fixed top bar. Left: logo, Library, the Tools popover toggle, play/pause,
  * seek scrubber, time, and the Play/MIDI Practice toggle. Center: the
  * now-playing piece name. Right: view controls (Both/Falldown/Score in play
- * mode; Reading lane toggle in midi mode), and the settings gear.
+ * mode; Reading lane toggle in midi mode).
  */
 export function TopBar({
   pieceName,
   viewMode,
   onViewModeChange,
   onOpenLibrary,
-  settingsOpen,
-  onToggleSettings,
   toolsOpen,
   onToggleTools,
   mode,
@@ -208,14 +204,6 @@ export function TopBar({
         </button>
       )}
 
-      <button
-        type="button"
-        aria-label="Settings"
-        aria-pressed={settingsOpen}
-        onClick={onToggleSettings}
-      >
-        ⚙
-      </button>
     </div>
   );
 }

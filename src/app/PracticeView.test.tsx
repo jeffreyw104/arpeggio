@@ -68,7 +68,7 @@ describe("PracticeView", () => {
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
-  it("renders the practice control panel when the settings drawer opens", async () => {
+  it("the Tools popover exposes General settings (note labels)", async () => {
     render(
       <PracticeView
         score={score}
@@ -77,7 +77,7 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Tools" }));
     expect(await screen.findByLabelText(/note labels/i)).toBeInTheDocument();
   });
 

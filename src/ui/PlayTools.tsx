@@ -5,6 +5,7 @@ import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { MetronomeSettings } from "./MetronomeSettings";
+import { GeneralSettings } from "./GeneralSettings";
 
 interface PlayToolsProps {
   transport: Transport;
@@ -48,8 +49,8 @@ function loopMeasures(
 
 /**
  * The Tools popover body for Play mode: Loop (with Speed-up sub-group), Tempo,
- * Hands, Metronome, and a combined Volume & zoom row — each in its own
- * CollapsibleSection. All sections start open; each can be collapsed.
+ * Hands, Metronome, and General settings — each in its own CollapsibleSection.
+ * All sections start open; each can be collapsed.
  */
 export function PlayTools({
   transport,
@@ -65,7 +66,6 @@ export function PlayTools({
   const [tempoOpen, setTempoOpen] = useState(true);
   const [handsOpen, setHandsOpen] = useState(true);
   const [metronomeOpen, setMetronomeOpen] = useState(true);
-  const [volZoomOpen, setVolZoomOpen] = useState(true);
 
   // --- Loop state ---
   const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));
@@ -197,21 +197,6 @@ export function PlayTools({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [audioEngine]);
-
-  // --- Volume state ---
-  const [volume, setVolume] = useState(1);
-  function changeVolume(v: number): void {
-    setVolume(v);
-    audioEngine?.setVolume(v);
-  }
-
-  // --- Note-zoom state ---
-  const [zoom, setZoom] = useState(() => falldown?.zoom ?? 1);
-  function changeZoom(z: number): void {
-    setZoom(z);
-    // eslint-disable-next-line react-hooks/immutability
-    if (falldown) falldown.zoom = z;
-  }
 
   return (
     <div className="play-tools">
@@ -379,10 +364,11 @@ export function PlayTools({
         <label>
           <input
             type="checkbox"
+            aria-label="Metronome"
             checked={metronomeOn}
             onChange={(e) => handleMetronome(e.target.checked)}
           />{" "}
-          Metronome
+          On
         </label>
         <span ref={pulseRef} className="metronome-pulse" aria-hidden="true" />
         <MetronomeSettings
@@ -393,40 +379,7 @@ export function PlayTools({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection
-        label="Volume & zoom"
-        open={volZoomOpen}
-        onToggle={() => setVolZoomOpen((o) => !o)}
-      >
-        <div className="vol-zoom-row">
-          <label className="hud-mini hud-mini--stacked">
-            <span className="hud-mini-label">Volume</span>
-            <input
-              type="range"
-              aria-label="Volume"
-              className="hud-minislider"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => changeVolume(Number(e.target.value))}
-            />
-          </label>
-          <label className="hud-mini hud-mini--stacked">
-            <span className="hud-mini-label">Zoom</span>
-            <input
-              type="range"
-              aria-label="Note zoom"
-              className="hud-minislider"
-              min={0.5}
-              max={2}
-              step={0.05}
-              value={zoom}
-              onChange={(e) => changeZoom(Number(e.target.value))}
-            />
-          </label>
-        </div>
-      </CollapsibleSection>
+      <GeneralSettings falldown={falldown} audioEngine={audioEngine} />
     </div>
   );
 }

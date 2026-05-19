@@ -19,7 +19,6 @@ import { ToolsPopover } from "../ui/ToolsPopover";
 import { PlayTools } from "../ui/PlayTools";
 import { MidiTools } from "../ui/MidiTools";
 import { HandState } from "../practice/hands";
-import { ControlPanel } from "../practice/ControlPanel";
 import {
   getPracticeState,
   savePracticeState,
@@ -105,14 +104,13 @@ export function PracticeView({
   const [laneCollapsed, setLaneCollapsed] = useState(false);
 
   // The falldown renderer and audio engine are built inside the mount effect;
-  // exposing them as state lets the ControlPanel render against them in JSX.
+  // exposing them as state lets the Tools popover render against them in JSX.
   const [falldown, setFalldown] = useState<FalldownRenderer | null>(null);
   const [audioEngine, setAudioEngine] = useState<AudioEngine | null>(null);
 
-  // The practice-state restore is async; gate the ControlPanel on this so its
+  // The practice-state restore is async; gate the Tools popover on this so its
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
@@ -452,8 +450,6 @@ export function PracticeView({
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onOpenLibrary={onExit}
-        settingsOpen={settingsOpen}
-        onToggleSettings={() => setSettingsOpen((o) => !o)}
         toolsOpen={toolsOpen}
         onToggleTools={() => setToolsOpen((o) => !o)}
         mode={mode}
@@ -496,9 +492,6 @@ export function PracticeView({
           />
         )}
       </ToolsPopover>
-      {falldown && practiceReady && settingsOpen && (
-        <ControlPanel falldown={falldown} audioEngine={audioEngine} />
-      )}
       {!scoreReady && <div className="score-loading">Loading score…</div>}
       {score.qualityWarning && (
         <div className="quality-warning">{score.qualityWarning}</div>

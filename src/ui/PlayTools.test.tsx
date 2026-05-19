@@ -60,7 +60,7 @@ const SECTION_LABELS = [
   "Tempo",
   "Hands",
   "Metronome",
-  "Volume & zoom",
+  "General settings",
 ];
 
 describe("PlayTools", () => {

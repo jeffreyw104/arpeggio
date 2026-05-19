@@ -1,9 +1,8 @@
-import { useState } from "react";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { Hand } from "../model/score";
 import type { MidiDevice, MidiStatus } from "../midi/MidiInput";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { GeneralSettings } from "./GeneralSettings";
 
 interface MidiToolsProps {
   audioEngine: AudioEngine | null;
@@ -42,8 +41,8 @@ function handsPreset(hands: ReadonlySet<Hand>): "left" | "right" | "both" {
 
 /**
  * The Tools popover content for the MIDI Practice tab: MIDI device selection,
- * hand selection, wait-for-me, input-sound monitor, plus a combined Volume &
- * zoom row. Presentational — all state lives in PracticeView.
+ * hand selection, wait-for-me, input-sound monitor, plus the shared General
+ * settings section. Presentational — all state lives in PracticeView.
  */
 export function MidiTools({
   audioEngine,
@@ -59,22 +58,6 @@ export function MidiTools({
   monitorOn,
   onMonitorOnChange,
 }: MidiToolsProps): React.JSX.Element {
-  // The combined Volume & zoom section starts open; it can be collapsed.
-  const [volZoomOpen, setVolZoomOpen] = useState(true);
-
-  const [volume, setVolume] = useState(1);
-  function changeVolume(v: number): void {
-    setVolume(v);
-    audioEngine?.setVolume(v);
-  }
-
-  const [zoom, setZoom] = useState(() => falldown?.zoom ?? 1);
-  function changeZoom(z: number): void {
-    setZoom(z);
-    // eslint-disable-next-line react-hooks/immutability
-    if (falldown) falldown.zoom = z;
-  }
-
   const selectedName =
     devices.find((d) => d.id === selectedDeviceId)?.name ?? null;
   const preset = handsPreset(handsIPlay);
@@ -154,40 +137,7 @@ export function MidiTools({
         <span>Input sound</span>
       </label>
 
-      <CollapsibleSection
-        label="Volume & zoom"
-        open={volZoomOpen}
-        onToggle={() => setVolZoomOpen((o) => !o)}
-      >
-        <div className="vol-zoom-row">
-          <label className="hud-mini hud-mini--stacked">
-            <span className="hud-mini-label">Volume</span>
-            <input
-              type="range"
-              aria-label="Volume"
-              className="hud-minislider"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => changeVolume(Number(e.target.value))}
-            />
-          </label>
-          <label className="hud-mini hud-mini--stacked">
-            <span className="hud-mini-label">Zoom</span>
-            <input
-              type="range"
-              aria-label="Note zoom"
-              className="hud-minislider"
-              min={0.5}
-              max={2}
-              step={0.05}
-              value={zoom}
-              onChange={(e) => changeZoom(Number(e.target.value))}
-            />
-          </label>
-        </div>
-      </CollapsibleSection>
+      <GeneralSettings falldown={falldown} audioEngine={audioEngine} />
     </div>
   );
 }
