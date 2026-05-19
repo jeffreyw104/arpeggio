@@ -77,12 +77,16 @@ async function renderScoreImpl(musicXml: string): Promise<RenderedScore> {
   // Sensible engraving options: every page rendered at the SAME full-page
   // height (adjustPageHeight off) so the score-only view can size all pages to
   // one uniform height and width; automatic line breaks; no header/footer.
+  // pageHeight is set explicitly to Verovio's default — setOptions MERGES, so
+  // without this the reading-lane render's tall pageHeight would persist on
+  // the shared toolkit and turn the score into one giant page.
   toolkit.setOptions({
     adjustPageHeight: false,
     breaks: "auto",
     footer: "none",
     header: "none",
     scale: 40,
+    pageHeight: 2970,
   });
   toolkit.loadData(musicXml);
   const pageCount = toolkit.getPageCount();
