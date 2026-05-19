@@ -256,3 +256,40 @@ test("playback does not carry over between the Play and Practice tabs", async ({
     .click();
   await expect(time).toHaveText(playTabTime ?? "");
 });
+
+test("MIDI Practice tab: Tools popover includes the shared Loop, Tempo, and Metronome sections", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Switch to the MIDI Practice tab and open the Tools popover.
+  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  await page
+    .locator(".top-bar")
+    .getByRole("button", { name: "Tools" })
+    .click();
+  await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
+
+  // The Practice popover still has its MIDI controls...
+  await expect(
+    page.getByRole("checkbox", { name: /wait for me/i }),
+  ).toBeVisible();
+
+  // ...and now also the sections shared with the Play tab.
+  await expect(
+    page.getByRole("button", { name: "Loop", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Tempo", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Metronome", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "General settings" }),
+  ).toBeVisible();
+});
