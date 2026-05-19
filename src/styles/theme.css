@@ -601,19 +601,21 @@ textarea {
 }
 
 /* The track holds the stacked-systems engraving; ReadingLaneView shifts it
-   vertically (transform) to jump between systems. */
+   vertically (transform) to jump between systems. The invert filter lives
+   here, not on the SVG, because the SVG carries a `zoom` style that can
+   suppress a filter on the same element. invert flips the black notation to
+   white over the dark panel; hue-rotate(180deg) cancels invert's hue flip so
+   the green measure highlight stays green. */
 .reading-lane-track {
   width: 100%;
   will-change: transform;
+  filter: invert(1) hue-rotate(180deg);
 }
 
-/* ReadingLaneView scales the engraving; centre it, and invert the black
-   notation to white over the dark panel. hue-rotate(180deg) cancels the hue
-   flip from invert, so the green measure highlight stays green. */
+/* ReadingLaneView scales the engraving; centre it in the lane. */
 .reading-lane-track svg {
   display: block;
   margin-inline: auto;
-  filter: invert(1) hue-rotate(180deg);
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */
