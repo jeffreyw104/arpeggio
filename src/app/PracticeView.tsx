@@ -104,8 +104,9 @@ export function PracticeView({
   // MIDI tab configuration mirrored into React so MidiTools re-renders.
   const [midiStatus, setMidiStatus] = useState<MidiStatus>("no-device");
   const [midiDevices, setMidiDevices] = useState<readonly MidiDevice[]>([]);
+  // Default to no hand selected — nothing muted, the piece plays in full.
   const [handsIPlay, setHandsIPlay] = useState<Set<Hand>>(
-    () => new Set<Hand>(["right"]),
+    () => new Set<Hand>(),
   );
   const [waitEnabled, setWaitEnabled] = useState(true);
   const [monitorOn, setMonitorOn] = useState(true);

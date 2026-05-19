@@ -37,7 +37,7 @@ export function MetronomeSettings({
     () => audioEngine?.metronome.subdivision ?? 1,
   );
   const [metronomeSound, setMetronomeSound] = useState<MetronomeSound>(
-    () => audioEngine?.metronomeSound ?? "click",
+    () => audioEngine?.metronomeSound ?? "woodblock",
   );
 
   function handleTimeSignature(value: string): void {

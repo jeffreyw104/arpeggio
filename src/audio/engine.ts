@@ -236,7 +236,7 @@ export async function createAudioEngine(
     },
   };
   const click: ClickSink = {
-    sound: "click",
+    sound: "woodblock",
     playClick(accent) {
       switch (this.sound) {
         case "woodblock":
