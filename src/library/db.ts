@@ -32,6 +32,11 @@ export interface StoredPracticeState {
   subdivision?: number;
   /** The last-used session mode (optional for records saved before this). */
   mode?: TabMode;
+  /** Per-tab transport state (optional; pre-this records fall back to bpm/loop). */
+  tabs?: {
+    play: { bpm: number; loop: { start: number; end: number } | null };
+    midi: { bpm: number; loop: { start: number; end: number } | null };
+  };
 }
 
 const DB_NAME = "arpeggio";

@@ -2,13 +2,17 @@ import type { Transport } from "../transport/transport";
 import type { HandState } from "../practice/hands";
 import type { StoredPracticeState } from "./db";
 import type { TabMode } from "../layout/practiceMode";
+import { captureTab, type TabSnapshot } from "../transport/tabSnapshot";
 
 /** Read the current tempo, loop, hand, and session settings. */
 export function capturePracticeState(
   transport: Transport,
   hands: HandState,
   beat?: { numerator: number; denominator: number; subdivision: number },
-  session?: { mode: TabMode },
+  session?: {
+    mode: TabMode;
+    tabs?: Record<TabMode, { bpm: number; loop: { start: number; end: number } | null }>;
+  },
 ): StoredPracticeState {
   const loop = transport.clock.loop;
   return {
@@ -25,6 +29,22 @@ export function capturePracticeState(
     }),
     ...(session && {
       mode: session.mode,
+      ...(session.tabs && {
+        tabs: {
+          play: {
+            bpm: session.tabs.play.bpm,
+            loop: session.tabs.play.loop
+              ? { ...session.tabs.play.loop }
+              : null,
+          },
+          midi: {
+            bpm: session.tabs.midi.bpm,
+            loop: session.tabs.midi.loop
+              ? { ...session.tabs.midi.loop }
+              : null,
+          },
+        },
+      }),
     }),
   };
 }
@@ -47,4 +67,31 @@ export function applyPracticeState(
     "right",
     state.rightVisibility ?? (state.rightHidden ? "hide" : "show"),
   );
+}
+
+/**
+ * Build the per-tab snapshots for a freshly-opened piece. When the stored
+ * record has per-tab state, use it (position is not persisted — starts at 0).
+ * Otherwise both tabs seed from the live transport so they share its baseline.
+ */
+export function seedTabSnapshots(
+  transport: Transport,
+  state: StoredPracticeState | null,
+): Record<TabMode, TabSnapshot> {
+  if (!state?.tabs) {
+    const base = captureTab(transport);
+    return { play: { ...base }, midi: { ...base } };
+  }
+  return {
+    play: {
+      position: 0,
+      bpm: state.tabs.play.bpm,
+      loop: state.tabs.play.loop ? { ...state.tabs.play.loop } : null,
+    },
+    midi: {
+      position: 0,
+      bpm: state.tabs.midi.bpm,
+      loop: state.tabs.midi.loop ? { ...state.tabs.midi.loop } : null,
+    },
+  };
 }

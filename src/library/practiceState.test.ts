@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { capturePracticeState, applyPracticeState } from "./practiceState";
+import { seedTabSnapshots } from "./practiceState";
 import { Transport } from "../transport/transport";
 import { HandState } from "../practice/hands";
 import type { Score } from "../model/score";
@@ -130,5 +131,61 @@ describe("practice-mode persistence", () => {
     const hands = new HandState();
     const captured = capturePracticeState(t, hands);
     expect(captured.mode).toBeUndefined();
+  });
+});
+
+describe("per-tab transport snapshots", () => {
+  it("capturePracticeState records both tabs when given the tabs argument", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    const captured = capturePracticeState(t, hands, undefined, {
+      mode: "midi",
+      tabs: {
+        play: { bpm: 120, loop: null },
+        midi: { bpm: 80, loop: { start: 1, end: 3 } },
+      },
+    });
+    expect(captured.tabs).toEqual({
+      play: { bpm: 120, loop: null },
+      midi: { bpm: 80, loop: { start: 1, end: 3 } },
+    });
+  });
+
+  it("capturePracticeState omits tabs when the tabs argument is not given", () => {
+    const t = new Transport(score);
+    const hands = new HandState();
+    expect(capturePracticeState(t, hands, undefined, { mode: "play" }).tabs)
+      .toBeUndefined();
+  });
+
+  it("seedTabSnapshots returns the stored per-tab state", () => {
+    const t = new Transport(score);
+    const seeded = seedTabSnapshots(t, {
+      bpm: 120,
+      loop: null,
+      leftMuted: false,
+      rightMuted: false,
+      tabs: {
+        play: { bpm: 110, loop: null },
+        midi: { bpm: 70, loop: { start: 2, end: 4 } },
+      },
+    });
+    expect(seeded.play).toEqual({ position: 0, bpm: 110, loop: null });
+    expect(seeded.midi).toEqual({
+      position: 0,
+      bpm: 70,
+      loop: { start: 2, end: 4 },
+    });
+  });
+
+  it("seedTabSnapshots falls back to the live transport for records with no tabs", () => {
+    const t = new Transport(score);
+    t.setBpm(95);
+    t.clock.seek(1.5);
+    const seeded = seedTabSnapshots(t, null);
+    expect(seeded.play.bpm).toBeCloseTo(95, 3);
+    expect(seeded.midi.bpm).toBeCloseTo(95, 3);
+    expect(seeded.play.position).toBe(1.5);
+    expect(seeded.midi.position).toBe(1.5);
   });
 });
