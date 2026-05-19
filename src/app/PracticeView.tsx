@@ -442,7 +442,8 @@ export function PracticeView({
          * [B] Score panel — stable tree position, always rendered as a <div>.
          * The component type never changes; only the className does.
          * In play mode: right flex column.
-         * In MIDI mode: reading-lane strip at top (~120 px, or 0 when collapsed).
+         * In MIDI mode: frosted reading-lane overlay (layout-lane) or a
+         * side-by-side panel (layout-split).
          */}
         <div
           className={scorePanelClass}
