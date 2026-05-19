@@ -398,32 +398,34 @@ export function PlayTools({
         open={volZoomOpen}
         onToggle={() => setVolZoomOpen((o) => !o)}
       >
-        <label className="hud-mini">
-          <span className="hud-mini-label">Vol</span>
-          <input
-            type="range"
-            aria-label="Volume"
-            className="hud-minislider"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => changeVolume(Number(e.target.value))}
-          />
-        </label>
-        <label className="hud-mini">
-          <span className="hud-mini-label">Zoom</span>
-          <input
-            type="range"
-            aria-label="Note zoom"
-            className="hud-minislider"
-            min={0.5}
-            max={2}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => changeZoom(Number(e.target.value))}
-          />
-        </label>
+        <div className="vol-zoom-row">
+          <label className="hud-mini hud-mini--stacked">
+            <span className="hud-mini-label">Volume</span>
+            <input
+              type="range"
+              aria-label="Volume"
+              className="hud-minislider"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => changeVolume(Number(e.target.value))}
+            />
+          </label>
+          <label className="hud-mini hud-mini--stacked">
+            <span className="hud-mini-label">Zoom</span>
+            <input
+              type="range"
+              aria-label="Note zoom"
+              className="hud-minislider"
+              min={0.5}
+              max={2}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => changeZoom(Number(e.target.value))}
+            />
+          </label>
+        </div>
       </CollapsibleSection>
     </div>
   );

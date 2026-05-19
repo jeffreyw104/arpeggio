@@ -343,6 +343,28 @@ textarea {
   cursor: pointer;
 }
 
+/* The combined Volume & zoom row: the two controls pushed to opposite ends,
+   each with its caption stacked above the slider, with a little vertical
+   breathing room so the row sits centred in its section. */
+.vol-zoom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  padding: 0.45rem 0;
+}
+
+.hud-mini--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.hud-mini--stacked .hud-minislider {
+  width: 100px;
+}
+
 /* The play / pause button in the top bar — an accent circle with a glow.
    Uses two-class specificity to outrank the generic `.top-bar button` rule. */
 .top-bar .hud-play-btn {
