@@ -10,8 +10,9 @@ import {
   type AudioEngine,
 } from "../audio/engine";
 import { FalldownRenderer } from "../falldown/renderer";
-import { renderScore } from "../score-view/verovio";
+import { renderScore, renderReadingLane } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
+import { ReadingLaneView } from "../score-view/ReadingLaneView";
 import { Divider } from "../layout/Divider";
 import type { ViewMode } from "../layout/viewMode";
 import { TopBar } from "../ui/TopBar";
@@ -70,6 +71,7 @@ export function PracticeView({
 }: PracticeViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreContainerRef = useRef<HTMLDivElement>(null);
+  const laneContainerRef = useRef<HTMLDivElement>(null);
 
   // The Transport must be stable across renders; a lazy initializer creates it
   // exactly once, and unlike a ref it is safe to read during render.
@@ -86,6 +88,7 @@ export function PracticeView({
 
   const engineRef = useRef<AudioEngine | null>(null);
   const scoreViewRef = useRef<ScoreView | null>(null);
+  const laneViewRef = useRef<ReadingLaneView | null>(null);
   const audioStartedRef = useRef(false);
   const falldownRef = useRef<FalldownRenderer | null>(null);
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
@@ -239,11 +242,29 @@ export function PracticeView({
       }
     })();
 
+    // The reading lane is a second, separate engraving — systems stacked on
+    // one page (see renderReadingLane) — driven by the same clock as the split
+    // ScoreView, so the two views stay in sync across a layout switch.
+    void (async () => {
+      try {
+        const laneSvg = await renderReadingLane(transport.score.musicXml);
+        if (cancelled) return;
+        const container = laneContainerRef.current;
+        if (!container) return;
+        const laneView = new ReadingLaneView(container, transport, laneSvg);
+        laneViewRef.current = laneView;
+        loop.onFrame(() => laneView.renderFrame());
+      } catch {
+        // The reading lane is optional; ignore render failures.
+      }
+    })();
+
     return () => {
       cancelled = true;
       loop.stop();
       midiSession.dispose();
       scoreViewRef.current?.destroy();
+      laneViewRef.current?.destroy();
       const renderer = falldownRef.current;
       const beat = renderer
         ? {
@@ -445,11 +466,7 @@ export function PracticeView({
          * In MIDI mode: frosted reading-lane overlay (layout-lane) or a
          * side-by-side panel (layout-split).
          */}
-        <div
-          className={scorePanelClass}
-          style={scorePanelStyle}
-          {...(isMidi ? { "data-testid": "reading-lane" } : {})}
-        >
+        <div className={scorePanelClass} style={scorePanelStyle}>
           {/* The score-container ref is always this element, at this position */}
           <div ref={scoreContainerRef} className={scoreContainerClass} />
 
@@ -465,6 +482,14 @@ export function PracticeView({
             </div>
           )}
 
+        </div>
+
+        {/*
+         * [C] Reading-lane ribbon panel — stable tree position, always
+         * rendered. CSS reveals it only in the MIDI reading-lane layout.
+         */}
+        <div className="practice-lane-panel" data-testid="reading-lane">
+          <div ref={laneContainerRef} className="reading-lane-viewport" />
         </div>
       </div>
 

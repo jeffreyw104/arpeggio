@@ -95,34 +95,30 @@ General settings) into a `CommonTools` component. `PlayTools` renders its Hands
 section plus `CommonTools`; the Practice popover (`MidiTools`) renders the MIDI
 sections plus `CommonTools`.
 
-## 3. Reading-lane redesign — integrated frosted score backdrop
+## 3. Reading-lane redesign — stacked-systems reading view
 
-The Practice tab's reading lane changes from a separate white strip into the
-engraved score **integrated as a blurred backdrop** at the top of the falldown.
+The Practice tab's reading lane is a **separate engraving** of the score
+(`renderReadingLane`), distinct from the paginated engraving the split view
+keeps. It is rendered with normal system breaks but every system stacked onto
+one tall page, so there are no page-boundary gaps.
 
-- The falldown `<canvas>` fills the whole practice area and renders falling
-  notes full-height as today.
-- The engraved-score container `<div>` is positioned as an **absolute overlay**
-  across the top region of the falldown, styled as a frosted panel:
-  a translucent dark gradient background plus `backdrop-filter: blur(~6px)`,
-  with a soft `mask-image` fade at its lower edge.
-- Falling notes therefore appear **blurred behind** the panel (the backdrop
-  filter blurs the canvas pixels behind it) and **sharpen** as they fall below
-  the panel into the play strip above the keyboard.
-- The overlay shows **one system** of the score, scrolled to follow the
-  playhead, and advances a system at a time. Measures keep their natural
-  engraved widths (Verovio lays them out — a busier measure spans more of the
-  line); the lane is not re-engraved.
-- The system is positioned with **top headroom** inside the panel so high
-  ledger-line notes and their beams are not clipped.
-- The current measure keeps the existing green highlight (`ScoreView` already
-  draws it), contained within the one system's grand staff.
+- `ReadingLaneView` injects this engraving into a frosted overlay panel
+  (`.practice-lane-panel`) below the top bar, and reveals ~two systems at a
+  time: the system holding the playhead at the top, the next system previewing
+  below.
+- When the playhead crosses into the next system the lane **jumps** down a
+  system — a discrete page-turn; it never scrolls continuously.
+- The current measure carries the green highlight, sized to the staff-line box
+  (barline-to-barline, top to bottom staff line) — the same `measureBox`
+  helper the split `ScoreView` uses.
+- The panel is a light frosted pane; the falling notes blur behind it. Vertical
+  padding gives ledger-line headroom so notes outside the staff are not cut.
+- `ReadingLaneView` and `ScoreView` both read the one shared transport clock
+  every frame, so switching between the reading-lane and split layouts stays
+  in sync.
 
-This redesign **absorbs known bug 1** ("reading lane renders on the bottom") —
-the score is now, by construction, the top backdrop.
-
-The visual direction was validated through browser mockups (Frosted-panel
-blend, one-system, with ledger headroom).
+The split view keeps the existing paginated, page-style engraving unchanged.
+This redesign **absorbs known bug 1** ("reading lane renders on the bottom").
 
 ## 4. Switchable Practice layout
 

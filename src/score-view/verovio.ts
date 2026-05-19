@@ -75,6 +75,27 @@ export async function renderScore(musicXml: string): Promise<RenderedScore> {
   };
 }
 
+/**
+ * Render the score for the MIDI Practice reading lane: normal system breaks
+ * (each line holds several measures) but every system stacked onto ONE tall
+ * page, so there are no page-boundary gaps. The lane shows ~2 systems and
+ * jumps down a system at a time. Rendered separately from `renderScore` so the
+ * paginated split view keeps its own page-style engraving.
+ */
+export async function renderReadingLane(musicXml: string): Promise<string> {
+  const toolkit = await loadVerovioToolkit();
+  toolkit.setOptions({
+    adjustPageHeight: true,
+    breaks: "auto",
+    footer: "none",
+    header: "none",
+    scale: 40,
+    pageHeight: 100000,
+  });
+  toolkit.loadData(musicXml);
+  return toolkit.renderToSVG(1);
+}
+
 /** Count engraved measures in a Verovio SVG string (the `g.measure` elements). */
 export function measureElementCount(svg: string): number {
   const matches = svg.match(/class="[^"]*\bmeasure\b[^"]*"/g);

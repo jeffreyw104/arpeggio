@@ -564,34 +564,69 @@ textarea {
   overflow: hidden;
 }
 
+/* In the reading-lane layout the paginated score panel is hidden — the
+   reading-lane ribbon (.practice-lane-panel) takes its place. */
 .practice-content--midi.layout-lane .practice-score-panel {
+  display: none;
+}
+
+/* The reading-lane ribbon: a frosted overlay holding one continuous engraved
+   system that scrolls horizontally to follow the playhead. Sits below the
+   floating top bar so the notation is never blocked. Shown only in the
+   reading-lane layout. */
+.practice-lane-panel {
+  display: none;
+}
+
+.practice-content--midi.layout-lane .practice-lane-panel {
+  display: block;
   position: absolute;
-  top: 0;
+  top: 68px;
   left: 0;
   right: 0;
-  height: 42%;
+  height: 340px;
   z-index: 4;
   overflow: hidden;
-  /* A light frosted pane: black engraved notation stays readable and the
-     green measure highlight is unaffected, while the falling notes behind
-     are blurred and recede. */
   background: rgba(248, 248, 246, 0.74);
   backdrop-filter: blur(7px) saturate(140%);
   -webkit-backdrop-filter: blur(7px) saturate(140%);
-  border-bottom: 1px solid var(--glass-border);
-  /* Soft lower edge so the panel dissolves into the falldown. */
-  -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+  /* Soft top and bottom edges so the pane dissolves into the falldown. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 7%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 7%,
+    #000 88%,
+    transparent 100%
+  );
 }
 
-/* The score-container inside the lane overlay: transparent (the frosted pane
-   shows through), clipped to the current system, with top padding that both
-   clears the floating top bar and gives ledger-line headroom. */
-.practice-content--midi.layout-lane .score-container {
-  background: transparent;
-  overflow: hidden;
+/* The viewport clips the ribbon; vertical padding gives ledger-line headroom
+   so notes above and below the staff are never cut off. */
+.reading-lane-viewport {
+  width: 100%;
   height: 100%;
-  padding: 64px 1rem 0.5rem;
+  overflow: hidden;
+  padding: 16px 0;
+}
+
+/* The track holds the stacked-systems engraving; ReadingLaneView shifts it
+   vertically (transform) to jump between systems. */
+.reading-lane-track {
+  width: 100%;
+  will-change: transform;
+}
+
+.reading-lane-track svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */
