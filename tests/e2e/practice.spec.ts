@@ -239,6 +239,10 @@ test("playback does not carry over between the Play and Practice tabs", async ({
   await playBtn.evaluate((el: HTMLButtonElement) => el.click());
   await page.waitForTimeout(1200);
   await playBtn.evaluate((el: HTMLButtonElement) => el.click());
+  // Ensure the clock visibly advanced past 0:00 before snapshotting the time,
+  // so the comparison below is independent of wall-clock precision. Playwright's
+  // auto-retry absorbs scheduling jitter on slow machines.
+  await expect(time).not.toHaveText("0:00");
   const playTabTime = await time.textContent();
 
   // Switch to MIDI Practice — its playhead is independent of the Play tab.
