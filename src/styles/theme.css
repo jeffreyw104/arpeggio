@@ -590,41 +590,22 @@ textarea {
   background: rgba(248, 248, 246, 0.74);
   backdrop-filter: blur(7px) saturate(140%);
   -webkit-backdrop-filter: blur(7px) saturate(140%);
-  /* Soft edges all round so the pane dissolves into the falldown instead of
-     reading as a hard rectangle: a vertical fade and a horizontal fade,
-     intersected so every side — and the corners — feather. */
-  -webkit-mask-image:
-    linear-gradient(
-      to bottom,
-      transparent 0%,
-      #000 3%,
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(
-      to right,
-      transparent 0%,
-      #000 6%,
-      #000 94%,
-      transparent 100%
-    );
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(
-      to bottom,
-      transparent 0%,
-      #000 3%,
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(
-      to right,
-      transparent 0%,
-      #000 6%,
-      #000 94%,
-      transparent 100%
-    );
-  mask-composite: intersect;
+  /* Feather only the left and right edges so the pane is not a hard
+     rectangle; the top and bottom stay crisp. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
 }
 
 /* The viewport clips the ribbon; vertical padding gives ledger-line headroom
