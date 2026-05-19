@@ -39,6 +39,11 @@ export class MidiSession {
   private active = false;
   private midiStarted = false;
 
+  /** The user's own hand-mute state, captured when the MIDI tab opens and
+   *  restored when it closes — the MIDI auto-mutes are transient and must
+   *  never leak onto the Play tab or into the saved practice state. */
+  private savedMutes: Record<Hand, boolean> | null = null;
+
   constructor(
     clock: Clock,
     private readonly score: Score,
@@ -130,6 +135,14 @@ export class MidiSession {
         this.midiStarted = true;
         void this.midiInput.start();
       }
+      // Capture the user's own hand-mute state before overlaying the MIDI
+      // auto-mutes, so leaving the tab can restore it exactly.
+      if (this.savedMutes === null) {
+        this.savedMutes = {
+          left: this.handState.isMuted("left"),
+          right: this.handState.isMuted("right"),
+        };
+      }
       // The MIDI tab plays the chosen hand(s) live, so mute them in the app.
       this.applyHandMutes();
     } else {
@@ -143,11 +156,20 @@ export class MidiSession {
       }
       // Drop stale held notes so they do not leak across a tab switch.
       this.liveNotes.clear();
-      // Clear the MIDI-imposed hand mutes so the play tab is never left with a
-      // hand silenced (the play tab owns its own mute state).
-      for (const hand of HANDS) this.handState.setMuted(hand, false);
+      // Restore the user's own hand-mute state — the MIDI auto-mutes were
+      // transient; the play tab owns its mute state.
+      this.restoreMutes();
     }
     this.syncController();
+  }
+
+  /** Restore the Play-tab hand-mute state captured when the MIDI tab opened. */
+  private restoreMutes(): void {
+    if (this.savedMutes === null) return;
+    for (const hand of HANDS) {
+      this.handState.setMuted(hand, this.savedMutes[hand]);
+    }
+    this.savedMutes = null;
   }
 
   setWaitEnabled(on: boolean): void {
@@ -195,6 +217,9 @@ export class MidiSession {
     this.midiInput.dispose();
     this.keyboardInput.disable();
     this.controller.dispose();
+    // Restore the user's hand mutes so a dispose while the MIDI tab is showing
+    // does not persist the transient MIDI auto-mutes.
+    this.restoreMutes();
     // Release any audio voices so disposal does not leave stuck voices.
     for (const n of this.liveNotes.heldNotes()) {
       if (this.monitorOn && this.audioEngine) {

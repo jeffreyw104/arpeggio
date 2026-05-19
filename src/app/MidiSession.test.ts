@@ -144,11 +144,45 @@ describe("MidiSession", () => {
     expect(handState.isMuted("left")).toBe(true);
     expect(handState.isMuted("right")).toBe(true);
 
-    // Leaving the MIDI tab clears the MIDI-imposed mutes.
+    // Leaving the MIDI tab restores the user's own mutes (here: none).
     session.setActive(false);
     expect(handState.isMuted("right")).toBe(false);
     expect(handState.isMuted("left")).toBe(false);
     session.dispose();
+  });
+
+  it("restores the user's own hand mutes when the MIDI tab is left", () => {
+    const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
+    const handState = new HandState();
+    // The user muted the left hand on the Play tab.
+    handState.setMuted("left", true);
+    const session = new MidiSession(new Clock(10), score, handState);
+
+    // Entering the MIDI tab overlays its own auto-mutes (plays right → right
+    // muted, left sounded), discarding the user's choice for the duration.
+    session.setActive(true);
+    expect(handState.isMuted("left")).toBe(false);
+    expect(handState.isMuted("right")).toBe(true);
+
+    // Leaving the MIDI tab restores exactly what the user had.
+    session.setActive(false);
+    expect(handState.isMuted("left")).toBe(true);
+    expect(handState.isMuted("right")).toBe(false);
+    session.dispose();
+  });
+
+  it("restores the user's own hand mutes on dispose while still active", () => {
+    const score = makeScore([note(60, 1, "right")]);
+    const handState = new HandState();
+    handState.setMuted("right", true);
+    const session = new MidiSession(new Clock(10), score, handState);
+    session.setActive(true);
+
+    // Disposing without first leaving the tab must still restore the user's
+    // mutes, so the transient MIDI auto-mutes are never persisted.
+    session.dispose();
+    expect(handState.isMuted("right")).toBe(true);
+    expect(handState.isMuted("left")).toBe(false);
   });
 
   it("does not gate the clock when active but waitEnabled is false", () => {
