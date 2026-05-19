@@ -85,14 +85,18 @@ export async function renderScore(musicXml: string): Promise<RenderedScore> {
 export async function renderReadingLane(musicXml: string): Promise<string> {
   const toolkit = await loadVerovioToolkit();
   toolkit.setOptions({
-    adjustPageHeight: true,
+    // adjustPageHeight must stay OFF: with it on, Verovio paginates at a
+    // default page height and ignores the huge pageHeight below, so a long
+    // piece spills onto pages 2+ (and the lane, rendering only page 1, would
+    // stop after the first page). Off, the huge pageHeight is honoured and
+    // every system lands on one page — the lane has no page-boundary gaps.
+    adjustPageHeight: false,
     breaks: "auto",
     footer: "none",
     header: "none",
     scale: 40,
-    // No pageWidth override: each system is laid out exactly as in the
-    // paginated score, so a lane line matches a sheet-music line. pageHeight
-    // is huge so every system lands on one page — no page-boundary gaps.
+    // No pageWidth override: a lane line is laid out exactly like a line in
+    // the paginated score.
     pageHeight: 100000,
   });
   toolkit.loadData(musicXml);
