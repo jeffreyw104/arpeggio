@@ -1,6 +1,7 @@
 import type { Transport } from "../transport/transport";
 import { currentMeasureIndex } from "./sync";
 import { measureIndexFromTarget, orderedRange } from "./interactions";
+import { measureBox } from "./measureBox";
 import type { TimemapEntry } from "./verovio";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -62,7 +63,7 @@ export class ScoreView {
       // measure element. Appended last (on top) to reliably catch events; the
       // app only does measure-level interaction so this never steals a needed
       // per-note event.
-      const box = this.measureBox(el);
+      const box = measureBox(el);
       const hit = document.createElementNS(SVG_NS, "rect");
       hit.setAttribute("class", "measure-hit");
       hit.setAttribute("x", String(box.x));
@@ -160,43 +161,6 @@ export class ScoreView {
   }
 
   /**
-   * Compute the clean measure rectangle: the union of the STAFF-LINE bounding
-   * boxes only — not the whole `g.measure` bbox.
-   *
-   * Verovio draws each staff's 5 horizontal lines as the direct `<path>`
-   * children of `g.staff`. Their union spans exactly barline-to-barline in x
-   * and from the topmost to the bottommost staff line in y (covering the gap
-   * between the two staves of a grand staff). Crucially it EXCLUDES notes,
-   * stems, beams and ledger lines, so the box is identical for every measure
-   * of the same width and never overflows into a neighbour.
-   *
-   * Falls back to the full `g.measure` bbox if no staff lines are found.
-   */
-  private measureBox(measureEl: Element): {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } {
-    const lines = measureEl.querySelectorAll("g.staff > path");
-    if (lines.length === 0) {
-      return (measureEl as SVGGraphicsElement).getBBox();
-    }
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    lines.forEach((line) => {
-      const b = (line as SVGGraphicsElement).getBBox();
-      minX = Math.min(minX, b.x);
-      minY = Math.min(minY, b.y);
-      maxX = Math.max(maxX, b.x + b.width);
-      maxY = Math.max(maxY, b.y + b.height);
-    });
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  }
-
-  /**
    * Move and size `rect` to cover the clean measure rectangle (barline to
    * barline, topmost to bottommost staff line) — MuseScore-style.
    *
@@ -213,7 +177,7 @@ export class ScoreView {
    */
   private positionRect(rect: SVGRectElement, measureEl: Element): void {
     if (rect.parentNode) rect.parentNode.removeChild(rect);
-    const box = this.measureBox(measureEl);
+    const box = measureBox(measureEl);
     rect.setAttribute("x", String(box.x));
     rect.setAttribute("y", String(box.y));
     rect.setAttribute("width", String(box.width));
