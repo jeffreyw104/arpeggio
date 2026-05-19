@@ -587,11 +587,7 @@ textarea {
   height: 400px;
   z-index: 4;
   overflow: hidden;
-  /* Dark frosted panel — translucent so the falldown shows faintly behind it,
-     blurred, instead of being fully blocked out. */
-  background: rgba(21, 21, 26, 0.84);
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  /* Background and notation recolour are set per theme below (dark / paper). */
   /* Feather all four edges — a vertical and a horizontal fade intersected —
      so the panel dissolves into the falldown rather than being a hard box. */
   -webkit-mask-image:
@@ -628,6 +624,32 @@ textarea {
   mask-composite: intersect;
 }
 
+/* --- Reading-lane themes --- */
+
+/* Dark: a translucent near-black frosted panel; the black engraving is
+   inverted + warmed to a soft cream. The recolour filter lives on the track,
+   not the SVG, because the SVG carries a `zoom` style that can suppress a
+   filter on the same element. The green highlight is a separate overlay, so
+   the filter never tints it. */
+.practice-lane-panel.lane-theme-dark {
+  background: rgba(21, 21, 26, 0.84);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+.lane-theme-dark .reading-lane-track {
+  filter: invert(0.86) sepia(0.6) brightness(1.04);
+}
+
+/* Paper: an opaque warm-cream sheet with the natural black engraving. */
+.practice-lane-panel.lane-theme-paper {
+  background: rgba(247, 243, 234, 0.97);
+}
+
+.lane-theme-paper .reading-lane-track {
+  filter: none;
+}
+
 /* The viewport clips the lane and is the positioning context for the overlay
    highlight / hover markers. */
 .reading-lane-viewport {
@@ -638,15 +660,10 @@ textarea {
 }
 
 /* The track holds the stacked-systems engraving; ReadingLaneView shifts it
-   vertically (transform) to jump between systems. The recolour filter lives
-   here, not on the SVG, because the SVG carries a `zoom` style that can
-   suppress a filter on the same element. invert flips the black notation
-   light; sepia + brightness warm it to a soft cream over the dark panel. The
-   green highlight is a separate overlay, so the filter never tints it. */
+   vertically (transform) to jump between systems. */
 .reading-lane-track {
   width: 100%;
   will-change: transform;
-  filter: invert(0.86) sepia(0.6) brightness(1.04);
 }
 
 /* ReadingLaneView scales the engraving; centre it in the lane. */
@@ -668,11 +685,11 @@ textarea {
 }
 
 .lane-highlight {
-  background: rgba(68, 170, 136, 0.3);
+  background: rgba(63, 174, 79, 0.32);
 }
 
 .lane-hover {
-  background: rgba(68, 170, 136, 0.14);
+  background: rgba(63, 174, 79, 0.16);
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */

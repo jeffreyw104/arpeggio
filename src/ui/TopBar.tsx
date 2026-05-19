@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ViewMode } from "../layout/viewMode";
 import { ModeSwitch } from "./ModeSwitch";
-import type { TabMode, PracticeLayout } from "../layout/practiceMode";
+import type { TabMode, PracticeLayout, LaneTheme } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
@@ -21,6 +21,10 @@ interface TopBarProps {
   countInBars: number;
   /** MIDI tab: the current Practice layout. */
   practiceLayout: PracticeLayout;
+  /** MIDI tab: the reading lane's visual theme. */
+  laneTheme: LaneTheme;
+  /** MIDI tab: change the reading lane's theme. */
+  onLaneThemeChange: (theme: LaneTheme) => void;
   /** MIDI tab: change the Practice layout. */
   onPracticeLayoutChange: (layout: PracticeLayout) => void;
   /** MIDI tab: current MIDI connection status. */
@@ -68,6 +72,8 @@ export function TopBar({
   countInBars,
   practiceLayout,
   onPracticeLayoutChange,
+  laneTheme,
+  onLaneThemeChange,
   midiStatus,
   midiDeviceName,
 }: TopBarProps): React.JSX.Element {
@@ -209,6 +215,17 @@ export function TopBar({
           >
             Split
           </button>
+          {practiceLayout === "lane" && (
+            <button
+              type="button"
+              aria-label="Lane theme"
+              onClick={() =>
+                onLaneThemeChange(laneTheme === "dark" ? "paper" : "dark")
+              }
+            >
+              {laneTheme === "dark" ? "Paper" : "Dark"}
+            </button>
+          )}
         </div>
       )}
 

@@ -6,3 +6,6 @@ export const TAB_MODES: readonly TabMode[] = ["play", "midi"];
 
 /** The Practice tab's layout: the reading-lane backdrop, or a side-by-side split. */
 export type PracticeLayout = "lane" | "split";
+
+/** The reading lane's visual theme: dark with light notation, or a paper sheet. */
+export type LaneTheme = "dark" | "paper";

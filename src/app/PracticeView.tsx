@@ -30,7 +30,11 @@ import {
   applyPracticeState,
   seedTabSnapshots,
 } from "../library/practiceState";
-import type { TabMode, PracticeLayout } from "../layout/practiceMode";
+import type {
+  TabMode,
+  PracticeLayout,
+  LaneTheme,
+} from "../layout/practiceMode";
 import { measureJumpTarget } from "../transport/measureJump";
 import {
   captureTab,
@@ -116,6 +120,7 @@ export function PracticeView({
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
   const [practiceLayout, setPracticeLayout] = useState<PracticeLayout>("lane");
+  const [laneTheme, setLaneTheme] = useState<LaneTheme>("dark");
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the Tools popover render against them in JSX.
@@ -496,7 +501,10 @@ export function PracticeView({
          * [C] Reading-lane ribbon panel — stable tree position, always
          * rendered. CSS reveals it only in the MIDI reading-lane layout.
          */}
-        <div className="practice-lane-panel" data-testid="reading-lane">
+        <div
+          className={`practice-lane-panel lane-theme-${laneTheme}`}
+          data-testid="reading-lane"
+        >
           <div ref={laneContainerRef} className="reading-lane-viewport" />
         </div>
       </div>
@@ -515,6 +523,8 @@ export function PracticeView({
         countInBars={countInBars}
         practiceLayout={practiceLayout}
         onPracticeLayoutChange={setPracticeLayout}
+        laneTheme={laneTheme}
+        onLaneThemeChange={setLaneTheme}
         midiStatus={midiStatus}
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name

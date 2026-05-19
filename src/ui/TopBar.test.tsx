@@ -42,6 +42,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     countInBars: 0,
     practiceLayout: "lane" as const,
     onPracticeLayoutChange: vi.fn(),
+    laneTheme: "dark" as const,
+    onLaneThemeChange: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
