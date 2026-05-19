@@ -352,6 +352,16 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
+  // Guard the Library button against an accidental click — it leaves the
+  // practice view entirely.
+  function handleOpenLibrary(): void {
+    if (
+      window.confirm("Return to the library? Your practice settings are saved.")
+    ) {
+      onExit();
+    }
+  }
+
   // Switch tabs without carrying playback over: snapshot the leaving tab and
   // restore the entering tab. Always lands paused.
   function switchMode(next: TabMode): void {
@@ -482,7 +492,7 @@ export function PracticeView({
         pieceName={pieceName}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        onOpenLibrary={onExit}
+        onOpenLibrary={handleOpenLibrary}
         toolsOpen={toolsOpen}
         onToggleTools={() => setToolsOpen((o) => !o)}
         mode={mode}
