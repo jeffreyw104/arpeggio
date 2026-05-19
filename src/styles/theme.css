@@ -587,8 +587,11 @@ textarea {
   height: 400px;
   z-index: 4;
   overflow: hidden;
-  /* Solid dark panel; the engraving is inverted to white over it. */
-  background: #15151a;
+  /* Dark frosted panel — translucent so the falldown shows faintly behind it,
+     blurred, instead of being fully blocked out. */
+  background: rgba(21, 21, 26, 0.84);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
 /* The viewport clips the ribbon; vertical padding gives ledger-line headroom
@@ -609,7 +612,7 @@ textarea {
 .reading-lane-track {
   width: 100%;
   will-change: transform;
-  filter: invert(1) hue-rotate(180deg);
+  filter: invert(1) hue-rotate(180deg) brightness(0.96) sepia(0.3);
 }
 
 /* ReadingLaneView scales the engraving; centre it in the lane. */
