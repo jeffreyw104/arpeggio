@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ViewMode } from "../layout/viewMode";
 import { ModeSwitch } from "./ModeSwitch";
-import type { TabMode } from "../layout/practiceMode";
+import type { TabMode, PracticeLayout } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
@@ -19,10 +19,10 @@ interface TopBarProps {
   transport: Transport;
   audioEngine: AudioEngine | null;
   countInBars: number;
-  /** MIDI tab: whether the reading lane is currently collapsed. */
-  laneCollapsed: boolean;
-  /** MIDI tab: toggle the reading lane collapsed state. */
-  onToggleLane: () => void;
+  /** MIDI tab: the current Practice layout. */
+  practiceLayout: PracticeLayout;
+  /** MIDI tab: change the Practice layout. */
+  onPracticeLayoutChange: (layout: PracticeLayout) => void;
   /** MIDI tab: current MIDI connection status. */
   midiStatus?: MidiStatus;
   /** MIDI tab: name of the connected device (when status is "connected"). */
@@ -66,8 +66,8 @@ export function TopBar({
   transport,
   audioEngine,
   countInBars,
-  laneCollapsed,
-  onToggleLane,
+  practiceLayout,
+  onPracticeLayoutChange,
   midiStatus,
   midiDeviceName,
 }: TopBarProps): React.JSX.Element {
@@ -194,14 +194,22 @@ export function TopBar({
           ))}
         </div>
       ) : (
-        <button
-          type="button"
-          aria-pressed={!laneCollapsed}
-          aria-label="Toggle reading lane"
-          onClick={onToggleLane}
-        >
-          Reading lane
-        </button>
+        <div className="top-bar-views">
+          <button
+            type="button"
+            aria-pressed={practiceLayout === "lane"}
+            onClick={() => onPracticeLayoutChange("lane")}
+          >
+            Reading lane
+          </button>
+          <button
+            type="button"
+            aria-pressed={practiceLayout === "split"}
+            onClick={() => onPracticeLayoutChange("split")}
+          >
+            Split
+          </button>
+        </div>
       )}
 
     </div>

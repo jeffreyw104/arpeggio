@@ -29,7 +29,7 @@ import {
   applyPracticeState,
   seedTabSnapshots,
 } from "../library/practiceState";
-import type { TabMode } from "../layout/practiceMode";
+import type { TabMode, PracticeLayout } from "../layout/practiceMode";
 import { measureJumpTarget } from "../transport/measureJump";
 import {
   captureTab,
@@ -111,7 +111,7 @@ export function PracticeView({
   const [split, setSplit] = useState(0.58);
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
-  const [laneCollapsed, setLaneCollapsed] = useState(false);
+  const [practiceLayout, setPracticeLayout] = useState<PracticeLayout>("lane");
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the Tools popover render against them in JSX.
@@ -407,16 +407,9 @@ export function PracticeView({
       ? "score-container horizontal-pages"
       : "score-container";
 
-  // CSS classes for the score panel wrapper:
-  //   play mode  →  "practice-score-panel"
-  //   midi mode  →  "practice-score-panel reading-lane [reading-lane--collapsed]"
-  const scorePanelClass = [
-    "practice-score-panel",
-    isMidi ? "reading-lane" : "",
-    isMidi && laneCollapsed ? "reading-lane--collapsed" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // The score panel is one stable element; the content-wrapper classes drive
+  // its arrangement (play column / midi lane overlay / midi split panel).
+  const scorePanelClass = "practice-score-panel";
 
   return (
     <div className="practice-view">
@@ -430,6 +423,7 @@ export function PracticeView({
         className={[
           "practice-content",
           `practice-content--${mode}`,
+          isMidi ? `layout-${practiceLayout}` : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -470,21 +464,6 @@ export function PracticeView({
             </div>
           )}
 
-          {/* MIDI-mode reading-lane toggle — only shown when expanded.
-               When collapsed, the lane has overflow:hidden so this button
-               would be geometrically clipped and unclickable. Re-expanding
-               is done via the TopBar "Reading lane" toggle instead. */}
-          {isMidi && !laneCollapsed && (
-            <button
-              type="button"
-              className="reading-lane-toggle"
-              aria-label="Collapse reading lane"
-              aria-expanded={true}
-              onClick={() => setLaneCollapsed(true)}
-            >
-              ▾ Reading lane
-            </button>
-          )}
         </div>
       </div>
 
@@ -500,8 +479,8 @@ export function PracticeView({
         transport={transport}
         audioEngine={audioEngine}
         countInBars={countInBars}
-        laneCollapsed={laneCollapsed}
-        onToggleLane={() => setLaneCollapsed((c) => !c)}
+        practiceLayout={practiceLayout}
+        onPracticeLayoutChange={setPracticeLayout}
         midiStatus={midiStatus}
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
