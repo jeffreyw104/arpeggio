@@ -8,9 +8,8 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** Gap above the current system inside the viewport, in px. */
 const TOP_MARGIN = 14;
 
-/** Display scale — matches the score view's default zoom so a lane line is
- *  the same size as a line in the split sheet-music view. */
-const LANE_ZOOM = 0.8;
+/** Display scale of the lane engraving. */
+const LANE_ZOOM = 1;
 
 /**
  * The MIDI Practice reading lane. Shows the score engraved as stacked systems
@@ -20,8 +19,7 @@ const LANE_ZOOM = 0.8;
  * page-turn, never a continuous scroll.
  *
  * Like the split `ScoreView` it supports hovering a bar (a light highlight)
- * and clicking a bar to seek there. Only ever READS the transport clock
- * outside of those explicit clicks.
+ * and clicking a bar to seek there.
  */
 export class ReadingLaneView {
   private readonly container: HTMLElement;
@@ -33,6 +31,7 @@ export class ReadingLaneView {
   private hoverIndex: number | null = null;
   private currentSystem: Element | null = null;
   private ty = 0;
+  private hitRectsBuilt = false;
   private readonly onClick: (e: MouseEvent) => void;
   private readonly onMove: (e: MouseEvent) => void;
   private readonly onLeave: () => void;
@@ -48,30 +47,15 @@ export class ReadingLaneView {
     container.appendChild(track);
     this.track = track;
 
-    // Display the engraving at the score view's scale so a lane line is the
-    // same size as a sheet-music line, rather than stretched to the lane width.
     const svg = track.querySelector("svg");
-    if (svg) {
-      svg.style.transformOrigin = "top left";
-      svg.style.transform = `scale(${LANE_ZOOM})`;
-    }
+    if (svg) svg.style.zoom = String(LANE_ZOOM);
 
-    // Tag measures in document order, and give each an invisible full-measure
-    // hit area so a hover or click anywhere in the bar registers (SVG only
-    // hit-tests painted ink, leaving gaps between notes dead otherwise).
-    container.querySelectorAll("g.measure").forEach((el, i) => {
-      el.setAttribute("data-measure-index", String(i));
-      const box = measureBox(el);
-      const hit = document.createElementNS(SVG_NS, "rect");
-      hit.setAttribute("class", "measure-hit");
-      hit.setAttribute("x", String(box.x));
-      hit.setAttribute("y", String(box.y));
-      hit.setAttribute("width", String(box.width));
-      hit.setAttribute("height", String(box.height));
-      hit.setAttribute("fill", "transparent");
-      hit.setAttribute("pointer-events", "all");
-      el.appendChild(hit);
-    });
+    // Tag measures in document order so they map to score.measures indices.
+    // The invisible hit areas are built lazily (see buildHitRects) because
+    // measureBox needs a laid-out, non-display:none SVG.
+    container
+      .querySelectorAll("g.measure")
+      .forEach((el, i) => el.setAttribute("data-measure-index", String(i)));
 
     this.onClick = (e) => {
       const idx = measureIndexFromTarget(e.target);
@@ -105,6 +89,18 @@ export class ReadingLaneView {
 
   /** Re-position the lane for the clock's current time; call once per frame. */
   renderFrame(): void {
+    // No-op while the lane is hidden (the split layout is showing). This keeps
+    // highlightedIndex / currentSystem at their last on-screen values, so the
+    // lane re-syncs correctly — re-highlighting and re-jumping — when shown
+    // again, e.g. after seeking from the split view.
+    const laneRect = this.container.getBoundingClientRect();
+    if (laneRect.height === 0) return;
+
+    if (!this.hitRectsBuilt) {
+      this.buildHitRects();
+      this.hitRectsBuilt = true;
+    }
+
     const t = this.transport.clock.position;
     const idx = currentMeasureIndex(this.transport.score, t);
     const measureEl = this.container.querySelector(
@@ -126,17 +122,27 @@ export class ReadingLaneView {
     const system = measureEl.closest("g.system");
     if (system && system !== this.currentSystem) {
       this.currentSystem = system;
-      this.jumpTo(system);
+      const systemRect = system.getBoundingClientRect();
+      this.ty += laneRect.top + TOP_MARGIN - systemRect.top;
+      this.track.style.transform = `translateY(${this.ty}px)`;
     }
   }
 
-  /** Jump the track so `system` sits at the top of the viewport. */
-  private jumpTo(system: Element): void {
-    const laneRect = this.container.getBoundingClientRect();
-    if (laneRect.height === 0) return; // lane not visible
-    const systemRect = system.getBoundingClientRect();
-    this.ty += laneRect.top + TOP_MARGIN - systemRect.top;
-    this.track.style.transform = `translateY(${this.ty}px)`;
+  /** Give every measure an invisible full-bar hit area, so hovering or
+   *  clicking anywhere in the bar — over notes OR whitespace — registers. */
+  private buildHitRects(): void {
+    this.container.querySelectorAll("g.measure").forEach((el) => {
+      const box = measureBox(el);
+      const hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("class", "measure-hit");
+      hit.setAttribute("x", String(box.x));
+      hit.setAttribute("y", String(box.y));
+      hit.setAttribute("width", String(box.width));
+      hit.setAttribute("height", String(box.height));
+      hit.setAttribute("fill", "transparent");
+      hit.setAttribute("pointer-events", "all");
+      el.appendChild(hit);
+    });
   }
 
   /** Lazily create an overlay rect with the given class. */

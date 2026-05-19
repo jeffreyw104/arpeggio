@@ -584,7 +584,7 @@ textarea {
   top: 68px;
   left: 0;
   right: 0;
-  height: 340px;
+  height: 400px;
   z-index: 4;
   overflow: hidden;
   background: rgba(248, 248, 246, 0.74);
@@ -623,10 +623,10 @@ textarea {
   will-change: transform;
 }
 
-/* The engraving renders at its natural size; ReadingLaneView applies the
-   score-view scale via a transform so a lane line matches a sheet-music line. */
+/* ReadingLaneView scales the engraving; centre it in the lane. */
 .reading-lane-track svg {
   display: block;
+  margin-inline: auto;
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */
