@@ -47,11 +47,32 @@ export async function loadVerovioToolkit(): Promise<VerovioToolkit> {
 }
 
 /**
+ * The Verovio toolkit is a single stateful instance: two renders whose
+ * setOptions / loadData / renderToSVG calls interleave corrupt each other
+ * (e.g. the reading-lane render's options leaking into the score render).
+ * Every render is therefore queued so they run strictly one at a time.
+ */
+let renderChain: Promise<unknown> = Promise.resolve();
+
+function queueRender<T>(task: () => Promise<T>): Promise<T> {
+  const result = renderChain.then(task, task);
+  renderChain = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
+/**
  * Render a MusicXML string to one engraved SVG per page plus a note on/off
  * timemap. Every page is rendered so the score view can stack them into a
  * single scrollable strip; the timemap drives live note highlighting.
  */
-export async function renderScore(musicXml: string): Promise<RenderedScore> {
+export function renderScore(musicXml: string): Promise<RenderedScore> {
+  return queueRender(() => renderScoreImpl(musicXml));
+}
+
+async function renderScoreImpl(musicXml: string): Promise<RenderedScore> {
   const toolkit = await loadVerovioToolkit();
   // Sensible engraving options: every page rendered at the SAME full-page
   // height (adjustPageHeight off) so the score-only view can size all pages to
@@ -86,7 +107,11 @@ export async function renderScore(musicXml: string): Promise<RenderedScore> {
  * `renderScore` so the paginated split view keeps its own page-style
  * engraving.
  */
-export async function renderReadingLane(musicXml: string): Promise<string[]> {
+export function renderReadingLane(musicXml: string): Promise<string[]> {
+  return queueRender(() => renderReadingLaneImpl(musicXml));
+}
+
+async function renderReadingLaneImpl(musicXml: string): Promise<string[]> {
   const toolkit = await loadVerovioToolkit();
   toolkit.setOptions({
     adjustPageHeight: true,
