@@ -27,9 +27,16 @@ import {
 import {
   capturePracticeState,
   applyPracticeState,
+  seedTabSnapshots,
 } from "../library/practiceState";
 import type { TabMode } from "../layout/practiceMode";
 import { measureJumpTarget } from "../transport/measureJump";
+import {
+  captureTab,
+  applyTab,
+  switchTab,
+  type TabSnapshot,
+} from "../transport/tabSnapshot";
 
 interface PracticeViewProps {
   score: Score;
@@ -82,6 +89,9 @@ export function PracticeView({
   const audioStartedRef = useRef(false);
   const falldownRef = useRef<FalldownRenderer | null>(null);
   const loadedStateRef = useRef<StoredPracticeState | null>(null);
+
+  // One transport snapshot per tab. Seeded once the stored state resolves.
+  const snapshotsRef = useRef<Record<TabMode, TabSnapshot> | null>(null);
 
   const modeRef = useRef<TabMode>("play");
 
@@ -197,7 +207,11 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
-      setMode(state?.mode === "midi" ? "midi" : "play");
+      const initialMode: TabMode = state?.mode === "midi" ? "midi" : "play";
+      const snapshots = seedTabSnapshots(transport, state ?? null);
+      applyTab(snapshots[initialMode], transport);
+      snapshotsRef.current = snapshots;
+      setMode(initialMode);
       setPracticeReady(true);
     })();
 
@@ -238,10 +252,13 @@ export function PracticeView({
             subdivision: engineRef.current?.metronome.subdivision ?? 1,
           }
         : undefined;
+      const snapshots = snapshotsRef.current;
+      if (snapshots) snapshots[modeRef.current] = captureTab(transport);
       void savePracticeState(
         pieceId,
         capturePracticeState(transport, handState, beat, {
           mode: modeRef.current,
+          ...(snapshots && { tabs: snapshots }),
         }),
       );
     };
@@ -333,6 +350,18 @@ export function PracticeView({
     const next = Math.max(0.5, Math.round((scoreZoom - 0.25) * 100) / 100);
     setScoreZoom(next);
     scoreViewRef.current?.setZoom(next);
+  }
+
+  // Switch tabs without carrying playback over: snapshot the leaving tab and
+  // restore the entering tab. Always lands paused.
+  function switchMode(next: TabMode): void {
+    const snapshots = snapshotsRef.current;
+    if (next === modeRef.current || !snapshots) {
+      setMode(next);
+      return;
+    }
+    switchTab(transport, snapshots, modeRef.current, next);
+    setMode(next);
   }
 
   const isMidi = mode === "midi";
@@ -453,7 +482,7 @@ export function PracticeView({
         toolsOpen={toolsOpen}
         onToggleTools={() => setToolsOpen((o) => !o)}
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={switchMode}
         transport={transport}
         audioEngine={audioEngine}
         countInBars={countInBars}
