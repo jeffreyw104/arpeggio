@@ -247,13 +247,12 @@ test("playback does not carry over between the Play and Practice tabs", async ({
 
   // Switch to MIDI Practice — its playhead is independent of the Play tab.
   await page.getByRole("button", { name: "MIDI Practice" }).click();
-  const practiceTime = await time.textContent();
-  expect(practiceTime).not.toBe(playTabTime);
+  await expect(time).not.toHaveText(playTabTime ?? "");
 
   // Switch back to Play — its playhead is restored where it was left.
   await page
     .locator(".top-bar-modes")
     .getByRole("button", { name: "Play" })
     .click();
-  expect(await time.textContent()).toBe(playTabTime);
+  await expect(time).toHaveText(playTabTime ?? "");
 });

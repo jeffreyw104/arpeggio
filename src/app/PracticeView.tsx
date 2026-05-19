@@ -355,8 +355,12 @@ export function PracticeView({
   // Switch tabs without carrying playback over: snapshot the leaving tab and
   // restore the entering tab. Always lands paused.
   function switchMode(next: TabMode): void {
+    if (next === modeRef.current) return;
     const snapshots = snapshotsRef.current;
-    if (next === modeRef.current || !snapshots) {
+    if (!snapshots) {
+      // Snapshots not seeded yet (stored state still loading) — still honour
+      // the "switching always pauses" invariant.
+      transport.clock.pause();
       setMode(next);
       return;
     }

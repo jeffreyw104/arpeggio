@@ -70,9 +70,10 @@ export function applyPracticeState(
 }
 
 /**
- * Build the per-tab snapshots for a freshly-opened piece. When the stored
- * record has per-tab state, use it (position is not persisted — starts at 0).
- * Otherwise both tabs seed from the live transport so they share its baseline.
+ * Build the per-tab snapshots for a freshly-opened piece. With stored per-tab
+ * state, each tab uses it and starts at position 0 (position is not persisted).
+ * Without it, both tabs seed from the live transport — sharing its current
+ * position and baseline bpm/loop.
  */
 export function seedTabSnapshots(
   transport: Transport,
