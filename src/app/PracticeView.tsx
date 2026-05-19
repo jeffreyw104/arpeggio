@@ -400,27 +400,35 @@ export function PracticeView({
   }
 
   const isMidi = mode === "midi";
+  // The MIDI split layout behaves exactly like the Play tab's side-by-side
+  // view; only the MIDI reading-lane layout is driven purely by CSS.
+  const splitLayout = isMidi && practiceLayout === "split";
+  const laneLayout = isMidi && practiceLayout === "lane";
 
-  // In play mode, visibility of each panel depends on viewMode.
-  const showFalldownInPlay = viewMode !== "score";
-  const showScoreInPlay = viewMode !== "falldown";
+  // Panel visibility: play mode honours viewMode; MIDI split always shows both.
+  const showFalldown = isMidi ? true : viewMode !== "score";
+  const showScore = isMidi ? splitLayout : viewMode !== "falldown";
 
-  // Falldown panel flex style — play mode only; MIDI mode CSS handles it.
-  const falldownPanelStyle = isMidi
+  // Side-by-side falldown + score: play "both", or the MIDI split layout.
+  const sideBySide = splitLayout || (!isMidi && viewMode === "both");
+
+  // Falldown panel flex style. The reading-lane layout is CSS-driven (style
+  // undefined); play and MIDI split size the panels with the split fraction.
+  const falldownPanelStyle = laneLayout
     ? undefined
-    : viewMode === "both"
+    : sideBySide
       ? {
-          display: showFalldownInPlay ? undefined : "none",
+          display: showFalldown ? undefined : "none",
           flexBasis: `${split * 100}%`,
           flexGrow: 0,
           flexShrink: 0,
         }
-      : { display: showFalldownInPlay ? undefined : "none", flex: 1 };
+      : { display: showFalldown ? undefined : "none", flex: 1 };
 
-  // Score panel display style — play mode only; MIDI mode CSS handles it.
-  const scorePanelStyle = isMidi
+  // Score panel flex style — CSS-driven in the lane layout, flex:1 otherwise.
+  const scorePanelStyle = laneLayout
     ? undefined
-    : { display: showScoreInPlay ? undefined : "none", flex: 1 };
+    : { display: showScore ? undefined : "none", flex: 1 };
 
   // The score-container uses horizontal-pages only in play score-only view.
   const scoreContainerClass =
@@ -454,10 +462,8 @@ export function PracticeView({
           <canvas ref={canvasRef} className="falldown-canvas" />
         </div>
 
-        {/* Divider — play + both mode only */}
-        {!isMidi && viewMode === "both" && (
-          <Divider fraction={split} onChange={setSplit} />
-        )}
+        {/* Divider — side-by-side layouts only (play "both" or MIDI split) */}
+        {sideBySide && <Divider fraction={split} onChange={setSplit} />}
 
         {/*
          * [B] Score panel — stable tree position, always rendered as a <div>.
@@ -470,8 +476,8 @@ export function PracticeView({
           {/* The score-container ref is always this element, at this position */}
           <div ref={scoreContainerRef} className={scoreContainerClass} />
 
-          {/* Play-mode score zoom buttons */}
-          {!isMidi && (
+          {/* Score zoom buttons — wherever the paginated score is shown */}
+          {(!isMidi || splitLayout) && (
             <div className="score-zoom">
               <button type="button" aria-label="Zoom out" onClick={zoomOut}>
                 −

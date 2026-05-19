@@ -91,6 +91,9 @@ export async function renderReadingLane(musicXml: string): Promise<string> {
     header: "none",
     scale: 40,
     pageHeight: 100000,
+    // A wide page packs several measures per system; fitting that width into
+    // the lane keeps each system short enough that ~2 fit with headroom.
+    pageWidth: 5000,
   });
   toolkit.loadData(musicXml);
   return toolkit.renderToSVG(1);

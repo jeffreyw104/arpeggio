@@ -1,6 +1,7 @@
 import type { Transport } from "../transport/transport";
 import { currentMeasureIndex } from "./sync";
 import { measureBox } from "./measureBox";
+import { measureIndexFromTarget } from "./interactions";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -10,18 +11,27 @@ const TOP_MARGIN = 14;
 /**
  * The MIDI Practice reading lane. Shows the score engraved as stacked systems
  * (see `renderReadingLane`) and reveals ~two of them at a time: the system
- * holding the playhead sits at the top with the next system previewing below.
- * When the playhead crosses into the next system the lane JUMPS down to it —
- * a discrete page-turn, never a continuous scroll. Only ever READS the clock.
+ * holding the playhead at the top, the next previewing below. When the
+ * playhead crosses into the next system the lane JUMPS down to it — a discrete
+ * page-turn, never a continuous scroll.
+ *
+ * Like the split `ScoreView` it supports hovering a bar (a light highlight)
+ * and clicking a bar to seek there. Only ever READS the transport clock
+ * outside of those explicit clicks.
  */
 export class ReadingLaneView {
   private readonly container: HTMLElement;
   private readonly transport: Transport;
   private readonly track: HTMLDivElement;
   private highlightRect: SVGRectElement | null = null;
+  private hoverRect: SVGRectElement | null = null;
   private highlightedIndex = -1;
+  private hoverIndex: number | null = null;
   private currentSystem: Element | null = null;
   private ty = 0;
+  private readonly onClick: (e: MouseEvent) => void;
+  private readonly onMove: (e: MouseEvent) => void;
+  private readonly onLeave: () => void;
 
   constructor(container: HTMLElement, transport: Transport, laneSvg: string) {
     this.container = container;
@@ -34,10 +44,51 @@ export class ReadingLaneView {
     container.appendChild(track);
     this.track = track;
 
-    // Tag measures in document order so they map to score.measures indices.
-    container
-      .querySelectorAll("g.measure")
-      .forEach((el, i) => el.setAttribute("data-measure-index", String(i)));
+    // Tag measures in document order, and give each an invisible full-measure
+    // hit area so a hover or click anywhere in the bar registers (SVG only
+    // hit-tests painted ink, leaving gaps between notes dead otherwise).
+    container.querySelectorAll("g.measure").forEach((el, i) => {
+      el.setAttribute("data-measure-index", String(i));
+      const box = measureBox(el);
+      const hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("class", "measure-hit");
+      hit.setAttribute("x", String(box.x));
+      hit.setAttribute("y", String(box.y));
+      hit.setAttribute("width", String(box.width));
+      hit.setAttribute("height", String(box.height));
+      hit.setAttribute("fill", "transparent");
+      hit.setAttribute("pointer-events", "all");
+      el.appendChild(hit);
+    });
+
+    this.onClick = (e) => {
+      const idx = measureIndexFromTarget(e.target);
+      if (idx === null) return;
+      const measure = this.transport.score.measures[idx];
+      if (measure) this.transport.clock.seek(measure.start);
+    };
+    this.onMove = (e) => {
+      const idx = measureIndexFromTarget(e.target);
+      if (idx === this.hoverIndex) return;
+      this.hoverIndex = idx;
+      const el =
+        idx === null
+          ? null
+          : this.container.querySelector(`[data-measure-index="${idx}"]`);
+      if (el) {
+        this.hoverRect = this.ensureRect(this.hoverRect, "measure-hover");
+        this.putRect(this.hoverRect, el);
+      } else {
+        this.detach(this.hoverRect);
+      }
+    };
+    this.onLeave = () => {
+      this.hoverIndex = null;
+      this.detach(this.hoverRect);
+    };
+    container.addEventListener("click", this.onClick);
+    container.addEventListener("mousemove", this.onMove);
+    container.addEventListener("mouseleave", this.onLeave);
   }
 
   /** Re-position the lane for the clock's current time; call once per frame. */
@@ -50,7 +101,11 @@ export class ReadingLaneView {
     if (!measureEl) return;
 
     if (idx !== this.highlightedIndex) {
-      this.placeHighlight(measureEl);
+      this.highlightRect = this.ensureRect(
+        this.highlightRect,
+        "measure-highlight",
+      );
+      this.putRect(this.highlightRect, measureEl);
       this.highlightedIndex = idx;
     }
 
@@ -72,13 +127,19 @@ export class ReadingLaneView {
     this.track.style.transform = `translateY(${this.ty}px)`;
   }
 
-  /** Move the green highlight onto the current measure's staff-line box. */
-  private placeHighlight(measureEl: Element): void {
-    if (!this.highlightRect) {
-      this.highlightRect = document.createElementNS(SVG_NS, "rect");
-      this.highlightRect.setAttribute("class", "measure-highlight");
-    }
-    const rect = this.highlightRect;
+  /** Lazily create an overlay rect with the given class. */
+  private ensureRect(
+    rect: SVGRectElement | null,
+    className: string,
+  ): SVGRectElement {
+    if (rect) return rect;
+    const created = document.createElementNS(SVG_NS, "rect");
+    created.setAttribute("class", className);
+    return created;
+  }
+
+  /** Size `rect` to a measure's staff-line box and insert it behind the ink. */
+  private putRect(rect: SVGRectElement, measureEl: Element): void {
     if (rect.parentNode) rect.parentNode.removeChild(rect);
     const box = measureBox(measureEl);
     rect.setAttribute("x", String(box.x));
@@ -88,8 +149,16 @@ export class ReadingLaneView {
     measureEl.insertBefore(rect, measureEl.firstChild);
   }
 
-  /** Remove all injected content. */
+  /** Detach an overlay rect from the DOM. */
+  private detach(rect: SVGRectElement | null): void {
+    if (rect && rect.parentNode) rect.parentNode.removeChild(rect);
+  }
+
+  /** Remove all listeners and injected content. */
   destroy(): void {
+    this.container.removeEventListener("click", this.onClick);
+    this.container.removeEventListener("mousemove", this.onMove);
+    this.container.removeEventListener("mouseleave", this.onLeave);
     this.container.innerHTML = "";
   }
 }

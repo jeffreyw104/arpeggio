@@ -594,14 +594,14 @@ textarea {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 7%,
+    #000 3%,
     #000 88%,
     transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 7%,
+    #000 3%,
     #000 88%,
     transparent 100%
   );
@@ -637,15 +637,15 @@ textarea {
   min-height: 0;
 }
 
+/* The panels are sized by inline flex styles (the split fraction) — exactly
+   like the Play tab's side-by-side view. */
 .practice-content--midi.layout-split .practice-falldown-panel {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   position: relative;
 }
 
 .practice-content--midi.layout-split .practice-score-panel {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   position: relative;
