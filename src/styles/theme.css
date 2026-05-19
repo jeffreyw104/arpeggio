@@ -623,10 +623,10 @@ textarea {
   will-change: transform;
 }
 
+/* The engraving renders at its natural size; ReadingLaneView applies the
+   score-view scale via a transform so a lane line matches a sheet-music line. */
 .reading-lane-track svg {
   display: block;
-  width: 100%;
-  height: auto;
 }
 
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */

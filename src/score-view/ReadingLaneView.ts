@@ -8,6 +8,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** Gap above the current system inside the viewport, in px. */
 const TOP_MARGIN = 14;
 
+/** Display scale — matches the score view's default zoom so a lane line is
+ *  the same size as a line in the split sheet-music view. */
+const LANE_ZOOM = 0.8;
+
 /**
  * The MIDI Practice reading lane. Shows the score engraved as stacked systems
  * (see `renderReadingLane`) and reveals ~two of them at a time: the system
@@ -43,6 +47,14 @@ export class ReadingLaneView {
     track.innerHTML = laneSvg;
     container.appendChild(track);
     this.track = track;
+
+    // Display the engraving at the score view's scale so a lane line is the
+    // same size as a sheet-music line, rather than stretched to the lane width.
+    const svg = track.querySelector("svg");
+    if (svg) {
+      svg.style.transformOrigin = "top left";
+      svg.style.transform = `scale(${LANE_ZOOM})`;
+    }
 
     // Tag measures in document order, and give each an invisible full-measure
     // hit area so a hover or click anywhere in the bar registers (SVG only
