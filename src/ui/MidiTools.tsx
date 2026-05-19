@@ -42,8 +42,8 @@ function handsPreset(hands: ReadonlySet<Hand>): "left" | "right" | "both" {
 
 /**
  * The Tools popover content for the MIDI Practice tab: MIDI device selection,
- * hand selection, wait-for-me, input-sound monitor, plus the shared Volume and
- * Note-zoom controls. Presentational — all state lives in PracticeView.
+ * hand selection, wait-for-me, input-sound monitor, plus a combined Volume &
+ * zoom row. Presentational — all state lives in PracticeView.
  */
 export function MidiTools({
   audioEngine,
@@ -59,9 +59,8 @@ export function MidiTools({
   monitorOn,
   onMonitorOnChange,
 }: MidiToolsProps): React.JSX.Element {
-  // Sections start open; the user can collapse any they do not need.
-  const [volumeOpen, setVolumeOpen] = useState(true);
-  const [zoomOpen, setZoomOpen] = useState(true);
+  // The combined Volume & zoom section starts open; it can be collapsed.
+  const [volZoomOpen, setVolZoomOpen] = useState(true);
 
   const [volume, setVolume] = useState(1);
   function changeVolume(v: number): void {
@@ -156,9 +155,9 @@ export function MidiTools({
       </label>
 
       <CollapsibleSection
-        label="Volume"
-        open={volumeOpen}
-        onToggle={() => setVolumeOpen((o) => !o)}
+        label="Volume & zoom"
+        open={volZoomOpen}
+        onToggle={() => setVolZoomOpen((o) => !o)}
       >
         <label className="hud-mini">
           <span className="hud-mini-label">Vol</span>
@@ -173,13 +172,6 @@ export function MidiTools({
             onChange={(e) => changeVolume(Number(e.target.value))}
           />
         </label>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        label="Note zoom"
-        open={zoomOpen}
-        onToggle={() => setZoomOpen((o) => !o)}
-      >
         <label className="hud-mini">
           <span className="hud-mini-label">Zoom</span>
           <input

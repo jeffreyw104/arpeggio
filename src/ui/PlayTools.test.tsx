@@ -60,12 +60,11 @@ const SECTION_LABELS = [
   "Tempo",
   "Hands",
   "Metronome",
-  "Volume",
-  "Note zoom",
+  "Volume & zoom",
 ];
 
 describe("PlayTools", () => {
-  it("renders the six section chips", () => {
+  it("renders the five section chips", () => {
     renderTools();
     for (const label of SECTION_LABELS) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();

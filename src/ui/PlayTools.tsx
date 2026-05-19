@@ -48,8 +48,8 @@ function loopMeasures(
 
 /**
  * The Tools popover body for Play mode: Loop (with Speed-up sub-group), Tempo,
- * Hands, Metronome, Volume, and Note-zoom — each in its own CollapsibleSection.
- * All sections start open; each can be collapsed independently.
+ * Hands, Metronome, and a combined Volume & zoom row — each in its own
+ * CollapsibleSection. All sections start open; each can be collapsed.
  */
 export function PlayTools({
   transport,
@@ -65,8 +65,7 @@ export function PlayTools({
   const [tempoOpen, setTempoOpen] = useState(true);
   const [handsOpen, setHandsOpen] = useState(true);
   const [metronomeOpen, setMetronomeOpen] = useState(true);
-  const [volumeOpen, setVolumeOpen] = useState(true);
-  const [zoomOpen, setZoomOpen] = useState(true);
+  const [volZoomOpen, setVolZoomOpen] = useState(true);
 
   // --- Loop state ---
   const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));
@@ -395,9 +394,9 @@ export function PlayTools({
       </CollapsibleSection>
 
       <CollapsibleSection
-        label="Volume"
-        open={volumeOpen}
-        onToggle={() => setVolumeOpen((o) => !o)}
+        label="Volume & zoom"
+        open={volZoomOpen}
+        onToggle={() => setVolZoomOpen((o) => !o)}
       >
         <label className="hud-mini">
           <span className="hud-mini-label">Vol</span>
@@ -412,13 +411,6 @@ export function PlayTools({
             onChange={(e) => changeVolume(Number(e.target.value))}
           />
         </label>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        label="Note zoom"
-        open={zoomOpen}
-        onToggle={() => setZoomOpen((o) => !o)}
-      >
         <label className="hud-mini">
           <span className="hud-mini-label">Zoom</span>
           <input
