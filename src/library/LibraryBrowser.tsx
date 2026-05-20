@@ -76,13 +76,23 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
                   onBlur={() => void commitRename()}
                 />
               ) : (
-                <button
-                  type="button"
-                  className="library-name"
-                  onClick={() => onOpen(p.id)}
-                >
-                  {p.name}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="library-name"
+                    onClick={() => onOpen(p.id)}
+                  >
+                    {p.name}
+                  </button>
+                  {p.source && (
+                    <span
+                      className="library-source-label"
+                      aria-label={p.source === "midi" ? "MIDI source" : "Sheet music source"}
+                    >
+                      {p.source === "midi" ? "♪ Notes only" : "𝄞 Sheet music"}
+                    </span>
+                  )}
+                </>
               )}
               <button
                 type="button"
