@@ -18,6 +18,15 @@ function asEngine(mock: ReturnType<typeof makeMockAudio>): AudioEngine {
   return mock as unknown as AudioEngine;
 }
 
+/** Pin a session's MIDI status — jsdom can never reach "connected" on its
+ *  own. Used by tests that exercise the MIDI-connected mute / echo gating. */
+function pinMidiStatus(session: MidiSession, status: "connected" | "no-device"): void {
+  Object.defineProperty(session.midiInput, "status", {
+    get: () => status,
+    configurable: true,
+  });
+}
+
 /** Build a minimal Score around a given note list. */
 function makeScore(notes: Note[]): Score {
   return {
@@ -147,10 +156,11 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("mutes the hand the player performs and sounds the other", () => {
+  it("mutes the hand the player performs and sounds the other (MIDI connected)", () => {
     const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
     const handState = new HandState();
     const session = new MidiSession(new Clock(10), score, handState);
+    pinMidiStatus(session, "connected");
 
     // Before the MIDI tab is shown, no hand mutes are applied — the play tab
     // owns its own mute state.
@@ -177,12 +187,31 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
+  it("does NOT mute any hand when no MIDI device is connected", () => {
+    // With no MIDI the computer is the only sound source; muting the played
+    // hand would mean practising in partial silence.
+    const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
+    const handState = new HandState();
+    const session = new MidiSession(new Clock(10), score, handState);
+
+    session.setActive(true);
+    session.setHandsIPlay(new Set(["right"]));
+    expect(handState.isMuted("right")).toBe(false);
+    expect(handState.isMuted("left")).toBe(false);
+
+    session.setHandsIPlay(new Set(["left", "right"]));
+    expect(handState.isMuted("right")).toBe(false);
+    expect(handState.isMuted("left")).toBe(false);
+    session.dispose();
+  });
+
   it("restores the user's own hand mutes when the MIDI tab is left", () => {
     const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
     const handState = new HandState();
     // The user muted the left hand on the Play tab.
     handState.setMuted("left", true);
     const session = new MidiSession(new Clock(10), score, handState);
+    pinMidiStatus(session, "connected");
 
     // Entering the MIDI tab overlays its own auto-mutes (plays right → right
     // muted, left sounded), discarding the user's choice for the duration.
@@ -202,6 +231,7 @@ describe("MidiSession", () => {
     const handState = new HandState();
     handState.setMuted("right", true);
     const session = new MidiSession(new Clock(10), score, handState);
+    pinMidiStatus(session, "connected");
     session.setActive(true);
 
     // Disposing without first leaving the tab must still restore the user's
@@ -341,10 +371,11 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("suppresses echo for pitches in the hand the player performs", () => {
+  it("suppresses echo for pitches in the hand the player performs (MIDI connected)", () => {
     const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
     const audio = makeMockAudio();
     const session = new MidiSession(new Clock(10), score, new HandState());
+    pinMidiStatus(session, "connected");
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set(["right"]));
 
@@ -359,7 +390,27 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("suppresses echo for both hands when the player practises both", () => {
+  it("suppresses echo for both hands when the player practises both (MIDI connected)", () => {
+    const audio = makeMockAudio();
+    const session = new MidiSession(
+      new Clock(10),
+      makeScore([]),
+      new HandState(),
+    );
+    pinMidiStatus(session, "connected");
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set(["left", "right"]));
+
+    session.liveNotes.press(60, 0.8, 1000); // right
+    session.liveNotes.press(48, 0.8, 1001); // left
+    expect(audio.playInputNote).not.toHaveBeenCalled();
+    session.dispose();
+  });
+
+  it("echoes every input when no MIDI device is connected, regardless of hand selection", () => {
+    // With no MIDI, the computer is the only source — even pitches in the
+    // hand the player practises must echo, otherwise QWERTY / on-screen
+    // piano presses go silent.
     const audio = makeMockAudio();
     const session = new MidiSession(
       new Clock(10),
@@ -367,11 +418,14 @@ describe("MidiSession", () => {
       new HandState(),
     );
     session.attachAudio(asEngine(audio));
-    session.setHandsIPlay(new Set(["left", "right"]));
+    session.setHandsIPlay(new Set(["right"]));
 
-    session.liveNotes.press(60, 0.8, 1000); // right
-    session.liveNotes.press(48, 0.8, 1001); // left
-    expect(audio.playInputNote).not.toHaveBeenCalled();
+    session.liveNotes.press(60, 0.8, 1000); // right-hand QWERTY equivalent
+    expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
+
+    session.setHandsIPlay(new Set(["left", "right"]));
+    session.liveNotes.press(48, 0.8, 1001);
+    expect(audio.playInputNote).toHaveBeenCalledWith(48, 0.8);
     session.dispose();
   });
 
@@ -402,7 +456,7 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("releases voices whose hand becomes one being practised", () => {
+  it("releases voices whose hand becomes one being practised (MIDI connected)", () => {
     // The user is holding a right-hand input note with monitor on, no hand
     // selected (so it's echoing); they then switch to 'play right hand', so
     // that note should no longer echo.
@@ -412,6 +466,7 @@ describe("MidiSession", () => {
       makeScore([]),
       new HandState(),
     );
+    pinMidiStatus(session, "connected");
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set()); // start with no hand selected
     session.liveNotes.press(60, 0.8, 1000); // right-hand input, echoing

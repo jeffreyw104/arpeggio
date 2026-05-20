@@ -145,13 +145,30 @@ export function drawPiano(
   ctx.lineWidth = 1;
   ctx.strokeStyle = "#000";
 
-  /** Outer glow drawn behind/around an active key. */
+  /** Tight outer glow around an active key. The blur radius is proportional
+   *  to the key's width so the halo never reaches further than ~30% of a key
+   *  on either side — pedal-sustained chords stay as a row of lit keys
+   *  rather than merging into one continuous wash. */
   const halo = (x: number, w: number, h: number, color: string): void => {
     ctx.save();
     ctx.shadowColor = color;
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = Math.max(3, w * 0.3);
+    ctx.globalAlpha = 0.7;
     ctx.fillStyle = color;
     ctx.fillRect(x, opts.y, w, h);
+    ctx.restore();
+  };
+
+  /** Inset edge drawn over an active key. Acts like a thin dark frame just
+   *  inside the key — gives every lit key a crisp border, so adjacent active
+   *  keys never merge into one undifferentiated colour block. */
+  const activeEdge = (x: number, w: number, h: number): void => {
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.lineWidth = 1.25;
+    // 0.5px inset so the stroke sits fully inside the fill, not striding the
+    // boundary with the neighbour.
+    ctx.strokeRect(x + 0.75, opts.y + 0.75, w - 1.5, h - 1.5);
     ctx.restore();
   };
 
@@ -173,6 +190,7 @@ export function drawPiano(
     ctx.strokeRect(key.x, opts.y, key.width, opts.height);
     ctx.fillStyle = grad;
     ctx.fillRect(key.x, opts.y, key.width, opts.height);
+    if (active) activeEdge(key.x, key.width, opts.height);
   }
 
   // Black keys on top — shorter, with a top bevel highlight.
@@ -185,5 +203,6 @@ export function drawPiano(
     ctx.fillRect(key.x, opts.y, key.width, h);
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.fillRect(key.x, opts.y, key.width, Math.max(1, h * 0.08));
+    if (active) activeEdge(key.x, key.width, h);
   }
 }

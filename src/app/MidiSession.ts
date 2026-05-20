@@ -82,7 +82,20 @@ export class MidiSession {
     this.midiInput.onNoteOff = (e: MidiNoteEvent) =>
       this.liveNotes.release(e.pitch);
     this.midiInput.onPedal = (down: boolean) => this.liveNotes.setPedal(down);
-    this.midiInput.onStatusChange = () => this.onStatusChange?.();
+    // A connect/disconnect changes both the mute gate and the echo gate.
+    // Re-apply the hand mutes and snap any orphaned input voices silent so
+    // the user doesn't end up with a key still ringing under the new rules.
+    this.midiInput.onStatusChange = () => {
+      if (this.active) {
+        this.applyHandMutes();
+        if (this.audioEngine) {
+          for (const n of this.liveNotes.heldNotes()) {
+            this.audioEngine.releaseInputNote(n.pitch);
+          }
+        }
+      }
+      this.onStatusChange?.();
+    };
 
     this.keyboardInput.onNoteOn = (e: MidiNoteEvent) =>
       this.liveNotes.press(e.pitch, e.velocity, e.pressTime);
@@ -121,14 +134,24 @@ export class MidiSession {
   }
 
   /** Whether an input note of `pitch` should echo through the audio engine.
-   *  Off when the monitor is turned off. On when the player isn't practising
-   *  any particular hand. Otherwise on only for pitches whose inferred hand
-   *  is NOT one the player performs — those notes come from the player's
-   *  own piano, so a software echo would just double them. */
+   *  Off when the monitor is turned off. With no MIDI device connected the
+   *  computer is the only sound source for the input, so every press echoes.
+   *  With MIDI connected, suppress notes whose inferred hand is one the
+   *  player performs — the user's own piano already covers them and a
+   *  software echo would just double the sound. */
   private shouldEcho(pitch: number): boolean {
     if (!this.monitorOn) return false;
+    if (!this.isMidiConnected) return true;
     if (this.handsIPlay.size === 0) return true;
     return !this.handsIPlay.has(handFromPitch(pitch));
+  }
+
+  /** Whether a hardware MIDI device is currently delivering input. The hand
+   *  mutes and echo gate both depend on this — with no MIDI device the user
+   *  is using the computer keyboard / on-screen piano, so the computer must
+   *  remain the full sound source. */
+  private get isMidiConnected(): boolean {
+    return this.midiInput.status === "connected";
   }
 
   /** Register the status-change listener (PracticeView mirrors it to state). */
@@ -195,17 +218,21 @@ export class MidiSession {
     if (isMidiTab) {
       this.keyboardInput.enable();
       if (this.pointerCanvas) this.pointerInput.attach(this.pointerCanvas);
-      if (!this.midiStarted) {
-        this.midiStarted = true;
-        void this.midiInput.start();
-      }
       // Capture the user's own hand-mute state before overlaying the MIDI
-      // auto-mutes, so leaving the tab can restore it exactly.
+      // auto-mutes, so leaving the tab can restore it exactly. Done BEFORE
+      // midiInput.start(), because in environments where Web MIDI resolves
+      // synchronously (jsdom: setStatus("unsupported") returns immediately)
+      // the onStatusChange handler would otherwise apply the auto-mutes
+      // first and pollute the saved snapshot.
       if (this.savedMutes === null) {
         this.savedMutes = {
           left: this.handState.isMuted("left"),
           right: this.handState.isMuted("right"),
         };
+      }
+      if (!this.midiStarted) {
+        this.midiStarted = true;
+        void this.midiInput.start();
       }
       // The MIDI tab plays the chosen hand(s) live, so mute them in the app.
       this.applyHandMutes();
@@ -352,11 +379,14 @@ export class MidiSession {
 
   /**
    * Mute the hand(s) the player performs so the app sounds only the other
-   * hand(s). A hand the player plays is muted; a hand they do not play sounds.
+   * hand(s). Only applies when a MIDI device is connected — with no MIDI the
+   * computer is the user's only sound source, and muting the played hand
+   * would mean practising in partial silence.
    */
   private applyHandMutes(): void {
+    const midi = this.isMidiConnected;
     for (const hand of HANDS) {
-      this.handState.setMuted(hand, this.handsIPlay.has(hand));
+      this.handState.setMuted(hand, midi && this.handsIPlay.has(hand));
     }
   }
 }
