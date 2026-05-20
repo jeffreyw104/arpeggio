@@ -49,6 +49,14 @@ export interface Measure {
   denominator: number;
 }
 
+/** A section / rehearsal marker imported from the source file. */
+export interface Section {
+  /** Onset, seconds from start of piece. */
+  start: number;
+  /** Display label as written in the source (e.g. "Verse 1", "A"). */
+  label: string;
+}
+
 /** The canonical, in-memory representation of an imported piece. */
 export interface Score {
   source: SourceFormat;
@@ -62,6 +70,9 @@ export interface Score {
   timeSignatures: TimeSignature[];
   /** Tempo changes, sorted by `start`; at least one entry. */
   tempoMap: TempoEvent[];
+  /** Section/rehearsal markers from the source, sorted by `start`. Empty
+   *  array when the source carried none. */
+  sections: Section[];
   /** Total length of the piece, seconds. */
   durationSeconds: number;
   /** MusicXML for the engraved score view — original (MusicXML import) or

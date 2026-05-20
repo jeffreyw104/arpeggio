@@ -12,6 +12,7 @@ const score = {
   pedalEvents: [],
   timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
   tempoMap: [{ start: 0, bpm: 120 }],
+  sections: [],
   durationSeconds: 4,
   musicXml: "",
   qualityWarning: null,
@@ -94,6 +95,7 @@ describe("Metronome", () => {
     // measures, but each now spanning 1 s instead of 2 s.
     const reTimed = {
       ...score,
+      sections: [],
       measures: [
         { index: 0, start: 0, end: 1, numerator: 4, denominator: 4 },
         { index: 1, start: 1, end: 2, numerator: 4, denominator: 4 },

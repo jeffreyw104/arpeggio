@@ -13,6 +13,7 @@ const score = {
   pedalEvents: [],
   timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
   tempoMap: [{ start: 0, bpm: 120 }],
+  sections: [],
   durationSeconds: 4,
   musicXml: "",
   qualityWarning: null,
@@ -34,6 +35,7 @@ const varyingScore = {
     { start: 0, bpm: 120 },
     { start: 4, bpm: 60 },
   ],
+  sections: [],
   durationSeconds: 8,
   musicXml: "",
   qualityWarning: null,
@@ -98,6 +100,7 @@ describe("Transport", () => {
     // The flatten and preserve timelines genuinely differ here.
     const tempoScore = {
       ...score,
+      sections: [],
       tempoMap: [
         { start: 0, bpm: 120 },
         { start: 2, bpm: 60 },

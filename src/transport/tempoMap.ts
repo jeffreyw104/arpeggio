@@ -91,6 +91,7 @@ export function applyTempoMode(score: Score, mode: TempoMode): Score {
       start: reMap(ts.start),
     })),
     tempoMap: flatMap,
+    sections: score.sections,
     durationSeconds: reMap(score.durationSeconds),
     musicXml: score.musicXml,
     qualityWarning: score.qualityWarning,

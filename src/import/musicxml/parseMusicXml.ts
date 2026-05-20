@@ -255,6 +255,7 @@ export function parseMusicXml(xml: string): Score {
         : [{ start: 0, numerator: 4, denominator: 4 }],
     tempoMap:
       tempoMap.length > 0 ? tempoMap : [{ start: 0, bpm: 120 }],
+    sections: [],
     durationSeconds,
     musicXml: xml,
     qualityWarning: null,

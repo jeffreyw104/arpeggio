@@ -198,6 +198,7 @@ export function parseMidi(buffer: ArrayBuffer): Score {
     pedalEvents,
     timeSignatures,
     tempoMap,
+    sections: [],
     durationSeconds,
     musicXml: "",
     qualityWarning: null,

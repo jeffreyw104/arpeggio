@@ -36,6 +36,7 @@ function makeScore(notes: Note[]): Score {
     pedalEvents: [],
     timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
     tempoMap: [{ start: 0, bpm: 120 }],
+    sections: [],
     durationSeconds: 10,
     musicXml: "",
     qualityWarning: null,
