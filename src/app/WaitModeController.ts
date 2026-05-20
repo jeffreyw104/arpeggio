@@ -19,8 +19,6 @@ export class WaitModeController {
   private armTime = 0;
   private armedFor = -1;
   private enabled = false;
-  private readonly unsubscribeLoop: () => void;
-  private readonly unsubscribeSeek: () => void;
 
   constructor(
     private readonly clock: Clock,
@@ -28,11 +26,11 @@ export class WaitModeController {
     private readonly live: LiveNotes,
     private readonly now: () => number = () => performance.now(),
   ) {
-    this.unsubscribeLoop = clock.onLoop(() => this.resyncToPosition());
+    clock.onLoop(() => this.resyncToPosition());
     // Re-arm at the new position whenever the user manually seeks — except
     // when a loop is active, in which case the looper owns navigation and a
     // mid-loop click shouldn't drag wait-mode out of the loop region.
-    this.unsubscribeSeek = clock.onSeek(() => {
+    clock.onSeek(() => {
       if (this.clock.loop) return;
       this.resyncToPosition();
     });
@@ -97,9 +95,17 @@ export class WaitModeController {
   }
 
   dispose(): void {
+    // Why this isn't more aggressive: React StrictMode (dev) runs every
+    // effect through setup → cleanup → setup on the SAME session/controller
+    // instance. If we unsubscribed from clock.onLoop / clock.onSeek here,
+    // the second mount would silently lose the loop-wrap and manual-seek
+    // resync (the constructor wires those listeners once and never re-
+    // runs), and any wait-mode click would snap the playhead back to the
+    // last step.
+    //
+    // Just disable the per-frame logic and lift the clock hold. The
+    // subscriptions die naturally when the controller itself is GC'd.
     this.enabled = false;
-    this.unsubscribeLoop();
-    this.unsubscribeSeek();
     this.clock.setHold(null);
   }
 }
