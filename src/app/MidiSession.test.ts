@@ -156,10 +156,9 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("mutes the entire piano when MIDI is connected (step 1)", () => {
-    // With a MIDI device, the user's own piano is the sole sound source —
-    // the computer must not play anything from the score. Step 2 will
-    // selectively un-mute the hand the player isn't covering.
+  it("mutes the played hand on score playback when MIDI is connected", () => {
+    // Right selected → only left plays; Left selected → only right plays;
+    // Both selected → silence; none selected → full score plays.
     const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
     const handState = new HandState();
     const session = new MidiSession(new Clock(10), score, handState);
@@ -170,19 +169,24 @@ describe("MidiSession", () => {
     expect(handState.isMuted("right")).toBe(false);
     expect(handState.isMuted("left")).toBe(false);
 
-    // Activating the MIDI tab mutes both hands wholesale.
+    // Activating the MIDI tab with the default hand selection ({right})
+    // mutes right, leaves left audible.
     session.setActive(true);
     expect(handState.isMuted("right")).toBe(true);
-    expect(handState.isMuted("left")).toBe(true);
+    expect(handState.isMuted("left")).toBe(false);
 
-    // Hand selection doesn't change the mute state in step 1.
     session.setHandsIPlay(new Set(["left"]));
-    expect(handState.isMuted("right")).toBe(true);
     expect(handState.isMuted("left")).toBe(true);
+    expect(handState.isMuted("right")).toBe(false);
 
     session.setHandsIPlay(new Set(["left", "right"]));
     expect(handState.isMuted("left")).toBe(true);
     expect(handState.isMuted("right")).toBe(true);
+
+    // Deselect every hand — the user is now listening, not playing.
+    session.setHandsIPlay(new Set());
+    expect(handState.isMuted("left")).toBe(false);
+    expect(handState.isMuted("right")).toBe(false);
 
     // Leaving the MIDI tab restores the user's own mutes (here: none).
     session.setActive(false);
@@ -217,10 +221,11 @@ describe("MidiSession", () => {
     const session = new MidiSession(new Clock(10), score, handState);
     pinMidiStatus(session, "connected");
 
-    // Entering the MIDI tab overlays its own auto-mutes (step 1: both muted),
-    // discarding the user's choice for the duration.
+    // Entering the MIDI tab overlays its own auto-mutes (default handsIPlay
+    // = {right} mutes right, leaves left audible), discarding the user's
+    // choice for the duration.
     session.setActive(true);
-    expect(handState.isMuted("left")).toBe(true);
+    expect(handState.isMuted("left")).toBe(false);
     expect(handState.isMuted("right")).toBe(true);
 
     // Leaving the MIDI tab restores exactly what the user had.
