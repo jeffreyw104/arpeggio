@@ -120,6 +120,15 @@ export async function getPiece(id: string): Promise<StoredPiece | undefined> {
   );
 }
 
+/** Rename a saved piece. No-op if the piece doesn't exist. */
+export async function renamePiece(id: string, name: string): Promise<void> {
+  await withStore(PIECES, "readwrite", async (s) => {
+    const piece = (await promisify(s.get(id))) as StoredPiece | undefined;
+    if (!piece) return;
+    await promisify(s.put({ ...piece, name }));
+  });
+}
+
 /** Delete a saved piece and its practice state. */
 export async function deletePiece(id: string): Promise<void> {
   await withStore(PIECES, "readwrite", (s) => promisify(s.delete(id)));

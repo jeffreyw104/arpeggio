@@ -118,24 +118,92 @@ textarea {
   color: var(--bg);
 }
 
-.top-bar-logo {
+/* The wordmark doubles as the "back to library" trigger. On hover, the inner
+   stack slides up to reveal "← library", hinting at the navigation without
+   changing the bar's footprint. The click goes through the host's library
+   handler so it keeps the existing confirmation. Selectors are prefixed with
+   `.top-bar` so they out-specify the generic `.top-bar button` rule. */
+.top-bar .top-bar-logo {
+  display: inline-block;
+  height: 1.4em;
+  line-height: 1.4em;
+  overflow: hidden;
   font-weight: 600;
   letter-spacing: 0.02em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   color: var(--accent);
 }
 
-/* The piece name is centered in the bar independently of the side groups. */
+.top-bar .top-bar-logo:hover,
+.top-bar .top-bar-logo:focus-visible {
+  background: none;
+  border: none;
+}
+
+.top-bar .top-bar-logo-inner {
+  display: block;
+  transition: transform 0.22s ease;
+}
+
+.top-bar .top-bar-logo:hover .top-bar-logo-inner,
+.top-bar .top-bar-logo:focus-visible .top-bar-logo-inner {
+  transform: translateY(-1.4em);
+}
+
+.top-bar .top-bar-logo-word {
+  display: block;
+  height: 1.4em;
+  line-height: 1.4em;
+}
+
+.top-bar .top-bar-logo-alt {
+  color: var(--accent);
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+/* "now playing" + piece title. Sits after the mode switch in the bar's slack
+   region. min-width: auto (the default for flex items) keeps the block at
+   min-content, so the title never gets cropped at moderate viewport widths —
+   only at very narrow ones does it overflow the bar. */
 .top-bar-piece {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  max-width: 28ch;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+/* Pin every other bar item at its natural size — EXCEPT the scrubber, which
+   has plenty of give. So when the bar gets tight, the scrubber gives up width
+   first and the piece title stays whole. The piece only starts shrinking once
+   the scrubber is fully collapsed. */
+.top-bar > *:not(.top-bar-piece):not(.top-bar-spacer):not(.hud-scrubber) {
+  flex-shrink: 0;
+}
+
+.top-bar .hud-scrubber {
+  min-width: 40px;
+  flex-shrink: 1;
+}
+
+.top-bar-piece-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.top-bar-piece-title {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-dim);
-  pointer-events: none;
 }
 
 .top-bar-spacer {
@@ -587,49 +655,18 @@ textarea {
   height: 400px;
   z-index: 4;
   overflow: hidden;
-  /* Top/bottom feather. Left/right is feathered by .practice-lane-bg — two
-     single-layer masks on nested elements, far more reliable across browsers
-     than one two-layer mask with mask-composite. */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    #000 6%,
-    #000 94%,
-    transparent 100%
-  );
 }
 
-/* Holds the themed background and feathers the left/right edges. The
-   backdrop-filter is theme-independent: besides the frosted blur it forces a
-   compositing layer, without which the mask below renders unreliably on
-   Chromium (on the paper theme the panel is near-opaque, so the blur itself
-   is barely visible — it is kept mainly for that layer). */
+/* Holds the themed background and the frosted blur. Rounded corners soften
+   the panel so it doesn't read as a hard block; overflow:hidden clips the
+   notation to the rounded shape. */
 .practice-lane-bg {
   width: 100%;
   height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 5%,
-    #000 95%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 5%,
-    #000 95%,
-    transparent 100%
-  );
 }
 
 /* --- Reading-lane themes --- */
@@ -640,16 +677,16 @@ textarea {
    filter on the same element. The green highlight is a separate overlay, so
    the filter never tints it. */
 .lane-theme-dark .practice-lane-bg {
-  background: rgba(21, 21, 26, 0.84);
+  background: rgba(21, 21, 26, 0.7);
 }
 
 .lane-theme-dark .reading-lane-track {
   filter: invert(0.86) sepia(0.6) brightness(1.04);
 }
 
-/* Paper: an opaque warm-cream sheet with the natural black engraving. */
+/* Paper: a warm-cream sheet with the natural black engraving. */
 .lane-theme-paper .practice-lane-bg {
-  background: rgba(247, 243, 234, 0.97);
+  background: rgba(247, 243, 234, 0.85);
 }
 
 .lane-theme-paper .reading-lane-track {
@@ -680,14 +717,16 @@ textarea {
 
 /* Current-measure highlight and hover marker — overlay divs positioned by
    ReadingLaneView, OUTSIDE the recolour filter so they keep their exact
-   green. */
+   green. Negative z-index puts them BEHIND the engraving (the track's SVG
+   is transparent except where there's ink), so the green washes the measure
+   without tinting the notes themselves. */
 .lane-highlight,
 .lane-hover {
   position: absolute;
   display: none;
   pointer-events: none;
   border-radius: 3px;
-  z-index: 2;
+  z-index: -1;
 }
 
 /* The highlight is dimmer on the dark theme so it does not glare. */
@@ -875,12 +914,62 @@ textarea {
 
 /* --- Status overlays --- */
 
+/* Floating HUD shown while Verovio renders the score on first load. The
+   animated bars give the eye something to track instead of staring at a blank
+   panel for a beat. */
 .score-loading {
   position: absolute;
-  bottom: 0.5rem;
-  right: 0.75rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.95rem;
+  background: rgba(21, 21, 26, 0.62);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--text);
   font-size: 0.85rem;
-  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.score-loading-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 1em;
+}
+
+.score-loading-bars > span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: score-loading-bounce 0.9s ease-in-out infinite;
+}
+
+.score-loading-bars > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.score-loading-bars > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes score-loading-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.55em);
+  }
 }
 
 .quality-warning {
@@ -963,6 +1052,7 @@ textarea {
   border-color: var(--accent);
 }
 
+.library-browser .library-rename,
 .library-browser .library-delete {
   flex: 0 0 auto;
   background: var(--panel);
@@ -973,8 +1063,19 @@ textarea {
   cursor: pointer;
 }
 
+.library-browser .library-rename:hover,
 .library-browser .library-delete:hover {
   border-color: var(--accent);
+}
+
+.library-browser .library-rename-input {
+  flex: 1;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
 }
 
 .library-browser .library-empty {

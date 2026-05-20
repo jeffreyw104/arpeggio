@@ -379,14 +379,8 @@ export function PracticeView({
     scoreViewRef.current?.setZoom(next);
   }
 
-  // Guard the Library button against an accidental click — it leaves the
-  // practice view entirely.
   function handleOpenLibrary(): void {
-    if (
-      window.confirm("Return to the library? Your practice settings are saved.")
-    ) {
-      onExit();
-    }
+    onExit();
   }
 
   // Switch tabs without carrying playback over: snapshot the leaving tab and
@@ -563,7 +557,16 @@ export function PracticeView({
           />
         )}
       </ToolsPopover>
-      {!scoreReady && <div className="score-loading">Loading score…</div>}
+      {!scoreReady && (
+        <div className="score-loading" role="status" aria-live="polite">
+          <span className="score-loading-bars" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          Rendering sheet music
+        </div>
+      )}
       {score.qualityWarning && (
         <div className="quality-warning">{score.qualityWarning}</div>
       )}

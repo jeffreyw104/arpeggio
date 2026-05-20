@@ -39,9 +39,12 @@ const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
   { mode: "score", label: "Score only" },
 ];
 
-/** Strips a trailing file extension for display ("song.mid" -> "song"). */
+/** Strips a known trailing file extension for display ("song.mid" -> "song").
+ * Only matches the formats the app handles, so titles like "Ballade No.1"
+ * keep their ".1" — the previous "anything after the last dot" rule was too
+ * eager. */
 function displayName(fileName: string): string {
-  return fileName.replace(/\.[^./]+$/, "");
+  return fileName.replace(/\.(midi?|musicxml|xml|mxl)$/i, "");
 }
 
 /** Format a duration in seconds as `m:ss` (e.g. 75 -> "1:15"). */
@@ -127,9 +130,18 @@ export function TopBar({
 
   return (
     <div className="top-bar">
-      <span className="top-bar-logo">arpeggio</span>
-      <button type="button" onClick={onOpenLibrary}>
-        Library
+      <button
+        type="button"
+        className="top-bar-logo"
+        aria-label="Back to library"
+        onClick={onOpenLibrary}
+      >
+        <span className="top-bar-logo-inner">
+          <span className="top-bar-logo-word">arpeggio</span>
+          <span className="top-bar-logo-word top-bar-logo-alt">
+            <span aria-hidden="true">←&nbsp;</span>library
+          </span>
+        </span>
       </button>
       <button
         type="button"
@@ -167,7 +179,10 @@ export function TopBar({
         {formatTime(position)} / {formatTime(duration)}
       </span>
       <ModeSwitch mode={mode} onModeChange={onModeChange} />
-      <span className="top-bar-piece">{displayName(pieceName)}</span>
+      <div className="top-bar-piece">
+        <span className="top-bar-piece-label">now playing</span>
+        <span className="top-bar-piece-title">{displayName(pieceName)}</span>
+      </div>
       <span className="top-bar-spacer" />
       {mode === "midi" && midiStatus !== undefined && (
         <span

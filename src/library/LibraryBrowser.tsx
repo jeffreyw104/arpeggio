@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { listPieces, deletePiece, type StoredPiece } from "./db";
+import {
+  listPieces,
+  deletePiece,
+  renamePiece,
+  type StoredPiece,
+} from "./db";
 
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
@@ -7,10 +12,12 @@ interface LibraryBrowserProps {
   onOpen: (id: string) => void;
 }
 
-/** A searchable list of saved pieces, with open and delete actions. */
+/** A searchable list of saved pieces, with open, rename, and delete actions. */
 export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
   const [pieces, setPieces] = useState<StoredPiece[]>([]);
   const [query, setQuery] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   const refresh = useCallback(() => listPieces().then(setPieces), []);
 
@@ -20,6 +27,25 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
 
   const needle = query.trim().toLowerCase();
   const filtered = pieces.filter((p) => p.name.toLowerCase().includes(needle));
+
+  function startRename(p: StoredPiece) {
+    setEditingId(p.id);
+    setEditingName(p.name);
+  }
+
+  async function commitRename() {
+    if (!editingId) return;
+    const trimmed = editingName.trim();
+    if (trimmed) await renamePiece(editingId, trimmed);
+    setEditingId(null);
+    setEditingName("");
+    await refresh();
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setEditingName("");
+  }
 
   return (
     <div className="library-browser">
@@ -35,12 +61,36 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
         <ul>
           {filtered.map((p) => (
             <li key={p.id}>
+              {editingId === p.id ? (
+                <input
+                  type="text"
+                  className="library-rename-input"
+                  aria-label="New name"
+                  value={editingName}
+                  autoFocus
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void commitRename();
+                    else if (e.key === "Escape") cancelRename();
+                  }}
+                  onBlur={() => void commitRename()}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="library-name"
+                  onClick={() => onOpen(p.id)}
+                >
+                  {p.name}
+                </button>
+              )}
               <button
                 type="button"
-                className="library-name"
-                onClick={() => onOpen(p.id)}
+                className="library-rename"
+                aria-label={`Rename ${p.name}`}
+                onClick={() => startRename(p)}
               >
-                {p.name}
+                Rename
               </button>
               <button
                 type="button"
