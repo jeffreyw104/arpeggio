@@ -39,4 +39,16 @@ describe("LiveNotes", () => {
     live.setPedal(false);
     expect(live.heldNotes().map((n) => n.pitch)).toEqual([60]);
   });
+
+  it("marks pedal-sustained notes with sustained: true and physically held notes without", () => {
+    const live = new LiveNotes();
+    live.press(60, 0.8, 100);
+    live.press(64, 0.8, 110);
+    live.setPedal(true);
+    live.release(60); // released physically but kept by pedal
+    const held = live.heldNotes();
+    const byPitch = Object.fromEntries(held.map((n) => [n.pitch, n.sustained]));
+    expect(byPitch[60]).toBe(true);
+    expect(byPitch[64]).toBeUndefined();
+  });
 });

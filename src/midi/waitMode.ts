@@ -22,6 +22,12 @@ export interface MatchResult {
  * pressed after `armTime` — notes held over from a previous step have earlier
  * press times and are ignored, so strict "no extras" never punishes legato.
  *
+ * Notes that are currently only ringing because of the sustain pedal
+ * (`note.sustained === true`) are NEVER blocking: the user physically
+ * released them, so they shouldn't be punished for the resonance the pedal
+ * is keeping alive. They CAN still satisfy required pitches, so arpeggiated
+ * chords with the pedal down still match.
+ *
  * Press times are in milliseconds, so the seconds window is scaled by 1000.
  */
 export function evaluateStep(
@@ -35,7 +41,7 @@ export function evaluateStep(
   for (const note of held) {
     if (required.has(note.pitch)) {
       accepted.push(note.pitch);
-    } else if (note.pressTime > armTime) {
+    } else if (!note.sustained && note.pressTime > armTime) {
       blocking.push(note.pitch);
     }
   }

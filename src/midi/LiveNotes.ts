@@ -4,6 +4,10 @@ export interface HeldNote {
   velocity: number;
   /** Press time in the performance.now() domain (ms). */
   pressTime: number;
+  /** True if the key has been physically released and the note is only still
+   *  ringing because the sustain pedal is down. False (or absent) means the
+   *  key is currently physically held. */
+  sustained?: boolean;
 }
 
 /**
@@ -23,9 +27,13 @@ export class LiveNotes {
     return this._pedal;
   }
 
-  /** Pitches currently sounding. */
+  /** Pitches currently sounding. Each note's `sustained` field reflects
+   *  whether the key has been physically released (and is only being held
+   *  by the sustain pedal). */
   heldNotes(): HeldNote[] {
-    return [...this.held.values()];
+    return [...this.held.values()].map((n) =>
+      this.sustained.has(n.pitch) ? { ...n, sustained: true } : n,
+    );
   }
 
   press(pitch: number, velocity: number, pressTime: number): void {
