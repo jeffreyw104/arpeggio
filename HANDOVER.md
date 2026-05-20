@@ -99,12 +99,28 @@ small commits. The MIDI Practice tab is the focus throughout.
 
 ### UI polish
 
-- **Reading-lane highlight + loop overlays stronger on dark theme.**
-  `.lane-highlight` bumped from `rgba(63,174,79,0.2)` → `0.32` to match
-  paper (same for `.lane-hover` 0.1 → 0.16 and `.lane-drag` 0.2 → 0.32).
-  `.lane-loop` fill `0.1` → `0.18`, outline `0.55` → `0.7`. The lane's
-  backdrop-filter was washing the original opacities out against the
-  busy falldown.
+- **Lane overlays use positive-z track, not negative-z overlays.** The
+  original setup put `.lane-highlight` / `.lane-hover` / `.lane-drag`
+  / `.lane-loop` at `z-index: -1` so the engraving could paint on top.
+  That tripped a Chromium compositor quirk where negative-z descendants
+  of a backdrop-filter ancestor get silently dropped — visible on the
+  Vercel HTTPS deploy, fine on localhost HTTP. Fixed by flipping the
+  strategy: `.reading-lane-track` now has `position:relative;
+  z-index:1`, and the overlays sit at default z (auto). No negative
+  z-index anywhere; the lane renders identically on every compositor
+  path. The backdrop-filter blur is intact; lane bg opacities are
+  back to glass-like values (dark 0.72, paper 0.88). Loop indicator
+  softened to background `rgba(217,83,79,0.16)` + 1px outline at 0.6.
+  **Paper is the new default lane theme** (was dark) — set via the
+  React `useState` initial value in `PracticeView`.
+- **PWA service worker now activates immediately.** `vite.config.ts`
+  workbox config has `skipWaiting: true` + `clientsClaim: true`. With
+  the previous `autoUpdate`-only setup, new builds were fetched but
+  didn't take over until every open Vercel tab was closed, so users
+  saw stale CSS for hours after a deploy. The first time a user with
+  the OLD service worker visits, they still have to manually unregister
+  it (DevTools → Application → Service Workers → Unregister); after
+  that, all future deploys flip live on the next reload.
 - **On-canvas piano lit-keys are distinguishable in dense chords.**
   Halo `shadowBlur` is proportional to key width (`max(3, w * 0.3)`),
   not a fixed 16 px; halo `globalAlpha` 0.7; a 1.25 px dark inset
