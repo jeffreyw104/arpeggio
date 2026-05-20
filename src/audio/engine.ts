@@ -126,6 +126,13 @@ export class AudioEngine {
       }
     }
 
+    // Free-run metronome must tick even while wait-mode parks the clock
+    // (advance == 0), so drive it BEFORE the no-advance early-out. The
+    // score-locked path needs prev/cur and is driven below.
+    if (this.metronome.freeRun) {
+      this.metronome.updateFree(this.transport.bpm, performance.now());
+    }
+
     // No forward advance: paused, or the loop-wrap frame where the clock
     // jumped back. The wrap was already handled by onLoop -> resync.
     if (advance <= 0) {
@@ -161,7 +168,11 @@ export class AudioEngine {
       }
       this.firePrevBoundary = false;
     }
-    this.metronome.update(prev, cur);
+    // Score-locked metronome runs after the note triggers; the free-run path
+    // already ran above, before the no-advance early-out.
+    if (!this.metronome.freeRun) {
+      this.metronome.update(prev, cur);
+    }
 
     this.prevPosition = cur;
     this.wasPlaying = playing;

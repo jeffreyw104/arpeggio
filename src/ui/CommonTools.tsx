@@ -151,6 +151,9 @@ export function CommonTools({
   const [flatten, setFlatten] = useState(
     () => transport.tempoMode === "flatten",
   );
+  const [metronomeFree, setMetronomeFree] = useState(
+    () => audioEngine?.metronome.freeRun ?? false,
+  );
   function applyBpm(raw: string): void {
     setBpm(raw);
     const n = Number(raw);
@@ -166,6 +169,14 @@ export function CommonTools({
   function handleFlatten(checked: boolean): void {
     setFlatten(checked);
     transport.setTempoMode(checked ? "flatten" : "preserve");
+  }
+  function handleMetronomeFree(checked: boolean): void {
+    setMetronomeFree(checked);
+    if (audioEngine) {
+      // eslint-disable-next-line react-hooks/immutability
+      audioEngine.metronome.freeRun = checked;
+      if (checked) audioEngine.metronome.resetFreeRun();
+    }
   }
 
   // --- Metronome state ---
@@ -290,6 +301,14 @@ export function CommonTools({
             onChange={(e) => handleFlatten(e.target.checked)}
           />{" "}
           Flatten
+        </label>
+        <label title="When on, the metronome ticks at the BPM above regardless of where the score's clock is — keep practising on beat while wait-mode parks the clock on a chord.">
+          <input
+            type="checkbox"
+            checked={metronomeFree}
+            onChange={(e) => handleMetronomeFree(e.target.checked)}
+          />{" "}
+          Metronome always on
         </label>
       </CollapsibleSection>
 

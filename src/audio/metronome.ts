@@ -28,6 +28,15 @@ export class Metronome {
    */
   accentDownbeat = false;
 
+  /**
+   * Free-run mode: clicks fire at a constant BPM from wall-clock time
+   * instead of the score's beat grid. Useful while wait-mode parks the
+   * clock at a step — the user can keep practising on beat. Driven by
+   * `updateFree(bpm, nowMs)`; the regular `update(prev, cur)` is a no-op
+   * while this is on.
+   */
+  freeRun = false;
+
   private measures: Measure[];
   private beatsPerBar: number;
   private subdivisionValue: number;
@@ -39,6 +48,8 @@ export class Metronome {
   private lastBeatTime: number | null = null;
   /** Largest beat time already fired; prevents double-counting at boundaries. */
   private lastFiredTime = -Infinity;
+  /** Wall-clock ms of the next free-run beat; -1 means "not yet armed". */
+  private nextFreeBeatMs = -1;
 
   constructor(score: Score) {
     const ts = score.timeSignatures[0];
@@ -94,9 +105,12 @@ export class Metronome {
 
   /**
    * Advance the clock from `prevPosition` to `curPosition`. Fires a click for
-   * each beat crossed (when enabled) and updates the pulse state.
+   * each beat crossed (when enabled) and updates the pulse state. While
+   * `freeRun` is on, the score-locked grid is silenced; the caller drives
+   * `updateFree` instead.
    */
   update(prevPosition: number, curPosition: number): void {
+    if (this.freeRun) return;
     if (this.enabled && curPosition >= prevPosition) {
       // Beats in [prevPosition, curPosition] not already fired. A closed lower
       // bound catches a beat sitting exactly on prevPosition; lastFiredTime
@@ -143,6 +157,44 @@ export class Metronome {
    */
   resync(): void {
     this.lastFiredTime = -Infinity;
+  }
+
+  /**
+   * Free-run tick: fire one click per `60000/bpm` ms of wall-clock time, no
+   * matter where the score's clock is parked. Call once per frame from the
+   * audio engine when `freeRun` is on. The first call arms the grid at
+   * `nowMs`; subsequent calls fire any beats whose due-time has passed and
+   * advance the next-beat marker forward. A bpm change just re-bases the
+   * interval on the next call — no resync needed.
+   */
+  updateFree(bpm: number, nowMs: number): void {
+    if (!this.enabled || !this.freeRun) return;
+    const interval = 60000 / Math.max(1, bpm);
+    if (this.nextFreeBeatMs < 0) {
+      // First tick in this free-run session — click immediately, then schedule
+      // the next one one interval out.
+      this.fireFreeBeat(nowMs);
+      this.nextFreeBeatMs = nowMs + interval;
+      return;
+    }
+    while (nowMs >= this.nextFreeBeatMs) {
+      this.fireFreeBeat(this.nextFreeBeatMs);
+      this.nextFreeBeatMs += interval;
+    }
+    // Keep the pulse decaying smoothly between beats.
+    this.curPosition = nowMs / 1000;
+  }
+
+  /** Re-arm the free-run grid (e.g. when toggling freeRun off and back on). */
+  resetFreeRun(): void {
+    this.nextFreeBeatMs = -1;
+  }
+
+  private fireFreeBeat(atMs: number): void {
+    const atSec = atMs / 1000;
+    this.lastBeatTime = atSec;
+    this.curPosition = atSec;
+    for (const listener of this.listeners) listener(atSec, false);
   }
 
   /** Register a click listener; returns an unsubscribe function. */

@@ -165,7 +165,9 @@ describe("PlayTools", () => {
 
   it("the metronome toggle enables the metronome", () => {
     const { props } = renderTools();
-    fireEvent.click(screen.getByRole("checkbox", { name: /metronome/i }));
+    // The Tempo section now also has a "Metronome always on" checkbox; the
+    // on/off toggle has aria-label "Metronome" exactly.
+    fireEvent.click(screen.getByRole("checkbox", { name: "Metronome" }));
     expect(props.audioEngine!.metronome.enabled).toBe(true);
   });
 

@@ -120,4 +120,93 @@ describe("Metronome", () => {
     expect(accents.map((a) => a.time)).toEqual([0, 1, 2, 3]);
     expect(accents.filter((a) => a.accent).map((a) => a.time)).toEqual([0, 2]);
   });
+
+  it("free-run fires a click on the first updateFree call", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    const click = vi.fn();
+    m.onClick(click);
+    m.updateFree(120, 1000);
+    expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it("free-run fires one click per 60000/bpm ms of wall-clock time", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    const click = vi.fn();
+    m.onClick(click);
+    // 120 bpm → 500 ms between beats. Schedule: t=1000 (arm + first click),
+    // next due t=1500, then t=2000, t=2500…
+    m.updateFree(120, 1000); // arm + first click (1)
+    m.updateFree(120, 1400); // before next due → still 1 total
+    expect(click).toHaveBeenCalledTimes(1);
+    m.updateFree(120, 1500); // due → 2 total
+    m.updateFree(120, 2500); // catch up 2000 + 2500 → 4 total
+    expect(click).toHaveBeenCalledTimes(4);
+  });
+
+  it("free-run catches up if the caller stops calling for a while", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    const click = vi.fn();
+    m.onClick(click);
+    // 60 bpm → 1000 ms intervals.
+    m.updateFree(60, 0); // first beat at t=0
+    // Skip to t=4200 — should fire beats at 1000, 2000, 3000, 4000.
+    m.updateFree(60, 4200);
+    expect(click).toHaveBeenCalledTimes(5);
+  });
+
+  it("score-locked update is a no-op while freeRun is on", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    const click = vi.fn();
+    m.onClick(click);
+    m.update(0, 2); // would fire 4 beats on the score grid
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("freeRun click reports accent=false (no downbeat in free-run mode)", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    m.accentDownbeat = true; // even with accents requested, free-run is unaccented
+    const accents: boolean[] = [];
+    m.onClick((_time, accent) => accents.push(accent));
+    m.updateFree(120, 1000);
+    m.updateFree(120, 1500);
+    expect(accents).toEqual([false, false]);
+  });
+
+  it("resetFreeRun lets a fresh start fire immediately", () => {
+    const m = new Metronome(score);
+    m.enabled = true;
+    m.freeRun = true;
+    const click = vi.fn();
+    m.onClick(click);
+    m.updateFree(120, 1000); // arm
+    m.updateFree(120, 1200); // no new click yet
+    expect(click).toHaveBeenCalledTimes(1);
+    m.resetFreeRun();
+    m.updateFree(120, 1200); // re-arm fires immediately
+    expect(click).toHaveBeenCalledTimes(2);
+  });
+
+  it("updateFree is a no-op when not enabled or not in freeRun", () => {
+    const m = new Metronome(score);
+    const click = vi.fn();
+    m.onClick(click);
+    m.freeRun = true;
+    m.enabled = false;
+    m.updateFree(120, 1000);
+    expect(click).not.toHaveBeenCalled();
+    m.enabled = true;
+    m.freeRun = false;
+    m.updateFree(120, 1000);
+    expect(click).not.toHaveBeenCalled();
+  });
 });
