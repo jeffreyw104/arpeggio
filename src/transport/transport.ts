@@ -23,6 +23,7 @@ export class Transport {
   private _bpm: number;
   private _speedUp: SpeedUp | null = null;
   private offLoop: (() => void) | null = null;
+  private readonly scoreListeners = new Set<(s: Score) => void>();
 
   constructor(score: Score, tempoMode: TempoMode = "preserve") {
     this._baseScore = score;
@@ -115,5 +116,20 @@ export class Transport {
         end: beatsToSeconds(this._score.tempoMap, endBeats),
       });
     }
+
+    // Notify subscribers that the score reference has been swapped. Anything
+    // that pre-built state from the old `score.notes` times (wait-mode steps,
+    // metronome beat grid…) needs to rebuild against the new times.
+    for (const fn of this.scoreListeners) fn(this._score);
+  }
+
+  /** Subscribe to score-reference swaps (e.g. tempo-mode toggle). Returns an
+   *  unsubscribe function. The new score is in the same time space as the
+   *  clock and any active loop at the time the listener fires. */
+  onScoreChange(fn: (score: Score) => void): () => void {
+    this.scoreListeners.add(fn);
+    return () => {
+      this.scoreListeners.delete(fn);
+    };
   }
 }

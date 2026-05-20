@@ -54,7 +54,7 @@ export class MidiSession {
 
   constructor(
     clock: Clock,
-    private readonly score: Score,
+    private score: Score,
     private readonly handState: HandState,
     startAudio: () => Promise<void> = startAudioContext,
   ) {
@@ -215,6 +215,14 @@ export class MidiSession {
 
   setMonitorOn(on: boolean): void {
     this.monitorOn = on;
+  }
+
+  /** Swap in a new score (e.g. after a tempo-mode toggle re-times the piece).
+   *  Rebuilds the wait-mode steps so their onset times match the new score's
+   *  time space — without this, wait-mode parks the clock at stale seconds. */
+  setScore(score: Score): void {
+    this.score = score;
+    this.controller.setSteps(buildSteps(score.notes, this.handsIPlay));
   }
 
   /** Change which hand(s) the player performs; rebuilds steps and hand mutes. */

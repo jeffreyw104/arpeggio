@@ -166,6 +166,14 @@ export function PracticeView({
     });
     loop.onFrame(() => midiSession.update());
 
+    // A tempo-mode toggle replaces transport.score with a re-timed score;
+    // wait-mode's pre-built steps would otherwise sit at stale onset seconds
+    // and park the clock at points that no longer correspond to the new time
+    // space. Push the new score into the session so the steps rebuild.
+    const offScoreChange = transport.onScoreChange((s) =>
+      midiSession.setScore(s),
+    );
+
     loop.start();
 
     void (async () => {
@@ -268,6 +276,7 @@ export function PracticeView({
 
     return () => {
       cancelled = true;
+      offScoreChange();
       loop.stop();
       midiSession.detachPointerInput();
       midiSession.dispose();

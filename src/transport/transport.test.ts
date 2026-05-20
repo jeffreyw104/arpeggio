@@ -142,3 +142,36 @@ describe("setTempoMode loop preservation", () => {
     expect(t.clock.loop).toBeNull();
   });
 });
+
+describe("Transport onScoreChange", () => {
+  it("notifies subscribers when setTempoMode swaps the score reference", () => {
+    const t = new Transport(varyingScore);
+    const seen: Score[] = [];
+    t.onScoreChange((s) => seen.push(s));
+    t.setTempoMode("flatten");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(t.score);
+    // The new score is in the post-flatten time space — its measures match
+    // the clock & loop the subscriber sees at notification time.
+    expect(seen[0].durationSeconds).toBeCloseTo(t.score.durationSeconds, 6);
+  });
+
+  it("unsubscribes cleanly", () => {
+    const t = new Transport(varyingScore);
+    const seen: Score[] = [];
+    const off = t.onScoreChange((s) => seen.push(s));
+    off();
+    t.setTempoMode("flatten");
+    expect(seen).toHaveLength(0);
+  });
+
+  it("does not fire when settings other than tempo mode change", () => {
+    const t = new Transport(varyingScore);
+    const seen: Score[] = [];
+    t.onScoreChange((s) => seen.push(s));
+    t.setBpm(140);
+    t.loopMeasures(0, 0);
+    t.clearLoop();
+    expect(seen).toHaveLength(0);
+  });
+});

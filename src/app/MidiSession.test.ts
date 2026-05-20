@@ -314,6 +314,34 @@ describe("MidiSession", () => {
     expect(session.liveNotes.heldNotes().some((n) => n.pitch === 60)).toBe(true);
   });
 
+  it("setScore rebuilds wait-mode steps in the new time space", () => {
+    // Regression: a tempo-mode toggle swaps the transport's score for a
+    // re-timed one. Before this fix, MidiSession kept the original score
+    // and its wait-mode steps stayed at old onset seconds — practice mode
+    // parked the clock at stale points and effectively froze.
+    const oldScore = makeScore([note(60, 1, "right")]);
+    const newScore = makeScore([note(60, 3, "right")]);
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, oldScore, new HandState());
+    session.setActive(true);
+
+    // Old time space: stepping past t=1 arms the hold at t=1.
+    clock.play();
+    clock.tick(1);
+    session.update();
+    expect(clock.holdAt).toBe(1);
+
+    // Swap to the new score; the same single note now lives at t=3.
+    session.setScore(newScore);
+    session.update();
+    // resyncToPosition() (called by setSteps) re-finds the first step at
+    // or after the current clock position; clock is at 1, step at 3, so
+    // the hold moves to 3.
+    expect(clock.holdAt).toBe(3);
+
+    session.dispose();
+  });
+
   it("attachPointerInput defers actual attach until the MIDI tab is active", () => {
     const { session } = setupSession();
     const canvas = document.createElement("canvas");
