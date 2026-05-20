@@ -269,6 +269,13 @@ textarea {
   overflow-y: auto;
 }
 
+/* When the reading lane is showing (MIDI Practice / lane layout) the popover
+   drops below the lane ribbon so the engraved sheet music stays visible. */
+.tools-popover--below-lane {
+  top: 488px;
+  max-height: calc(100vh - 510px);
+}
+
 /* The play-tools container — stacks collapsible sections vertically. */
 .play-tools {
   display: flex;
@@ -746,6 +753,41 @@ textarea {
   background: rgba(63, 174, 79, 0.16);
 }
 
+/* Lane drag-to-loop preview — same green as the lane's current-measure
+   highlight, drawn on every measure between dragStart and dragEnd. The
+   z-index matches the highlight so it sits behind the engraving (notes
+   paint on top). Per-theme background to match the existing highlight
+   opacity choices for dark vs paper. */
+.lane-drag {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  border-radius: 3px;
+  z-index: -1;
+}
+
+.lane-theme-dark .lane-drag {
+  background: rgba(63, 174, 79, 0.2);
+}
+
+.lane-theme-paper .lane-drag {
+  background: rgba(63, 174, 79, 0.32);
+}
+
+/* Persistent loop indicator in the lane. Faint red, distinct from the
+   green current-measure / drag highlight. Sits behind the notation like
+   the other lane overlays. */
+.lane-loop {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  border-radius: 3px;
+  z-index: -1;
+  background: rgba(217, 83, 79, 0.1);
+  outline: 1px solid rgba(217, 83, 79, 0.55);
+  outline-offset: -1px;
+}
+
 /* Split layout: falldown and the full engraved score side-by-side, like Play. */
 .practice-content--midi.layout-split {
   display: flex;
@@ -1018,13 +1060,14 @@ textarea {
 }
 
 /* Persistent loop indicator — drawn on every measure inside an active loop
-   so the user can see WHERE the loop is even when not playing inside it. A
-   subtle fill plus a translucent stroke for the "this is the loop" frame. */
+   so the user can see WHERE the loop is even when not playing inside it.
+   Faint red (distinct from the green current-measure highlight) with a
+   translucent stroke for the "this is the loop" frame. */
 .measure-loop {
-  fill: #3fae4f;
-  fill-opacity: 0.08;
-  stroke: #3fae4f;
-  stroke-opacity: 0.55;
+  fill: #d9534f;
+  fill-opacity: 0.07;
+  stroke: #d9534f;
+  stroke-opacity: 0.5;
   stroke-width: 1.5;
   pointer-events: none;
 }

@@ -1,5 +1,9 @@
 interface ToolsPopoverProps {
   open: boolean;
+  /** Where the popover floats. "default" hugs the top bar; "below-lane"
+   *  drops it under the reading-lane ribbon so the engraved sheet music
+   *  stays visible. */
+  placement?: "default" | "below-lane";
   children: React.ReactNode;
 }
 
@@ -12,12 +16,18 @@ interface ToolsPopoverProps {
  */
 export function ToolsPopover({
   open,
+  placement = "default",
   children,
 }: ToolsPopoverProps): React.JSX.Element | null {
   if (!open) return null;
 
+  const className =
+    placement === "below-lane"
+      ? "tools-popover tools-popover--below-lane"
+      : "tools-popover";
+
   return (
-    <div className="tools-popover" role="dialog" aria-label="Tools">
+    <div className={className} role="dialog" aria-label="Tools">
       {children}
     </div>
   );

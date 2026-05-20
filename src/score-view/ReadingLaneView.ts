@@ -1,7 +1,7 @@
 import type { Transport } from "../transport/transport";
 import { currentMeasureIndex } from "./sync";
 import { measureBox } from "./measureBox";
-import { measureIndexFromTarget } from "./interactions";
+import { measureIndexFromTarget, orderedRange } from "./interactions";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -43,9 +43,18 @@ export class ReadingLaneView {
   private currentSystem: Element | null = null;
   private ty = 0;
   private hitRectsBuilt = false;
-  private readonly onClick: (e: MouseEvent) => void;
+  /** Click-drag state: index where the press began. null if not dragging. */
+  private dragStart: number | null = null;
+  private dragEnd: number | null = null;
+  /** One overlay div per measure being dragged over. Transient. */
+  private dragEls: HTMLDivElement[] = [];
+  /** One overlay div per measure inside the persistent loop indicator. */
+  private loopEls: HTMLDivElement[] = [];
+  private readonly onMouseDown: (e: MouseEvent) => void;
+  private readonly onMouseUp: (e: MouseEvent) => void;
   private readonly onMove: (e: MouseEvent) => void;
   private readonly onLeave: () => void;
+  private readonly unsubscribeClock: () => void;
 
   constructor(
     container: HTMLElement,
@@ -81,14 +90,37 @@ export class ReadingLaneView {
       .querySelectorAll("g.measure")
       .forEach((el, i) => el.setAttribute("data-measure-index", String(i)));
 
-    this.onClick = (e) => {
+    this.onMouseDown = (e) => {
       const idx = measureIndexFromTarget(e.target);
-      if (idx === null) return;
-      const measure = this.transport.score.measures[idx];
-      if (measure) this.transport.clock.seek(measure.start);
+      this.dragStart = idx;
+      this.dragEnd = idx;
+      if (idx !== null) this.refreshDragEls();
+    };
+    this.onMouseUp = (e) => {
+      const end = measureIndexFromTarget(e.target);
+      if (this.dragStart !== null && end !== null) {
+        if (this.dragStart === end) {
+          const measure = this.transport.score.measures[end];
+          if (measure) this.transport.clock.seek(measure.start);
+        } else {
+          const { first, last } = orderedRange(this.dragStart, end);
+          this.transport.loopMeasures(first, last);
+        }
+      }
+      this.dragStart = null;
+      this.dragEnd = null;
+      this.clearDragEls();
     };
     this.onMove = (e) => {
       const idx = measureIndexFromTarget(e.target);
+      // Drag in progress: extend the preview overlays to cover dragStart→idx.
+      if (this.dragStart !== null) {
+        if (idx !== null && idx !== this.dragEnd) {
+          this.dragEnd = idx;
+          this.refreshDragEls();
+        }
+        return;
+      }
       if (idx === this.hoverIndex) return;
       this.hoverIndex = idx;
       const el =
@@ -101,10 +133,20 @@ export class ReadingLaneView {
     this.onLeave = () => {
       this.hoverIndex = null;
       this.hoverEl.style.display = "none";
+      // Don't clear drag state on leave — the user may sweep back in. mouseup
+      // anywhere still resolves the drag via the container's own mouseup.
     };
-    container.addEventListener("click", this.onClick);
+    container.addEventListener("mousedown", this.onMouseDown);
+    container.addEventListener("mouseup", this.onMouseUp);
     container.addEventListener("mousemove", this.onMove);
     container.addEventListener("mouseleave", this.onLeave);
+
+    // Persistent loop indicator: any change to transport.clock.loop — set by
+    // drag here, by drag on the engraved score, or by a Tools-popover button —
+    // rebuilds the overlay divs.
+    this.unsubscribeClock = transport.clock.onChange(() => {
+      this.refreshLoopEls();
+    });
   }
 
   /** Re-position the lane for the clock's current time; call once per frame. */
@@ -144,12 +186,17 @@ export class ReadingLaneView {
     if (idx !== this.highlightedIndex || jumped) {
       this.position(this.highlightEl, measureEl);
       this.highlightedIndex = idx;
-      // The hovered bar shifted too if the lane jumped.
-      if (jumped && this.hoverIndex !== null) {
-        const hovered = this.container.querySelector(
-          `[data-measure-index="${this.hoverIndex}"]`,
-        );
-        if (hovered) this.position(this.hoverEl, hovered);
+      // Everything else that's anchored to a measure shifted too if the lane
+      // jumped: hover marker, drag preview, loop indicator.
+      if (jumped) {
+        if (this.hoverIndex !== null) {
+          const hovered = this.container.querySelector(
+            `[data-measure-index="${this.hoverIndex}"]`,
+          );
+          if (hovered) this.position(this.hoverEl, hovered);
+        }
+        this.refreshLoopEls();
+        if (this.dragStart !== null) this.refreshDragEls();
       }
     }
   }
@@ -181,6 +228,81 @@ export class ReadingLaneView {
     el.style.display = "block";
   }
 
+  /** Repaint the live drag-to-loop preview overlays. */
+  private refreshDragEls(): void {
+    if (this.dragStart === null || this.dragEnd === null) {
+      this.clearDragEls();
+      return;
+    }
+    const { first, last } = orderedRange(this.dragStart, this.dragEnd);
+    const want = last - first + 1;
+    while (this.dragEls.length < want) {
+      const div = document.createElement("div");
+      div.className = "lane-drag";
+      this.container.append(div);
+      this.dragEls.push(div);
+    }
+    while (this.dragEls.length > want) {
+      const extra = this.dragEls.pop();
+      extra?.remove();
+    }
+    for (let i = 0; i < want; i++) {
+      const el = this.container.querySelector(
+        `[data-measure-index="${first + i}"]`,
+      );
+      if (el) this.position(this.dragEls[i], el);
+      else this.dragEls[i].style.display = "none";
+    }
+  }
+
+  private clearDragEls(): void {
+    for (const el of this.dragEls) el.remove();
+    this.dragEls = [];
+  }
+
+  /** Rebuild the persistent loop indicator overlay divs from
+   *  transport.clock.loop. Also called after the lane jumps systems so the
+   *  divs stay aligned with the now-translated measures. */
+  private refreshLoopEls(): void {
+    const loop = this.transport.clock.loop;
+    if (!loop) {
+      for (const el of this.loopEls) el.remove();
+      this.loopEls = [];
+      return;
+    }
+    const measures = this.transport.score.measures;
+    const firstIdx = measures.findIndex(
+      (m) => loop.start >= m.start && loop.start < m.end,
+    );
+    const lastIdx = measures.findIndex(
+      (m) => loop.end > m.start && loop.end <= m.end,
+    );
+    if (firstIdx === -1) {
+      for (const el of this.loopEls) el.remove();
+      this.loopEls = [];
+      return;
+    }
+    const actualLast = lastIdx === -1 ? firstIdx : lastIdx;
+    const want = actualLast - firstIdx + 1;
+    while (this.loopEls.length < want) {
+      const div = document.createElement("div");
+      div.className = "lane-loop";
+      this.container.append(div);
+      this.loopEls.push(div);
+    }
+    while (this.loopEls.length > want) {
+      const extra = this.loopEls.pop();
+      extra?.remove();
+    }
+    for (let i = 0; i < want; i++) {
+      const el = this.container.querySelector(
+        `[data-measure-index="${firstIdx + i}"]`,
+      );
+      if (el) this.position(this.loopEls[i], el);
+      else this.loopEls[i].style.display = "none";
+    }
+  }
+
   /** The measure's staff-line rectangle in viewport-local pixels. */
   private staffBox(measureEl: Element): Box {
     const vp = this.container.getBoundingClientRect();
@@ -209,9 +331,11 @@ export class ReadingLaneView {
 
   /** Remove all listeners and injected content. */
   destroy(): void {
-    this.container.removeEventListener("click", this.onClick);
+    this.container.removeEventListener("mousedown", this.onMouseDown);
+    this.container.removeEventListener("mouseup", this.onMouseUp);
     this.container.removeEventListener("mousemove", this.onMove);
     this.container.removeEventListener("mouseleave", this.onLeave);
+    this.unsubscribeClock();
     this.container.innerHTML = "";
   }
 }
