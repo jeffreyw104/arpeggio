@@ -32,6 +32,18 @@ function pressKey(key: string): void {
   window.dispatchEvent(new KeyboardEvent("keydown", { key }));
 }
 
+/** Minimal setup helper that allows injecting an optional startAudio mock. */
+function setupSession(opts: { startAudio?: () => Promise<void> } = {}) {
+  const score = makeScore([note(60, 1, "right")]);
+  const session = new MidiSession(
+    new Clock(10),
+    score,
+    new HandState(),
+    opts.startAudio,
+  );
+  return { session };
+}
+
 describe("MidiSession", () => {
   it("routes a QWERTY keydown into liveNotes when active", () => {
     const score = makeScore([note(60, 1, "right")]);
@@ -254,6 +266,27 @@ describe("MidiSession", () => {
 
     expect(falldown.inputHighlights.get(60)).toBe("correct");
     expect(falldown.inputHighlights.get(64)).toBe("wrong");
+    session.dispose();
+  });
+
+  it("resumes the audio context on the first live-input note", async () => {
+    const startAudio = vi.fn().mockResolvedValue(undefined);
+    const { session } = setupSession({ startAudio });
+    expect(startAudio).not.toHaveBeenCalled();
+    session.liveNotes.press(60, 0.7, performance.now());
+    await Promise.resolve(); // flush the void-promise
+    expect(startAudio).toHaveBeenCalledTimes(1);
+    session.dispose();
+  });
+
+  it("only resumes the audio context once across many live-input notes", async () => {
+    const startAudio = vi.fn().mockResolvedValue(undefined);
+    const { session } = setupSession({ startAudio });
+    session.liveNotes.press(60, 0.7, performance.now());
+    session.liveNotes.press(64, 0.7, performance.now());
+    session.liveNotes.press(67, 0.7, performance.now());
+    await Promise.resolve();
+    expect(startAudio).toHaveBeenCalledTimes(1);
     session.dispose();
   });
 });

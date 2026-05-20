@@ -1,6 +1,7 @@
 import type { Clock } from "../transport/clock";
 import type { Score, Hand } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
+import { startAudioContext } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { HandState } from "../practice/hands";
 import { MidiInput, type MidiNoteEvent } from "../midi/MidiInput";
@@ -38,6 +39,8 @@ export class MidiSession {
   private monitorOn = true;
   private active = false;
   private midiStarted = false;
+  private audioStarted = false;
+  private readonly startAudio: () => Promise<void>;
 
   /** The user's own hand-mute state, captured when the MIDI tab opens and
    *  restored when it closes — the MIDI auto-mutes are transient and must
@@ -48,7 +51,9 @@ export class MidiSession {
     clock: Clock,
     private readonly score: Score,
     private readonly handState: HandState,
+    startAudio: () => Promise<void> = startAudioContext,
   ) {
+    this.startAudio = startAudio;
     this.controller = new WaitModeController(
       clock,
       buildSteps(score.notes, this.handsIPlay),
@@ -70,6 +75,10 @@ export class MidiSession {
 
     // Input monitor: sound the player's own notes when enabled.
     this.liveNotes.onPressed = (n) => {
+      if (!this.audioStarted) {
+        this.audioStarted = true;
+        void this.startAudio();
+      }
       if (this.monitorOn && this.audioEngine) {
         this.audioEngine.playInputNote(n.pitch, n.velocity);
       }
