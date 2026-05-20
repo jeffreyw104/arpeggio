@@ -13,6 +13,9 @@ import { FalldownRenderer } from "../falldown/renderer";
 import { renderScore, renderReadingLane } from "../score-view/verovio";
 import { ScoreView } from "../score-view/scoreView";
 import { ReadingLaneView } from "../score-view/ReadingLaneView";
+import { PianoRollLane } from "../piano-roll/PianoRollLane";
+import { PianoRollPanel } from "../piano-roll/PianoRollPanel";
+import { Minimap } from "../ui/Minimap";
 import { Divider } from "../layout/Divider";
 import type { ViewMode } from "../layout/viewMode";
 import { TopBar } from "../ui/TopBar";
@@ -76,6 +79,10 @@ export function PracticeView({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreContainerRef = useRef<HTMLDivElement>(null);
   const laneContainerRef = useRef<HTMLDivElement>(null);
+  const pianoRollLaneRef = useRef<HTMLDivElement>(null);
+  const pianoRollPanelRef = useRef<HTMLDivElement>(null);
+  const pianoRollLaneInstance = useRef<PianoRollLane | null>(null);
+  const pianoRollPanelInstance = useRef<PianoRollPanel | null>(null);
 
   // The Transport must be stable across renders; a lazy initializer creates it
   // exactly once, and unlike a ref it is safe to read during render.
@@ -131,6 +138,8 @@ export function PracticeView({
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [minimapVisible, setMinimapVisible] = useState(true);
+  const minimapVisibleRef = useRef(true);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -225,6 +234,7 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
+      setMinimapVisible(state?.minimapVisible ?? true);
       const initialMode: TabMode = state?.mode === "midi" ? "midi" : "play";
       const snapshots = seedTabSnapshots(transport, state ?? null);
       applyTab(snapshots[initialMode], transport);
@@ -233,46 +243,63 @@ export function PracticeView({
       setPracticeReady(true);
     })();
 
-    void (async () => {
-      try {
-        const { svgPages, timemap } = await renderScore(
-          transport.score.musicXml,
-        );
-        if (cancelled) return;
-        const container = scoreContainerRef.current;
-        if (!container) return;
-        const scoreView = new ScoreView(
-          container,
-          transport,
-          svgPages,
-          timemap,
-        );
-        // Start slightly zoomed out; the zoom buttons drive subsequent changes.
-        scoreView.setZoom(DEFAULT_SCORE_ZOOM);
-        scoreViewRef.current = scoreView;
-        loop.onFrame(() => scoreView.renderFrame());
-        setScoreReady(true);
-      } catch {
-        // Verovio failed; leave the score panel empty rather than crashing.
-      }
-    })();
+    if (score.source === "musicxml") {
+      void (async () => {
+        try {
+          const { svgPages, timemap } = await renderScore(
+            transport.score.musicXml,
+          );
+          if (cancelled) return;
+          const container = scoreContainerRef.current;
+          if (!container) return;
+          const scoreView = new ScoreView(
+            container,
+            transport,
+            svgPages,
+            timemap,
+          );
+          // Start slightly zoomed out; the zoom buttons drive subsequent changes.
+          scoreView.setZoom(DEFAULT_SCORE_ZOOM);
+          scoreViewRef.current = scoreView;
+          loop.onFrame(() => scoreView.renderFrame());
+          setScoreReady(true);
+        } catch {
+          // Verovio failed; leave the score panel empty rather than crashing.
+        }
+      })();
 
-    // The reading lane is a second, separate engraving — systems stacked on
-    // one page (see renderReadingLane) — driven by the same clock as the split
-    // ScoreView, so the two views stay in sync across a layout switch.
-    void (async () => {
-      try {
-        const laneSvgs = await renderReadingLane(transport.score.musicXml);
-        if (cancelled) return;
-        const container = laneContainerRef.current;
-        if (!container) return;
-        const laneView = new ReadingLaneView(container, transport, laneSvgs);
-        laneViewRef.current = laneView;
-        loop.onFrame(() => laneView.renderFrame());
-      } catch {
-        // The reading lane is optional; ignore render failures.
+      // The reading lane is a second, separate engraving — systems stacked on
+      // one page (see renderReadingLane) — driven by the same clock as the split
+      // ScoreView, so the two views stay in sync across a layout switch.
+      void (async () => {
+        try {
+          const laneSvgs = await renderReadingLane(transport.score.musicXml);
+          if (cancelled) return;
+          const container = laneContainerRef.current;
+          if (!container) return;
+          const laneView = new ReadingLaneView(container, transport, laneSvgs);
+          laneViewRef.current = laneView;
+          loop.onFrame(() => laneView.renderFrame());
+        } catch {
+          // The reading lane is optional; ignore render failures.
+        }
+      })();
+    }
+
+    if (score.source === "midi") {
+      const laneEl = pianoRollLaneRef.current;
+      if (laneEl) {
+        const inst = new PianoRollLane(laneEl, transport, { measuresPerPage: 4 });
+        pianoRollLaneInstance.current = inst;
+        loop.onFrame(() => inst.renderFrame());
       }
-    })();
+      const panelEl = pianoRollPanelRef.current;
+      if (panelEl) {
+        const inst = new PianoRollPanel(panelEl, transport);
+        pianoRollPanelInstance.current = inst;
+        loop.onFrame(() => inst.renderFrame());
+      }
+    }
 
     return () => {
       cancelled = true;
@@ -282,6 +309,8 @@ export function PracticeView({
       midiSession.dispose();
       scoreViewRef.current?.destroy();
       laneViewRef.current?.destroy();
+      pianoRollLaneInstance.current?.destroy();
+      pianoRollPanelInstance.current?.destroy();
       const renderer = falldownRef.current;
       const beat = renderer
         ? {
@@ -296,10 +325,13 @@ export function PracticeView({
         pieceId,
         capturePracticeState(transport, handState, beat, {
           mode: modeRef.current,
+          minimapVisible: minimapVisibleRef.current,
           ...(snapshots && { tabs: snapshots }),
         }),
       );
     };
+  // score.source is fixed at mount time (set by the import pipeline) — safe to omit from deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transport, handState, pieceId, midiSession]);
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
@@ -356,6 +388,10 @@ export function PracticeView({
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  useEffect(() => {
+    minimapVisibleRef.current = minimapVisible;
+  }, [minimapVisible]);
 
   // Activate the MIDI session only while the MIDI tab is showing — this is what
   // keeps the wait-mode controller (and its clock hold) off the play tab.
@@ -428,6 +464,28 @@ export function PracticeView({
     setMode(next);
   }
 
+  function getViewportWindow(): { start: number; end: number } {
+    const measures = score.measures;
+    if (measures.length === 0) return { start: 0, end: 1 };
+
+    if (score.source === "midi") {
+      const page = pianoRollLaneInstance.current?.currentPage;
+      if (page && page.last >= 0) {
+        const first = measures[page.first];
+        const last = measures[Math.min(page.last, measures.length - 1)];
+        if (first && last) return { start: first.start, end: last.end };
+      }
+    }
+    // XML fallback: a 4-measure window around the playhead.
+    const t = transport.clock.position;
+    let idx = measures.findIndex((m) => t < m.end);
+    if (idx === -1) idx = measures.length - 1;
+    const start = Math.max(0, idx);
+    const window = measures.slice(start, start + 4);
+    if (window.length === 0) return { start: 0, end: 1 };
+    return { start: window[0].start, end: window[window.length - 1].end };
+  }
+
   const isMidi = mode === "midi";
 
   // In play mode, visibility of each panel depends on viewMode.
@@ -469,6 +527,13 @@ export function PracticeView({
 
   return (
     <div className="practice-view">
+      {minimapVisible && (
+        <Minimap
+          transport={transport}
+          // eslint-disable-next-line react-hooks/refs
+          viewportWindow={getViewportWindow()}
+        />
+      )}
       {/*
        * ONE stable content area. The falldown <canvas> (position A) and the
        * score-container <div> (position B) are ALWAYS rendered here, never
@@ -480,6 +545,7 @@ export function PracticeView({
           "practice-content",
           `practice-content--${mode}`,
           isMidi ? `layout-${practiceLayout}` : "",
+          isMidi ? `practice-content--midi-${score.source === "midi" ? "roll" : "engrave"}` : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -532,6 +598,18 @@ export function PracticeView({
             <div ref={laneContainerRef} className="reading-lane-viewport" />
           </div>
         </div>
+
+        {/*
+         * [D] Piano-roll lane — stable tree position, always rendered.
+         * CSS reveals it only in the MIDI piano-roll layout.
+         */}
+        <div className="piano-roll-lane-panel" ref={pianoRollLaneRef} data-testid="piano-roll-lane" />
+
+        {/*
+         * [E] Piano-roll split panel — stable tree position, always rendered.
+         * CSS reveals it only in the MIDI piano-roll split layout.
+         */}
+        <div className="piano-roll-panel" ref={pianoRollPanelRef} />
       </div>
 
       <TopBar
@@ -554,8 +632,8 @@ export function PracticeView({
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
-        minimapVisible={true}
-        onMinimapVisibleChange={() => {}}
+        minimapVisible={minimapVisible}
+        onMinimapVisibleChange={setMinimapVisible}
       />
       <ToolsPopover
         open={toolsOpen}
