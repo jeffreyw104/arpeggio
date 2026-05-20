@@ -7,3 +7,11 @@ dist/
 playwright-report/
 test-results/
 dev-dist/
+
+# Subagent worktrees managed by the Claude Code harness.
+.claude/
+.claire/
+
+# Throwaway debug scripts and screenshots used during interactive sessions.
+tmp-*.mjs
+tmp-*.png
