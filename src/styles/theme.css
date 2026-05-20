@@ -739,13 +739,18 @@ textarea {
   z-index: -1;
 }
 
-/* The highlight is dimmer on the dark theme so it does not glare. */
+/* Dark-theme opacities now match paper. The lane's backdrop-filter blurs
+   the moving falldown behind it, and the green washes out fast when the
+   compositor averages it with that backdrop — what looked subtle in
+   isolation read as "barely visible" against the busy backdrop in
+   production. Matching paper's stronger values still reads as a soft
+   highlight, not a slab, but is robust to compositor variance. */
 .lane-theme-dark .lane-highlight {
-  background: rgba(63, 174, 79, 0.2);
+  background: rgba(63, 174, 79, 0.32);
 }
 
 .lane-theme-dark .lane-hover {
-  background: rgba(63, 174, 79, 0.1);
+  background: rgba(63, 174, 79, 0.16);
 }
 
 .lane-theme-paper .lane-highlight {
@@ -770,7 +775,7 @@ textarea {
 }
 
 .lane-theme-dark .lane-drag {
-  background: rgba(63, 174, 79, 0.2);
+  background: rgba(63, 174, 79, 0.32);
 }
 
 .lane-theme-paper .lane-drag {
@@ -779,15 +784,17 @@ textarea {
 
 /* Persistent loop indicator in the lane. Faint red, distinct from the
    green current-measure / drag highlight. Sits behind the notation like
-   the other lane overlays. */
+   the other lane overlays. Stronger fill + outline than the original
+   pass — the lane's backdrop-filter washes thin reds out fast against
+   the moving falldown behind it. */
 .lane-loop {
   position: absolute;
   display: block;
   pointer-events: none;
   border-radius: 3px;
   z-index: -1;
-  background: rgba(217, 83, 79, 0.1);
-  outline: 1px solid rgba(217, 83, 79, 0.55);
+  background: rgba(217, 83, 79, 0.18);
+  outline: 1px solid rgba(217, 83, 79, 0.7);
   outline-offset: -1px;
 }
 
