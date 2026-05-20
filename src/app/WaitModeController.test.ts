@@ -83,6 +83,34 @@ describe("WaitModeController", () => {
     expect(clock.holdAt).toBe(2);
   });
 
+  it("a manual seek past the current hold does not snap back to the old hold", () => {
+    // Regression: previously, after a held wait-mode parked holdAt at step k,
+    // seeking past it left the stale holdAt in place — the next clock.tick
+    // would instantly snap the position back to the OLD hold before the
+    // controller had a chance to refresh holdAt to the new step's onset.
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    const ctrl = new WaitModeController(clock, steps, live, () => 5000);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1); // hold parks position at step 0 (t=1)
+    ctrl.update();
+    expect(clock.holdAt).toBe(1);
+
+    // User clicks measure 3 — far past the current hold at 1.
+    clock.seek(3);
+    // Without the fix, the next tick would see holdAt=1 still and snap
+    // position back to 1.
+    clock.tick(0.001);
+    expect(clock.position).toBeGreaterThanOrEqual(3);
+
+    // The controller's update() re-arms at the next step (here: step 1 at t=2,
+    // which is now BEFORE position 3, so the controller falls off to "no more
+    // steps" — null hold) without dragging position backward.
+    ctrl.update();
+    expect(clock.position).toBeGreaterThanOrEqual(3);
+  });
+
   it("resyncs stepIndex after a loop wrap", () => {
     // Use steps at t=3 and t=4 so the hold (t=3) sits beyond loop.end (t=2).
     // This means tick() reaches loop.end before the hold clamps it, firing onLoop.

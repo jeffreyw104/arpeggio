@@ -73,12 +73,11 @@ export class WaitModeController {
       return;
     }
     const step = this.steps[this.stepIndex];
+    // setHold itself handles the "position is past the hold" snap-back. Doing
+    // the snap inside the controller via clock.seek used to trigger our own
+    // onSeek listener (the manual-seek resync) and mutate stepIndex mid-
+    // update — race the controller produces against itself.
     this.clock.setHold(step.time);
-    // If the clock already overshot the hold (e.g. first update() after play),
-    // snap it back so position === holdAt.
-    if (this.clock.position > step.time) {
-      this.clock.seek(step.time);
-    }
 
     if (this.clock.position < step.time - EARLY_ACCEPT_SEC) {
       this.result = null;

@@ -66,6 +66,12 @@ export class Clock {
 
   seek(seconds: number): void {
     this._position = Math.min(Math.max(seconds, 0), this.duration);
+    // A user-driven seek lifts any wait-mode hold so the next tick can
+    // actually advance toward the new position. The wait-mode controller
+    // re-arms via its onSeek listener and re-sets the hold on the next
+    // update(). Without this, tick()'s "next >= holdAt → snap to holdAt"
+    // branch would instantly snap the position back to the old hold.
+    this._holdAt = null;
     this.emitChange();
     this.seekListeners.forEach((fn) => fn());
   }
@@ -86,9 +92,16 @@ export class Clock {
     this.emitChange();
   }
 
-  /** Clamp clock advancement at `seconds`; null lifts the hold. */
+  /** Clamp clock advancement at `seconds`; null lifts the hold. Also snaps
+   *  the current position back to the hold if the position is already past
+   *  it — saves the wait-mode controller from doing the snap itself (and
+   *  recursing through clock.seek → onSeek listeners). */
   setHold(seconds: number | null): void {
     this._holdAt = seconds;
+    if (seconds != null && this._position > seconds) {
+      this._position = seconds;
+      this.emitChange();
+    }
   }
 
   /**
