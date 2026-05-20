@@ -1,9 +1,15 @@
 import type { MidiNoteEvent } from "./MidiInput";
 
-/** One octave of piano keys, C4 (60) upward. */
+/** Two-octave FL Studio-style QWERTY layout, mid-C = 60.
+ *  Lower octave: Z X C V B N M (white) / S D · G H J (black).
+ *  Upper octave: Q W E R T Y U (white) / 2 3 · 5 6 7 (black). */
 const KEY_TO_PITCH: Readonly<Record<string, number>> = {
-  a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66,
-  g: 67, y: 68, h: 69, u: 70, j: 71, k: 72,
+  // Lower octave
+  z: 60, s: 61, x: 62, d: 63, c: 64, v: 65, g: 66,
+  b: 67, h: 68, n: 69, j: 70, m: 71,
+  // Upper octave
+  q: 72, "2": 73, w: 74, "3": 75, e: 76, r: 77, "5": 78,
+  t: 79, "6": 80, y: 81, "7": 82, u: 83,
 };
 
 /** Velocity used for every QWERTY press (no real velocity available). */
