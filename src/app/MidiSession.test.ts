@@ -289,4 +289,18 @@ describe("MidiSession", () => {
     expect(startAudio).toHaveBeenCalledTimes(1);
     session.dispose();
   });
+
+  it("resets the audio-start latch when startAudio rejects so the next press retries", async () => {
+    const startAudio = vi.fn()
+      .mockRejectedValueOnce(new Error("user gesture refused"))
+      .mockResolvedValueOnce(undefined);
+    const { session } = setupSession({ startAudio });
+    session.liveNotes.press(60, 0.7, performance.now());
+    await Promise.resolve(); // let the rejection settle
+    await Promise.resolve(); // .catch() handler runs on a later tick
+    expect(startAudio).toHaveBeenCalledTimes(1);
+    session.liveNotes.press(64, 0.7, performance.now());
+    await Promise.resolve();
+    expect(startAudio).toHaveBeenCalledTimes(2); // retry happened
+  });
 });

@@ -77,7 +77,9 @@ export class MidiSession {
     this.liveNotes.onPressed = (n) => {
       if (!this.audioStarted) {
         this.audioStarted = true;
-        void this.startAudio();
+        this.startAudio().catch(() => {
+          this.audioStarted = false;
+        });
       }
       if (this.monitorOn && this.audioEngine) {
         this.audioEngine.playInputNote(n.pitch, n.velocity);
