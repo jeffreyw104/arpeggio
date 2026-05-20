@@ -700,20 +700,23 @@ textarea {
   filter: none;
 }
 
-/* The viewport clips the lane and is the positioning context for the overlay
-   highlight / hover markers. */
+/* The viewport clips horizontally and scrolls vertically; auto-jump on a
+   system change drives scrollTop, but the user can also wheel/trackpad/
+   touch-scroll through the engraving freely. Positioning context for the
+   overlay highlight / hover / loop / drag markers. */
 .reading-lane-viewport {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* The track holds the stacked-systems engraving; ReadingLaneView shifts it
-   vertically (transform) to jump between systems. */
+/* The track holds the stacked-systems engraving. ReadingLaneView used to
+   shift it vertically via a CSS transform; it now uses container.scrollTop
+   instead so the user can scroll. */
 .reading-lane-track {
   width: 100%;
-  will-change: transform;
 }
 
 /* ReadingLaneView scales the engraving; centre it in the lane. */

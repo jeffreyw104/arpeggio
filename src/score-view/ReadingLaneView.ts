@@ -41,7 +41,6 @@ export class ReadingLaneView {
   private highlightedIndex = -1;
   private hoverIndex: number | null = null;
   private currentSystem: Element | null = null;
-  private ty = 0;
   private hitRectsBuilt = false;
   /** Click-drag state: index where the press began. null if not dragging. */
   private dragStart: number | null = null;
@@ -172,14 +171,18 @@ export class ReadingLaneView {
 
     // Jump first — when the playhead enters a different engraved system the
     // lane page-turns down to it — so the highlight below is placed against
-    // the post-jump positions.
+    // the post-jump positions. Implemented as `container.scrollTop` (not a
+    // CSS transform on the track) so the user can also scroll the lane
+    // freely with the wheel / trackpad. Auto-jump still wins on every
+    // system change.
     const system = measureEl.closest("g.system");
     let jumped = false;
     if (system && system !== this.currentSystem) {
       this.currentSystem = system;
-      const systemRect = system.getBoundingClientRect();
-      this.ty += laneRect.top + TOP_MARGIN - systemRect.top;
-      this.track.style.transform = `translateY(${this.ty}px)`;
+      const systemTopInContent =
+        system.getBoundingClientRect().top -
+        this.track.getBoundingClientRect().top;
+      this.container.scrollTop = Math.max(0, systemTopInContent - TOP_MARGIN);
       jumped = true;
     }
 
@@ -303,7 +306,11 @@ export class ReadingLaneView {
     }
   }
 
-  /** The measure's staff-line rectangle in viewport-local pixels. */
+  /** The measure's staff-line rectangle in container-content pixels — i.e.
+   *  including the container's scrollTop / scrollLeft, since the overlays
+   *  are position:absolute children that live in the scrollable content
+   *  frame (so they scroll with the engraving instead of staying pinned to
+   *  the viewport). */
   private staffBox(measureEl: Element): Box {
     const vp = this.container.getBoundingClientRect();
     const lines = measureEl.querySelectorAll("g.staff > path");
@@ -322,8 +329,8 @@ export class ReadingLaneView {
       bottom = Math.max(bottom, r.bottom);
     }
     return {
-      left: left - vp.left,
-      top: top - vp.top,
+      left: left - vp.left + this.container.scrollLeft,
+      top: top - vp.top + this.container.scrollTop,
       width: right - left,
       height: bottom - top,
     };
