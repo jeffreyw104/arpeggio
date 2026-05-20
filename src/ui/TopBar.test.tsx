@@ -45,6 +45,8 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
     onPracticeLayoutChange: vi.fn(),
     laneTheme: "dark" as const,
     onLaneThemeChange: vi.fn(),
+    minimapVisible: true,
+    onMinimapVisibleChange: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
@@ -111,10 +113,10 @@ describe("TopBar", () => {
     return document.querySelector(".hud-play-btn") as HTMLElement;
   }
 
-  it("renders the play button and seek scrubber", () => {
+  it("renders the play button and measure progress bar", () => {
     renderBar();
     expect(getPlayBtn()).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: /seek/i })).toBeInTheDocument();
+    expect(document.querySelector(".measure-progress-bar")).toBeInTheDocument();
   });
 
   it("toggles play/pause on the transport clock", () => {
@@ -123,14 +125,6 @@ describe("TopBar", () => {
     expect(transport.clock.playing).toBe(true);
     fireEvent.click(getPlayBtn());
     expect(transport.clock.playing).toBe(false);
-  });
-
-  it("seeks the clock when the slider moves", () => {
-    const { transport } = renderBar();
-    fireEvent.change(screen.getByRole("slider", { name: /seek/i }), {
-      target: { value: "2" },
-    });
-    expect(transport.clock.position).toBeCloseTo(2, 3);
   });
 
   describe("MIDI status chip", () => {

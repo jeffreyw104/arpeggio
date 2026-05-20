@@ -6,6 +6,7 @@ import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 import type { MidiStatus } from "../midi/MidiInput";
+import { MeasureProgressBar } from "./MeasureProgressBar";
 
 interface TopBarProps {
   pieceName: string;
@@ -31,6 +32,10 @@ interface TopBarProps {
   midiStatus?: MidiStatus;
   /** MIDI tab: name of the connected device (when status is "connected"). */
   midiDeviceName?: string;
+  /** Whether the minimap panel is currently visible. */
+  minimapVisible: boolean;
+  /** Called when the user toggles minimap visibility. */
+  onMinimapVisibleChange: (v: boolean) => void;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -79,6 +84,8 @@ export function TopBar({
   onLaneThemeChange,
   midiStatus,
   midiDeviceName,
+  minimapVisible,
+  onMinimapVisibleChange,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
@@ -160,21 +167,7 @@ export function TopBar({
       >
         {playing ? "⏸" : "▶"}
       </button>
-      <input
-        type="range"
-        className="hud-scrubber"
-        aria-label="Seek"
-        min={0}
-        max={duration}
-        step={0.01}
-        value={position}
-        onChange={(e) => clock.seek(Number(e.target.value))}
-        style={
-          {
-            "--pct": `${duration > 0 ? (position / duration) * 100 : 0}%`,
-          } as React.CSSProperties
-        }
-      />
+      <MeasureProgressBar transport={transport} />
       <span className="hud-time">
         {formatTime(position)} / {formatTime(duration)}
       </span>
@@ -213,6 +206,15 @@ export function TopBar({
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            className={`minimap-toggle ${minimapVisible ? "minimap-toggle--on" : ""}`}
+            aria-pressed={minimapVisible}
+            aria-label={minimapVisible ? "Hide minimap" : "Show minimap"}
+            onClick={() => onMinimapVisibleChange(!minimapVisible)}
+          >
+            Map
+          </button>
         </div>
       ) : (
         <div className="top-bar-views">
@@ -241,6 +243,15 @@ export function TopBar({
               {laneTheme === "dark" ? "Paper" : "Dark"}
             </button>
           )}
+          <button
+            type="button"
+            className={`minimap-toggle ${minimapVisible ? "minimap-toggle--on" : ""}`}
+            aria-pressed={minimapVisible}
+            aria-label={minimapVisible ? "Hide minimap" : "Show minimap"}
+            onClick={() => onMinimapVisibleChange(!minimapVisible)}
+          >
+            Map
+          </button>
         </div>
       )}
 

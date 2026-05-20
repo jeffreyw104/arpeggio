@@ -554,6 +554,8 @@ export function PracticeView({
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
+        minimapVisible={true}
+        onMinimapVisibleChange={() => {}}
       />
       <ToolsPopover
         open={toolsOpen}
