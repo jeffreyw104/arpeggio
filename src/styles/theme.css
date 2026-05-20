@@ -270,10 +270,17 @@ textarea {
 }
 
 /* When the reading lane is showing (MIDI Practice / lane layout) the popover
-   drops below the lane ribbon so the engraved sheet music stays visible. */
+   drops below the lane ribbon so the engraved sheet music stays visible.
+   The falldown's moving notes scrolling behind made the default glass tint
+   too transparent to read against; this variant uses a near-opaque tint so
+   the popover stays solid on a busy backdrop. */
 .tools-popover--below-lane {
   top: 488px;
   max-height: calc(100vh - 510px);
+  background: linear-gradient(
+    rgba(20, 20, 24, 0.94),
+    rgba(8, 8, 11, 0.97)
+  );
 }
 
 /* The play-tools container — stacks collapsible sections vertically. */
