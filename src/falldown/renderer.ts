@@ -30,6 +30,7 @@ const PULSE_COLOR = "#44aa88";
 /** Key-lighting colours for live MIDI input. */
 const INPUT_CORRECT = "#44aa88";
 const INPUT_WRONG = "#d9534f";
+const INPUT_HELD = "#7e8597";
 
 export interface FalldownRendererOptions {
   width: number;
@@ -65,7 +66,7 @@ export class FalldownRenderer {
   /** The time signature driving the beat grid; set from the Tools popover. */
   beatMeter: { numerator: number; denominator: number };
   /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
-  inputHighlights = new Map<number, "correct" | "wrong">();
+  inputHighlights = new Map<number, "correct" | "wrong" | "held">();
   /** Whether the sustain pedal is currently depressed; shows a pedal indicator. */
   pedalDown = false;
 
@@ -128,7 +129,13 @@ export class FalldownRenderer {
 
     const keyColors = activeKeyColors(lit, t, RIGHT, LEFT);
     for (const [midi, kind] of this.inputHighlights) {
-      keyColors.set(midi, kind === "correct" ? INPUT_CORRECT : INPUT_WRONG);
+      const colour =
+        kind === "correct"
+          ? INPUT_CORRECT
+          : kind === "wrong"
+            ? INPUT_WRONG
+            : INPUT_HELD;
+      keyColors.set(midi, colour);
     }
 
     drawPiano(ctx, layout, {

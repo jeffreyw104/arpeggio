@@ -42,7 +42,9 @@ function fakeCtx() {
     restore: rec("restore"),
     fillText: rec("fillText"),
     createLinearGradient: () => ({ addColorStop: () => {} }),
-    set fillStyle(_v: string | CanvasGradient) {},
+    set fillStyle(v: string | CanvasGradient) {
+      if (typeof v === "string") calls.push(`fillStyle=${v}`);
+    },
     set strokeStyle(_v: string) {},
     set lineWidth(_v: number) {},
     set font(_v: string) {},
@@ -188,6 +190,14 @@ describe("FalldownRenderer inputHighlights", () => {
     expect(renderer.inputHighlights.get(61)).toBe("wrong");
     // renderFrame must not throw with highlights set
     expect(() => renderer.renderFrame()).not.toThrow();
+  });
+
+  it("paints the neutral held colour (#7e8597) for a 'held' entry", () => {
+    const { ctx, renderer } = makeRenderer();
+    renderer.inputHighlights = new Map([[60, "held"]]);
+    ctx.calls.length = 0;
+    renderer.renderFrame();
+    expect(ctx.calls).toContain("fillStyle=#7e8597");
   });
 });
 
