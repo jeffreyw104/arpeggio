@@ -53,7 +53,7 @@ export class MidiSession {
   private savedMutes: Record<Hand, boolean> | null = null;
 
   constructor(
-    private readonly clock: Clock,
+    clock: Clock,
     private readonly score: Score,
     private readonly handState: HandState,
     startAudio: () => Promise<void> = startAudioContext,
@@ -209,16 +209,6 @@ export class MidiSession {
   }
 
   setWaitEnabled(on: boolean): void {
-    // Toggling wait-mode ON snaps the playhead back to the start of whichever
-    // measure it's currently inside, so the first hold is at a clean barline
-    // rather than mid-bar wherever the user happened to press the toggle.
-    if (on && !this.waitEnabled) {
-      const pos = this.clock.position;
-      const measure = this.score.measures.find(
-        (m) => pos >= m.start && pos < m.end,
-      );
-      if (measure && measure.start < pos) this.clock.seek(measure.start);
-    }
     this.waitEnabled = on;
     this.syncController();
   }
