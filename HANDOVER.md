@@ -1,8 +1,9 @@
 # Arpeggio — Session Handover
 
-_Last updated: 2026-05-20. Branch: **`main`** — feature/midi-practice-mode
-was fast-forwarded into main and pushed (Vercel auto-deploys); clean
-working tree, full gate green._
+_Last updated: 2026-05-21. Branch: **`main`** — Spec 2 (piano-roll visualizer)
+shipped and was reverted same-day after the user rejected the literal-MIDI
+direction. Working tree is back to the pre-Spec-2 baseline; clean tree,
+full gate green._
 
 ## What this is
 
@@ -14,7 +15,82 @@ practice with a Canvas2D **falldown** + an engraved **score**, one master clock.
 - **Verify gate:** `npm run lint && npm run typecheck && npm test && npm run build && npm run e2e`
   — currently all green (386 Vitest, 11 Playwright e2e).
 
-## Latest round — "MIDI Practice correctness + ergonomics" (merged to main)
+## Latest round — "Spec 2 piano-roll: shipped, reverted, rethinking" (2026-05-21)
+
+A full piano-roll-based MIDI visualizer (Spec 2) was designed, built, and
+merged to main earlier today (commits `8e27f39..d64dc34`), then reverted
+in `c51766b`. The reason: the user described the visualizer they actually
+wanted as **a menu or map with sections of the piece to jump to, kind of
+like sheet music** — and called the literal piano-roll rendering "insanely
+hard to read."
+
+### What was reverted
+
+- `src/piano-roll/` package — `PianoRollRenderer`, `PianoRollLane`,
+  `PianoRollPanel`, plus pure helpers (`pitchAutoFit`, `pitchTrack`,
+  `noteRectsInWindow`, `measurePaging`).
+- `MeasureProgressBar` and `Minimap` React components.
+- `Score.sections: Section[]` model field + the MIDI marker / MusicXML
+  rehearsal extraction in both importers.
+- `LibraryBrowser` source-label chip (`♪ Notes only` / `𝄞 Sheet music`).
+- `practiceState.minimapVisible` persistence.
+- `PracticeView` source-branching that mounted the piano-roll components.
+- All accompanying CSS, tests (38 unit tests + 1 e2e file), and
+  HANDOVER text covering the round.
+
+### What was kept
+
+- `docs/superpowers/specs/2026-05-20-midi-visualizer-design.md` — the
+  spec, left in git history as a record of the rejected approach.
+- `docs/superpowers/plans/2026-05-20-midi-native-visualizer.md` — the
+  plan, same.
+- The git history of the implementation commits (in `c51766b`'s parents).
+  Anything from the reverted feature can be cherry-picked back if a
+  future direction wants it.
+
+### Where the brainstorming is now
+
+Four fresh-direction ideas are on the table, all leaning on the
+"structural / navigation" framing the user wants:
+
+**A — Section browser sidebar.** Vertical list of sections (auto-detected
+from rests, density shifts, key/time changes, repetition; markers used
+when present). Each row = name, measure range, time, difficulty pip.
+Click to seek. Most "menu-like" — matches the user's words most directly.
+My recommendation, possibly combined with D.
+
+**B — Page-thumbnail grid.** Paginate the piece (~8 measures/page); each
+page is an abstract thumbnail (density sparkline, hand-split bars, range
+glyph). Section brackets overlaid. Strongest sheet-music metaphor; whole
+piece fits on screen.
+
+**C — Form-aware outline.** Auto-detect repeated phrases via per-measure
+note-vector similarity; label them A / B / A' / etc. Hierarchical
+collapsible outline. Most musical, but auto-detection is the brittlest
+of the four — falls apart on through-composed pieces.
+
+**D — Practice difficulty heatmap.** Per-measure cells coloured by an
+objective difficulty score (notes/sec × max chord size × hand spread).
+Section boundaries overlaid. Best as a layer on top of A or B, not on
+its own.
+
+The open question is whether the user picks A as the primary (with D's
+pip baked in) or wants a different combination. Auto-detection algorithm
+details haven't been sketched yet — that's the next gate before any spec
+is written. **See [[spec2-rethink-navigation]] memory for the full
+brainstorm state to resume from.**
+
+### Why the piano-roll didn't work
+
+For future reference: hand-coloured rectangles with velocity opacity and
+paginated viewports were visually correct — they just didn't help the
+user navigate. The falldown already shows the literal time-axis notes;
+the side views shouldn't duplicate that abstraction. Side views are for
+"where am I in the piece?", not "what notes are playing?" The lesson is
+saved as [[feedback-prefer-structural-over-literal-visualizations]] in
+memory.
+
+## Previous round — "MIDI Practice correctness + ergonomics" (merged to main)
 
 The five bugs reported in the previous session plus several pieces of
 ergonomics shaped by live-piano testing. All shipped on `main` as separate
@@ -284,11 +360,10 @@ the canonical "what's on the branch and why").
 
 ## Backlog / not yet built
 
-- **Spec 2 — MIDI-native visualizer.** Replaces approximate sheet music for
-  MIDI-imported files with a piano-roll reading lane (+ optional measure
-  progress bar + whole-piece minimap). Sketched in
-  `docs/superpowers/specs/2026-05-19-midi-practice-mode-design.md` §297–311.
-  Its own brainstorm → spec → plan cycle — not started.
+- **MIDI section-nav rethink (in brainstorm).** The visualizer that
+  replaces approximate engraving for MIDI imports — now framed as a
+  navigation menu / map rather than a piano-roll. Four candidate
+  directions sketched above; user picks before any spec is written.
 - Session accuracy report / per-measure flub heatmap.
 - Auto-advance looping (loop a region cleanly N times → advance to next chunk
   or step the tempo up).
