@@ -68,6 +68,15 @@ export function CommonTools({
   const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));
   const [pendingStart, setPendingStart] = useState<number | null>(null);
 
+  // Mirror the transport's loop into the popover state. The score view's
+  // drag-to-loop and any other external setter funnels through clock.onChange,
+  // so this is the single source of truth for "is there a loop, and where?".
+  useEffect(() => {
+    const sync = (): void => setLoopRange(loopMeasures(transport));
+    sync();
+    return transport.clock.onChange(sync);
+  }, [transport]);
+
   function applyLoop(start: number, end: number): void {
     const first = Math.min(start, end);
     const last = Math.max(start, end);

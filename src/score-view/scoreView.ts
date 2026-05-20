@@ -18,14 +18,20 @@ export class ScoreView {
   private readonly transport: Transport;
   private readonly pagesEl: HTMLElement;
   private dragStart: number | null = null;
+  private dragEnd: number | null = null;
   private highlightRect: SVGRectElement | null = null;
   private hoverRect: SVGRectElement | null = null;
+  /** One rect per measure highlighted live during a click-drag loop-set. */
+  private dragRects: SVGRectElement[] = [];
+  /** One rect per measure of the persistent active-loop indicator. */
+  private loopRects: SVGRectElement[] = [];
   private lastScrolledIndex: number | null = null;
   private lastHoverIndex: number | null = null;
   private readonly onMouseDown: (e: MouseEvent) => void;
   private readonly onMouseUp: (e: MouseEvent) => void;
   private readonly onMouseMove: (e: MouseEvent) => void;
   private readonly onMouseLeave: () => void;
+  private readonly unsubscribeClock: () => void;
 
   constructor(
     container: HTMLElement,
@@ -76,7 +82,10 @@ export class ScoreView {
     });
 
     this.onMouseDown = (e) => {
-      this.dragStart = measureIndexFromTarget(e.target);
+      const idx = measureIndexFromTarget(e.target);
+      this.dragStart = idx;
+      this.dragEnd = idx;
+      if (idx !== null) this.refreshDragRects();
     };
     this.onMouseUp = (e) => {
       const end = measureIndexFromTarget(e.target);
@@ -91,9 +100,21 @@ export class ScoreView {
         }
       }
       this.dragStart = null;
+      this.dragEnd = null;
+      this.clearDragRects();
     };
     this.onMouseMove = (e) => {
       const idx = measureIndexFromTarget(e.target);
+      // While dragging, paint a multi-measure preview of what the loop will
+      // become on mouse-up — the same green as the current-measure highlight,
+      // extended over every measure the pointer is sweeping across.
+      if (this.dragStart !== null) {
+        if (idx !== null && idx !== this.dragEnd) {
+          this.dragEnd = idx;
+          this.refreshDragRects();
+        }
+        return;
+      }
       if (idx === this.lastHoverIndex) return;
       this.lastHoverIndex = idx;
       if (idx === null) {
@@ -113,11 +134,21 @@ export class ScoreView {
     this.onMouseLeave = () => {
       this.lastHoverIndex = null;
       this.hideRect(this.hoverRect);
+      // Don't clear drag state on leave — the user may sweep outside and back.
+      // mouseup outside the container still fires `onMouseUp` and resets.
     };
     container.addEventListener("mousedown", this.onMouseDown);
     container.addEventListener("mouseup", this.onMouseUp);
     container.addEventListener("mousemove", this.onMouseMove);
     container.addEventListener("mouseleave", this.onMouseLeave);
+
+    // Keep the persistent loop indicator in sync with the transport — drag-to-
+    // loop on this view, button-clicks in the Tools popover, and any external
+    // setLoop / clearLoop all funnel through clock.onChange.
+    this.unsubscribeClock = transport.clock.onChange(() => {
+      this.refreshLoopRects();
+    });
+    this.refreshLoopRects();
   }
 
   /** Update the current-measure highlight and scroll from the clock time. */
@@ -190,6 +221,72 @@ export class ScoreView {
     if (rect && rect.parentNode) rect.parentNode.removeChild(rect);
   }
 
+  /** Repaint the live drag-to-loop preview over every measure between
+   *  dragStart and dragEnd inclusive. Cheap to call on every mousemove. */
+  private refreshDragRects(): void {
+    if (this.dragStart === null || this.dragEnd === null) {
+      this.clearDragRects();
+      return;
+    }
+    const { first, last } = orderedRange(this.dragStart, this.dragEnd);
+    const want = last - first + 1;
+    // Recycle existing rects rather than reallocate every frame.
+    while (this.dragRects.length < want) {
+      const rect = document.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("class", "measure-drag");
+      rect.style.pointerEvents = "none";
+      this.dragRects.push(rect);
+    }
+    while (this.dragRects.length > want) {
+      const extra = this.dragRects.pop();
+      if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
+    }
+    for (let i = 0; i < want; i++) {
+      const measureIdx = first + i;
+      const el = this.container.querySelector(
+        `[data-measure-index="${measureIdx}"]`,
+      );
+      if (el) this.positionRect(this.dragRects[i], el);
+    }
+  }
+
+  private clearDragRects(): void {
+    for (const rect of this.dragRects) {
+      if (rect.parentNode) rect.parentNode.removeChild(rect);
+    }
+    this.dragRects = [];
+  }
+
+  /** Rebuild the persistent loop indicator from `transport.clock.loop`.
+   *  No loop → no rects. Called on subscription, on clock change, and after
+   *  a Verovio re-render (constructor). */
+  private refreshLoopRects(): void {
+    for (const rect of this.loopRects) {
+      if (rect.parentNode) rect.parentNode.removeChild(rect);
+    }
+    this.loopRects = [];
+    const loop = this.transport.clock.loop;
+    if (!loop) return;
+    const measures = this.transport.score.measures;
+    const firstIdx = measures.findIndex(
+      (m) => loop.start >= m.start && loop.start < m.end,
+    );
+    const lastIdx = measures.findIndex(
+      (m) => loop.end > m.start && loop.end <= m.end,
+    );
+    if (firstIdx === -1) return;
+    const actualLast = lastIdx === -1 ? firstIdx : lastIdx;
+    for (let i = firstIdx; i <= actualLast; i++) {
+      const el = this.container.querySelector(`[data-measure-index="${i}"]`);
+      if (!el) continue;
+      const rect = document.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("class", "measure-loop");
+      rect.style.pointerEvents = "none";
+      this.positionRect(rect, el);
+      this.loopRects.push(rect);
+    }
+  }
+
   /**
    * Zoom the engraved notation. CSS `zoom` (not `transform: scale`) is used so
    * the scaled pages still expand the scroll area. Targets Chromium browsers.
@@ -204,6 +301,7 @@ export class ScoreView {
     this.container.removeEventListener("mouseup", this.onMouseUp);
     this.container.removeEventListener("mousemove", this.onMouseMove);
     this.container.removeEventListener("mouseleave", this.onMouseLeave);
+    this.unsubscribeClock();
     this.container.innerHTML = "";
   }
 }

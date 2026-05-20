@@ -185,6 +185,39 @@ describe("ScoreView", () => {
     expect(transport.clock.loop).toEqual({ start: 0, end: 6 });
   });
 
+  it("paints a measure-drag rect on every measure the pointer sweeps across", () => {
+    const { container } = setup();
+    const m0 = container.querySelector('[data-measure-index="0"]')!;
+    const m2 = container.querySelector('[data-measure-index="2"]')!;
+    m0.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    m2.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    expect(container.querySelectorAll(".measure-drag")).toHaveLength(3);
+  });
+
+  it("clears the drag preview on mouseup", () => {
+    const { container } = setup();
+    const m0 = container.querySelector('[data-measure-index="0"]')!;
+    const m2 = container.querySelector('[data-measure-index="2"]')!;
+    m0.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    m2.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    m2.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(container.querySelectorAll(".measure-drag")).toHaveLength(0);
+  });
+
+  it("paints a persistent measure-loop rect on every measure inside the active loop", () => {
+    const { container, transport } = setup();
+    transport.loopMeasures(0, 1);
+    expect(container.querySelectorAll(".measure-loop")).toHaveLength(2);
+  });
+
+  it("removes the loop indicator when the loop is cleared", () => {
+    const { container, transport } = setup();
+    transport.loopMeasures(0, 2);
+    expect(container.querySelectorAll(".measure-loop")).toHaveLength(3);
+    transport.clearLoop();
+    expect(container.querySelectorAll(".measure-loop")).toHaveLength(0);
+  });
+
   it("destroy() removes the injected content and listeners", () => {
     const { container, view } = setup();
     view.destroy();

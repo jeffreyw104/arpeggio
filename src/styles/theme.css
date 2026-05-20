@@ -1009,6 +1009,26 @@ textarea {
   pointer-events: none;
 }
 
+/* Live drag-to-loop preview — same green as the current-measure highlight,
+   tiled across every measure the user is sweeping. Disappears on mouseup. */
+.measure-drag {
+  fill: #3fae4f;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Persistent loop indicator — drawn on every measure inside an active loop
+   so the user can see WHERE the loop is even when not playing inside it. A
+   subtle fill plus a translucent stroke for the "this is the loop" frame. */
+.measure-loop {
+  fill: #3fae4f;
+  fill-opacity: 0.08;
+  stroke: #3fae4f;
+  stroke-opacity: 0.55;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
 /* --- Library browser --- */
 
 .library-browser input[type="search"] {
