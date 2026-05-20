@@ -6,6 +6,7 @@ import type { FalldownRenderer } from "../falldown/renderer";
 import type { HandState } from "../practice/hands";
 import { MidiInput, type MidiNoteEvent } from "../midi/MidiInput";
 import { KeyboardInput } from "../midi/KeyboardInput";
+import { PointerInput } from "../midi/PointerInput";
 import { LiveNotes } from "../midi/LiveNotes";
 import { buildSteps } from "../midi/chords";
 import { WaitModeController } from "./WaitModeController";
@@ -25,6 +26,9 @@ const HANDS: readonly Hand[] = ["left", "right"];
 export class MidiSession {
   readonly midiInput = new MidiInput();
   readonly keyboardInput = new KeyboardInput();
+  readonly pointerInput = new PointerInput((x, y) =>
+    this.falldown?.pitchAt(x, y) ?? null,
+  );
   readonly liveNotes = new LiveNotes();
 
   /** Fired when the MIDI device status or device list changes. */
@@ -33,6 +37,7 @@ export class MidiSession {
   private readonly controller: WaitModeController;
   private audioEngine: AudioEngine | null = null;
   private falldown: FalldownRenderer | null = null;
+  private pointerCanvas: HTMLCanvasElement | null = null;
 
   private handsIPlay: Set<Hand> = new Set<Hand>(["right"]);
   private waitEnabled = true;
@@ -73,6 +78,11 @@ export class MidiSession {
     this.keyboardInput.onNoteOff = (e: MidiNoteEvent) =>
       this.liveNotes.release(e.pitch);
 
+    this.pointerInput.onNoteOn = (e: MidiNoteEvent) =>
+      this.liveNotes.press(e.pitch, e.velocity, e.pressTime);
+    this.pointerInput.onNoteOff = (e: MidiNoteEvent) =>
+      this.liveNotes.release(e.pitch);
+
     // Input monitor: sound the player's own notes when enabled.
     this.liveNotes.onPressed = (n) => {
       if (!this.audioStarted) {
@@ -105,6 +115,19 @@ export class MidiSession {
   /** Late-bind the falldown renderer (created in PracticeView's mount effect). */
   attachFalldown(falldown: FalldownRenderer): void {
     this.falldown = falldown;
+  }
+
+  /** Attach the pointer input to a canvas; defers the actual attach until
+   *  the MIDI tab is active so pointer events are not captured on the Play tab. */
+  attachPointerInput(canvas: HTMLCanvasElement): void {
+    this.pointerCanvas = canvas;
+    if (this.active) this.pointerInput.attach(canvas);
+  }
+
+  /** Detach the pointer input and forget the remembered canvas. */
+  detachPointerInput(): void {
+    this.pointerInput.detach();
+    this.pointerCanvas = null;
   }
 
   /** The MIDI device connection status. */
@@ -142,6 +165,7 @@ export class MidiSession {
     this.active = isMidiTab;
     if (isMidiTab) {
       this.keyboardInput.enable();
+      if (this.pointerCanvas) this.pointerInput.attach(this.pointerCanvas);
       if (!this.midiStarted) {
         this.midiStarted = true;
         void this.midiInput.start();
@@ -158,6 +182,7 @@ export class MidiSession {
       this.applyHandMutes();
     } else {
       this.keyboardInput.disable();
+      this.pointerInput.detach();
       // Release any audio voices before dropping the held-notes map so that
       // piano voices attacked while the tab was showing are not stuck on.
       for (const n of this.liveNotes.heldNotes()) {
@@ -234,6 +259,7 @@ export class MidiSession {
   dispose(): void {
     this.midiInput.dispose();
     this.keyboardInput.disable();
+    this.pointerInput.detach();
     this.controller.dispose();
     // Restore the user's hand mutes so a dispose while the MIDI tab is showing
     // does not persist the transient MIDI auto-mutes.

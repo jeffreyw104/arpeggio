@@ -303,4 +303,33 @@ describe("MidiSession", () => {
     await Promise.resolve();
     expect(startAudio).toHaveBeenCalledTimes(2); // retry happened
   });
+
+  it("routes pointerInput note-on into liveNotes", () => {
+    const { session } = setupSession();
+    session.pointerInput.onNoteOn?.({
+      pitch: 60,
+      velocity: 0.7,
+      pressTime: performance.now(),
+    });
+    expect(session.liveNotes.heldNotes().some((n) => n.pitch === 60)).toBe(true);
+  });
+
+  it("attachPointerInput defers actual attach until the MIDI tab is active", () => {
+    const { session } = setupSession();
+    const canvas = document.createElement("canvas");
+    const attachSpy = vi.spyOn(session.pointerInput, "attach");
+    const detachSpy = vi.spyOn(session.pointerInput, "detach");
+
+    // Before setActive(true): attachPointerInput remembers the canvas but doesn't attach.
+    session.attachPointerInput(canvas);
+    expect(attachSpy).not.toHaveBeenCalled();
+
+    // Activate -> attach happens with the remembered canvas.
+    session.setActive(true);
+    expect(attachSpy).toHaveBeenCalledWith(canvas);
+
+    // Deactivate -> detach happens.
+    session.setActive(false);
+    expect(detachSpy).toHaveBeenCalled();
+  });
 });

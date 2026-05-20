@@ -153,6 +153,7 @@ export function PracticeView({
         loop.onFrame(() => falldownInstance.renderFrame());
         falldownRef.current = falldownInstance;
         midiSession.attachFalldown(falldownInstance);
+        midiSession.attachPointerInput(canvas);
         setFalldown(falldownInstance);
       }
     }
@@ -268,6 +269,7 @@ export function PracticeView({
     return () => {
       cancelled = true;
       loop.stop();
+      midiSession.detachPointerInput();
       midiSession.dispose();
       scoreViewRef.current?.destroy();
       laneViewRef.current?.destroy();
