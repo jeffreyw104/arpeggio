@@ -16,7 +16,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
 
   async function handleImported(score: Score, file: File) {
-    const id = await savePiece(file.name, await file.arrayBuffer(), score.source);
+    const id = await savePiece(file.name, await file.arrayBuffer());
     setSession({ score, pieceId: id, pieceName: file.name });
   }
 

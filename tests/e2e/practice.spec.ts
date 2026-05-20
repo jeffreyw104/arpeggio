@@ -10,6 +10,7 @@ test("import a MIDI file and see the practice view", async ({ page }) => {
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });
+  await expect(page.locator("canvas")).toBeVisible();
 });
 
 test("pressing Play animates the falldown canvas", async ({ page }) => {
@@ -110,19 +111,19 @@ test("switching view modes keeps the panels rendering", async ({ page }) => {
 
   // Score-only: the falldown canvas is hidden, the score panel stays visible.
   await page.getByRole("button", { name: /score only/i }).click();
-  await expect(page.locator("canvas.falldown-canvas")).toBeHidden();
+  await expect(page.locator("canvas")).toBeHidden();
 
   // Back to Both: the same canvas must render again (it was never unmounted).
   await page.getByRole("button", { name: /^both$/i }).click();
-  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+  await expect(page.locator("canvas")).toBeVisible();
 
   // Falldown-only: the canvas is still there and visible.
   await page.getByRole("button", { name: /falldown only/i }).click();
-  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+  await expect(page.locator("canvas")).toBeVisible();
 
   // And once more back to Both — no blank panels.
   await page.getByRole("button", { name: /^both$/i }).click();
-  await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
+  await expect(page.locator("canvas")).toBeVisible();
 });
 
 test("MIDI Practice tab: layout toggles between reading-lane and split", async ({
@@ -147,10 +148,8 @@ test("MIDI Practice tab: layout toggles between reading-lane and split", async (
   await expect(laneBtn).toHaveAttribute("aria-pressed", "true");
   await expect(splitBtn).toHaveAttribute("aria-pressed", "false");
 
-  // For a MIDI (.mid) source, the piano-roll lane is shown in lane layout;
-  // the engraved reading-lane is hidden.
-  await expect(page.getByTestId("piano-roll-lane")).toBeVisible();
-  await expect(page.getByTestId("reading-lane")).toBeHidden();
+  // The score panel and the falldown canvas are both present in lane layout.
+  await expect(page.locator("[data-testid='reading-lane']")).toBeVisible();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
   // Switch to the split layout.

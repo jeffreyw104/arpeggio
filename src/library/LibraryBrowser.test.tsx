@@ -58,20 +58,4 @@ describe("LibraryBrowser", () => {
       ).not.toBeInTheDocument(),
     );
   });
-
-  it("displays source label for MIDI pieces", async () => {
-    await savePiece("Chopin Ballade.mid", bytes("x"), "midi");
-    render(<LibraryBrowser onOpen={() => {}} />);
-    await waitFor(() =>
-      expect(screen.getByText("♪ Notes only")).toBeInTheDocument(),
-    );
-  });
-
-  it("displays source label for MusicXML pieces", async () => {
-    await savePiece("Moonlight.musicxml", bytes("y"), "musicxml");
-    render(<LibraryBrowser onOpen={() => {}} />);
-    await waitFor(() =>
-      expect(screen.getByText("𝄞 Sheet music")).toBeInTheDocument(),
-    );
-  });
 });

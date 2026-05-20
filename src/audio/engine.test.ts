@@ -23,7 +23,6 @@ const score = {
   pedalEvents: [],
   timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
   tempoMap: [{ start: 0, bpm: 120 }],
-  sections: [],
   durationSeconds: 4,
   musicXml: "",
   qualityWarning: null,
@@ -120,7 +119,6 @@ describe("AudioEngine", () => {
     // that ignored the score swap would keep clicking at the old measure beats.
     const varying = {
       ...score,
-      sections: [],
       notes: [],
       tempoMap: [
         { start: 0, bpm: 60 },
@@ -146,7 +144,6 @@ describe("AudioEngine", () => {
     // sound together rather than the computer landing first.
     const chordScore = {
       ...score,
-      sections: [],
       notes: [
         { midi: 60, start: 0.1, duration: 0.5, velocity: 0.8, hand: "right" },
         { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
@@ -177,7 +174,6 @@ describe("AudioEngine", () => {
     // deferred set must not duplicate the postponed onset.
     const chordScore = {
       ...score,
-      sections: [],
       notes: [
         { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
       ],
@@ -200,7 +196,6 @@ describe("AudioEngine", () => {
   it("drops postponed notes on a seek instead of firing them at the new position", () => {
     const chordScore = {
       ...score,
-      sections: [],
       notes: [
         { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
       ],
@@ -237,7 +232,6 @@ describe("AudioEngine", () => {
     // the trigger window (prev, cur] would otherwise exclude the boundary.
     const withStartNote = {
       ...score,
-      sections: [],
       notes: [
         { midi: 48, start: 0, duration: 0.5, velocity: 0.7, hand: "left" },
         ...score.notes,

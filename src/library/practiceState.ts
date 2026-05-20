@@ -12,7 +12,6 @@ export function capturePracticeState(
   session?: {
     mode: TabMode;
     tabs?: Record<TabMode, { bpm: number; loop: { start: number; end: number } | null }>;
-    minimapVisible?: boolean;
   },
 ): StoredPracticeState {
   const loop = transport.clock.loop;
@@ -46,7 +45,6 @@ export function capturePracticeState(
           },
         },
       }),
-      minimapVisible: session.minimapVisible,
     }),
   };
 }

@@ -40,7 +40,6 @@ const variableScore = {
     { start: 0, bpm: 120 },
     { start: 2, bpm: 60 },
   ],
-  sections: [],
   durationSeconds: 5,
   musicXml: "",
   qualityWarning: null,

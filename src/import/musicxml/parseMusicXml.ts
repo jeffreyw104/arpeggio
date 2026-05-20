@@ -2,7 +2,6 @@ import type {
   Measure,
   Note,
   Score,
-  Section,
   TempoEvent,
   TimeSignature,
 } from "../../model/score";
@@ -200,7 +199,6 @@ export function parseMusicXml(xml: string): Score {
   const measures: Measure[] = [];
   const timeSignatures: TimeSignature[] = [];
   const tempoMap: TempoEvent[] = [];
-  const sections: Section[] = [];
 
   for (const part of Array.from(doc.querySelectorAll("part"))) {
     let measureStartSeconds = 0;
@@ -228,14 +226,6 @@ export function parseMusicXml(xml: string): Score {
         numerator: state.numerator,
         denominator: state.denominator,
       });
-
-      // Extract rehearsal markers
-      const rehearsalEls = measureEl.querySelectorAll(
-        "direction > direction-type > rehearsal",
-      );
-      for (const r of rehearsalEls) {
-        sections.push({ start: measureStartSeconds, label: r.textContent?.trim() ?? "" });
-      }
 
       measureStartSeconds = end;
       index += 1;
@@ -265,7 +255,6 @@ export function parseMusicXml(xml: string): Score {
         : [{ start: 0, numerator: 4, denominator: 4 }],
     tempoMap:
       tempoMap.length > 0 ? tempoMap : [{ start: 0, bpm: 120 }],
-    sections,
     durationSeconds,
     musicXml: xml,
     qualityWarning: null,

@@ -1,88 +1,20 @@
 # Arpeggio — Session Handover
 
-_Last updated: 2026-05-20. Branch: **`main`** — feature/midi-native-visualizer
+_Last updated: 2026-05-20. Branch: **`main`** — feature/midi-practice-mode
 was fast-forwarded into main and pushed (Vercel auto-deploys); clean
 working tree, full gate green._
 
 ## What this is
 
 **Arpeggio** — a browser piano practice tool. Load a MIDI/MusicXML file and
-practice with a Canvas2D **falldown** + a notation view, one master clock.
-For MIDI imports the notation view is now a Canvas2D **piano roll**; for
-MusicXML it stays the engraved score.
+practice with a Canvas2D **falldown** + an engraved **score**, one master clock.
 
 - **Live:** https://arpeggio-piano.vercel.app/ (auto-deploys on push to `main`)
 - **Repo:** github.com/jeffreyw104/arpeggio · Node ≥ 20 · `npm run dev`
 - **Verify gate:** `npm run lint && npm run typecheck && npm test && npm run build && npm run e2e`
-  — currently all green (424 Vitest, 14 Playwright e2e).
+  — currently all green (386 Vitest, 11 Playwright e2e).
 
-## Latest round — "Spec 2: MIDI-native visualizer" (merged to main)
-
-For MIDI imports, the engraved `ReadingLaneView` and `ScoreView` are
-replaced by a Canvas2D piano roll. PracticeView branches on
-`score.source` at mount: MIDI mounts `PianoRollLane` (4 measures/page) and
-`PianoRollPanel` (8 measures/page); MusicXML keeps the engraved path
-unchanged. Notes are hand-coloured rects (right `#4a90d9`, left `#e08a3c`),
-velocity scales opacity (`MIN_NOTE_ALPHA=0.5`), sounding notes glow.
-Page-turn is discrete on measure boundary crossings, same UX as the
-engraved reading-lane.
-
-Two new source-agnostic navigation aids:
-
-- **`MeasureProgressBar`** — replaces the TopBar `hud-scrubber`. Per-measure
-  flex cells width-proportional to measure duration. Click to seek, drag
-  to loop. Current cell lights green; loop cells light faint red.
-- **`Minimap`** — 16 px strip below the TopBar (toggleable, persisted to
-  `practiceState.minimapVisible`). Per-measure note-density heatmap,
-  playhead caret, a translucent viewport box for the currently-visible
-  lane/page, loop band, section ticks. Click to seek, drag to loop.
-
-`Score.sections: Section[]` is a new field on the canonical model.
-Populated at import time from:
-
-- MIDI marker meta events (`@tonejs/midi`'s `header.meta` filtered by
-  `type === "marker"`).
-- MusicXML `<direction><direction-type><rehearsal>` per measure.
-
-Labels render on the progress bar, the minimap, and the piano-roll lane.
-The engraved `ScoreView` for MIDI imports stays silent on sections in v1
-(would need sections injected back into the auto-generated MusicXML —
-deferred).
-
-`LibraryBrowser` rows now carry a source chip — `♪ Notes only` for MIDI,
-`𝄞 Sheet music` for MusicXML — backed by a new `source` field on
-`StoredPiece`.
-
-The score-loading spinner ("Rendering sheet music") is gated on
-`source === "musicxml"` so the piano-roll path no longer shows it.
-
-Code layout:
-
-- `src/piano-roll/` — new package. `PianoRollRenderer` (Canvas2D, pure
-  drawing), `PianoRollLane` (paginated wrapper with mouse interactions),
-  `PianoRollPanel` (8-measure subclass for split view). Plus four pure
-  helpers: `pitchAutoFit`, `pitchTrack`, `noteRectsInWindow`,
-  `measurePaging`.
-- `src/ui/MeasureProgressBar.tsx`, `src/ui/Minimap.tsx`.
-
-22 commits on `worktree-midi-native-visualizer`, merged into `main`. The
-isolated worktree lives at `.claude/worktrees/midi-native-visualizer/`.
-
-Plan: `docs/superpowers/plans/2026-05-20-midi-native-visualizer.md`.
-Spec: `docs/superpowers/specs/2026-05-20-midi-visualizer-design.md`.
-
-Known minor follow-ups (not blocking, all backlog):
-
-- `PianoRollLane` has no `ResizeObserver` — backing-store size won't
-  update on view-mode change. Visible only on dramatic resizes.
-- `Minimap` density is recomputed every clock tick — `useMemo` would be
-  cheaper for large pieces.
-- `PracticeView`'s `getViewportWindow` reads a ref inside JSX, suppressed
-  with `eslint-disable-next-line react-hooks/refs` (the rule name is
-  cosmetically wrong but the file lints clean — unknown rules silently
-  skip).
-
-## Previous round — "MIDI Practice correctness + ergonomics" (merged to main)
+## Latest round — "MIDI Practice correctness + ergonomics" (merged to main)
 
 The five bugs reported in the previous session plus several pieces of
 ergonomics shaped by live-piano testing. All shipped on `main` as separate
@@ -352,18 +284,11 @@ the canonical "what's on the branch and why").
 
 ## Backlog / not yet built
 
-- **Engraved-MIDI section labels.** When `source === "midi"`, the engraved
-  `ScoreView` (used in split layout) doesn't show section markers — only
-  the piano-roll lane / progress bar / minimap do. Plumbing sections into
-  the auto-generated MusicXML in `midiToMusicXml.ts` is the missing piece.
-  Defer until we tackle the broader "improve approximate engraving" pass.
-- **PianoRollLane ResizeObserver.** The canvas backing-store doesn't
-  resize after a view-mode switch or divider drag — visible only on
-  dramatic resizes. Mirror the falldown's `ResizeObserver` pattern.
-- **`Minimap` density memoisation.** Currently O(notes × measures) on
-  every clock tick. `useMemo` keyed on score.
-- **Pitch-axis key-letter labels** on the piano-roll left edge — readable
-  navigation when not looking at the falldown keyboard.
+- **Spec 2 — MIDI-native visualizer.** Replaces approximate sheet music for
+  MIDI-imported files with a piano-roll reading lane (+ optional measure
+  progress bar + whole-piece minimap). Sketched in
+  `docs/superpowers/specs/2026-05-19-midi-practice-mode-design.md` §297–311.
+  Its own brainstorm → spec → plan cycle — not started.
 - Session accuracy report / per-measure flub heatmap.
 - Auto-advance looping (loop a region cleanly N times → advance to next chunk
   or step the tempo up).

@@ -5,7 +5,6 @@
 
 import type { HandVisibility } from "../practice/hands";
 import type { TabMode } from "../layout/practiceMode";
-import type { SourceFormat } from "../model/score";
 
 /** A stored uploaded piece. */
 export interface StoredPiece {
@@ -13,7 +12,6 @@ export interface StoredPiece {
   name: string;
   data: ArrayBuffer;
   addedAt: number;
-  source?: SourceFormat;
 }
 
 /** Per-piece practice settings persisted across sessions. */
@@ -39,8 +37,6 @@ export interface StoredPracticeState {
     play: { bpm: number; loop: { start: number; end: number } | null };
     midi: { bpm: number; loop: { start: number; end: number } | null };
   };
-  /** Whether the minimap strip is visible. Defaults to true. */
-  minimapVisible?: boolean;
 }
 
 const DB_NAME = "arpeggio";
@@ -100,12 +96,11 @@ async function withStore<T>(
 export async function savePiece(
   name: string,
   data: ArrayBuffer,
-  source?: SourceFormat,
 ): Promise<string> {
   const id =
     globalThis.crypto?.randomUUID?.() ??
     `p-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const piece: StoredPiece = { id, name, data, addedAt: Date.now(), source };
+  const piece: StoredPiece = { id, name, data, addedAt: Date.now() };
   await withStore(PIECES, "readwrite", (s) => promisify(s.put(piece)));
   return id;
 }

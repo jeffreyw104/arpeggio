@@ -175,15 +175,6 @@ export function parseMidi(buffer: ArrayBuffer): Score {
         }))
       : [{ start: 0, numerator: 4, denominator: 4 }];
 
-  // Sections — extracted from marker meta events.
-  const sections = midi.header.meta
-    .filter((e) => e.type === "marker")
-    .map((e) => ({
-      start: midi.header.ticksToSeconds(e.ticks),
-      label: e.text,
-    }))
-    .sort((a, b) => a.start - b.start);
-
   // Duration — the latest of the file duration and the last note's end.
   const lastNoteEnd = notes.reduce(
     (max, n) => Math.max(max, n.start + n.duration),
@@ -207,7 +198,6 @@ export function parseMidi(buffer: ArrayBuffer): Score {
     pedalEvents,
     timeSignatures,
     tempoMap,
-    sections,
     durationSeconds,
     musicXml: "",
     qualityWarning: null,

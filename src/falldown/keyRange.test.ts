@@ -16,7 +16,6 @@ function scoreWith(midis: number[]): Score {
     pedalEvents: [],
     timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
     tempoMap: [{ start: 0, bpm: 120 }],
-    sections: [],
     durationSeconds: 2,
     musicXml: "",
     qualityWarning: null,

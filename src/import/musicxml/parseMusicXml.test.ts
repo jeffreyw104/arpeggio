@@ -43,36 +43,4 @@ describe("parseMusicXml", () => {
     expect(score.musicXml).toBe(xml);
     expect(score.qualityWarning).toBeNull();
   });
-
-  it("extracts <rehearsal> as sections", () => {
-    const xml = `<?xml version="1.0"?>
-<score-partwise version="4.0">
-  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
-      <attributes>
-        <divisions>1</divisions>
-        <time><beats>4</beats><beat-type>4</beat-type></time>
-        <clef><sign>G</sign><line>2</line></clef>
-      </attributes>
-      <direction><direction-type><rehearsal>A</rehearsal></direction-type></direction>
-      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
-    </measure>
-    <measure number="2">
-      <direction><direction-type><rehearsal>Verse</rehearsal></direction-type></direction>
-      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
-    </measure>
-  </part>
-</score-partwise>`;
-    const score = parseMusicXml(xml);
-    expect(score.sections).toEqual([
-      { start: 0, label: "A" },
-      { start: 2, label: "Verse" },
-    ]);
-  });
-
-  it("returns empty sections when no <rehearsal> tags are present", () => {
-    const score = parseMusicXml(xml);
-    expect(score.sections).toEqual([]);
-  });
 });
