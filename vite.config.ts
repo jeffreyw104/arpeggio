@@ -12,6 +12,12 @@ export default defineConfig({
         // The Verovio WASM toolkit is ~8 MB; raise the precache size limit
         // above Workbox's 2 MiB default so it is cached for offline use.
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // Take over open tabs as soon as a new build is fetched, instead of
+        // waiting for every Vercel tab to close. Without this, users on the
+        // cached previous bundle keep seeing yesterday's CSS even after a
+        // successful deploy — a real bug we hit on the lane highlights.
+        skipWaiting: true,
+        clientsClaim: true,
       },
       manifest: {
         name: "Arpeggio",

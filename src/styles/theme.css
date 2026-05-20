@@ -684,7 +684,7 @@ textarea {
    filter on the same element. The green highlight is a separate overlay, so
    the filter never tints it. */
 .lane-theme-dark .practice-lane-bg {
-  background: rgba(21, 21, 26, 0.7);
+  background: rgba(21, 21, 26, 0.85);
 }
 
 .lane-theme-dark .reading-lane-track {
@@ -693,7 +693,7 @@ textarea {
 
 /* Paper: a warm-cream sheet with the natural black engraving. */
 .lane-theme-paper .practice-lane-bg {
-  background: rgba(247, 243, 234, 0.85);
+  background: rgba(247, 243, 234, 0.93);
 }
 
 .lane-theme-paper .reading-lane-track {
@@ -739,26 +739,25 @@ textarea {
   z-index: -1;
 }
 
-/* Dark-theme opacities now match paper. The lane's backdrop-filter blurs
-   the moving falldown behind it, and the green washes out fast when the
-   compositor averages it with that backdrop — what looked subtle in
-   isolation read as "barely visible" against the busy backdrop in
-   production. Matching paper's stronger values still reads as a soft
-   highlight, not a slab, but is robust to compositor variance. */
+/* Highlight opacities bumped further so the green cuts through the
+   lane's backdrop-filter cleanly even on top of a busy falldown
+   behind. The highlight sits at z-index:-1 (behind the engraving so
+   the ink shows on top), which means it lives INSIDE the panel that
+   has backdrop-filter — the blur + saturate softens it visibly. */
 .lane-theme-dark .lane-highlight {
-  background: rgba(63, 174, 79, 0.32);
+  background: rgba(63, 174, 79, 0.45);
 }
 
 .lane-theme-dark .lane-hover {
-  background: rgba(63, 174, 79, 0.16);
+  background: rgba(63, 174, 79, 0.22);
 }
 
 .lane-theme-paper .lane-highlight {
-  background: rgba(63, 174, 79, 0.32);
+  background: rgba(63, 174, 79, 0.42);
 }
 
 .lane-theme-paper .lane-hover {
-  background: rgba(63, 174, 79, 0.16);
+  background: rgba(63, 174, 79, 0.2);
 }
 
 /* Lane drag-to-loop preview — same green as the lane's current-measure
@@ -775,26 +774,26 @@ textarea {
 }
 
 .lane-theme-dark .lane-drag {
-  background: rgba(63, 174, 79, 0.32);
+  background: rgba(63, 174, 79, 0.45);
 }
 
 .lane-theme-paper .lane-drag {
-  background: rgba(63, 174, 79, 0.32);
+  background: rgba(63, 174, 79, 0.42);
 }
 
 /* Persistent loop indicator in the lane. Faint red, distinct from the
    green current-measure / drag highlight. Sits behind the notation like
-   the other lane overlays. Stronger fill + outline than the original
-   pass — the lane's backdrop-filter washes thin reds out fast against
-   the moving falldown behind it. */
+   the other lane overlays. Stronger fill + outline so the loop reads
+   clearly through the lane's backdrop-filter blur on top of a busy
+   falldown background. */
 .lane-loop {
   position: absolute;
   display: block;
   pointer-events: none;
   border-radius: 3px;
   z-index: -1;
-  background: rgba(217, 83, 79, 0.18);
-  outline: 1px solid rgba(217, 83, 79, 0.7);
+  background: rgba(217, 83, 79, 0.28);
+  outline: 1.5px solid rgba(217, 83, 79, 0.85);
   outline-offset: -1px;
 }
 
