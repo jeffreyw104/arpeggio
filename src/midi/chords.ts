@@ -6,6 +6,11 @@ export interface PracticeStep {
   time: number;
   /** Pitches required for this step. */
   requiredPitches: Set<number>;
+  /** Pitches whose earlier notes are still sounding at this step's onset —
+   *  e.g. a long note tied / sustained across the next chord. Re-pressing
+   *  one of these pitches must not count as a wrong extra: the user is
+   *  legitimately holding it over the chord boundary. */
+  sustainingPitches: Set<number>;
 }
 
 /** Notes within this of a cluster head form one chord step. */
@@ -35,7 +40,16 @@ export function buildSteps(
       requiredPitches.add(relevant[i].midi);
       i++;
     }
-    steps.push({ time: head.start, requiredPitches });
+    // Pitches still sounding from earlier notes — i.e. tied / sustained
+    // notes that overlap this onset. Excluded from `required` (they aren't
+    // a fresh press the user owes us) but consumed by wait-mode as
+    // "allowed extras" so re-pressing them isn't flagged as wrong.
+    const sustainingPitches = new Set<number>();
+    for (const n of relevant) {
+      if (n.start >= head.start) break;
+      if (n.start + n.duration > head.start) sustainingPitches.add(n.midi);
+    }
+    steps.push({ time: head.start, requiredPitches, sustainingPitches });
   }
   return steps;
 }

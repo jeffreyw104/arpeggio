@@ -6,6 +6,7 @@ import type { HeldNote } from "./LiveNotes";
 const step: PracticeStep = {
   time: 1,
   requiredPitches: new Set([60, 64, 67]),
+  sustainingPitches: new Set(),
 };
 
 function held(pitch: number, pressTime: number): HeldNote {
@@ -70,6 +71,27 @@ describe("evaluateStep", () => {
     const r = evaluateStep(
       step,
       [held(60, 1000), held(64, 1010), held(67, 1020), sustained],
+      900,
+    );
+    expect(r.state).toBe("matched");
+    expect(r.blocking).toEqual([]);
+  });
+
+  it("does not flag a re-press of a sustaining (tied-over) pitch as wrong", () => {
+    // Tied / sustained scenario: a long note that started before this step
+    // is still ringing here. The user happens to re-press it (a fresh
+    // physical attack), but the score has that pitch carrying over — the
+    // re-press should NOT count as a wrong extra.
+    const tied: PracticeStep = {
+      time: 1,
+      requiredPitches: new Set([64, 67]),
+      sustainingPitches: new Set([60]), // C is held over from before
+    };
+    const r = evaluateStep(
+      tied,
+      // 60 re-pressed AFTER armTime — without the sustaining-allow-list
+      // it would be flagged as wrong.
+      [held(60, 1020), held(64, 1000), held(67, 1010)],
       900,
     );
     expect(r.state).toBe("matched");

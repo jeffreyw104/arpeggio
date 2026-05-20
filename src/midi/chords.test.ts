@@ -38,4 +38,19 @@ describe("buildSteps", () => {
       48, 60,
     ]);
   });
+
+  it("marks pitches whose earlier notes are still sounding as sustaining", () => {
+    // C4 starts at 0 with duration 2 → still sounding at the next onset (1).
+    // E4 starts at 1 — that's the second step's onset.
+    const notes: Note[] = [
+      { midi: 60, start: 0, duration: 2, velocity: 0.8, hand: "right" },
+      { midi: 64, start: 1, duration: 0.5, velocity: 0.8, hand: "right" },
+    ];
+    const steps = buildSteps(notes, new Set(["right"]));
+    expect(steps).toHaveLength(2);
+    expect([...steps[0].sustainingPitches]).toEqual([]);
+    // At t=1: C4 (started at 0, duration 2 → ends at 2) is still ringing.
+    expect([...steps[1].sustainingPitches]).toEqual([60]);
+    expect([...steps[1].requiredPitches]).toEqual([64]);
+  });
 });

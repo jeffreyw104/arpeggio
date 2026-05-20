@@ -36,12 +36,17 @@ export function evaluateStep(
   armTime: number,
 ): MatchResult {
   const required = step.requiredPitches;
+  const sustaining = step.sustainingPitches;
   const accepted: number[] = [];
   const blocking: number[] = [];
   for (const note of held) {
     if (required.has(note.pitch)) {
       accepted.push(note.pitch);
-    } else if (!note.sustained && note.pressTime > armTime) {
+    } else if (
+      !note.sustained &&
+      !sustaining.has(note.pitch) &&
+      note.pressTime > armTime
+    ) {
       blocking.push(note.pitch);
     }
   }

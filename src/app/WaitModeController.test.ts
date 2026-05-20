@@ -5,8 +5,8 @@ import { WaitModeController } from "./WaitModeController";
 import type { PracticeStep } from "../midi/chords";
 
 const steps: PracticeStep[] = [
-  { time: 1, requiredPitches: new Set([60]) },
-  { time: 2, requiredPitches: new Set([62]) },
+  { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+  { time: 2, requiredPitches: new Set([62]), sustainingPitches: new Set() },
 ];
 
 describe("WaitModeController", () => {
@@ -115,8 +115,8 @@ describe("WaitModeController", () => {
     // Use steps at t=3 and t=4 so the hold (t=3) sits beyond loop.end (t=2).
     // This means tick() reaches loop.end before the hold clamps it, firing onLoop.
     const loopSteps: PracticeStep[] = [
-      { time: 3, requiredPitches: new Set([60]) },
-      { time: 4, requiredPitches: new Set([62]) },
+      { time: 3, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      { time: 4, requiredPitches: new Set([62]), sustainingPitches: new Set() },
     ];
     const clock = new Clock(10);
     const live = new LiveNotes();
