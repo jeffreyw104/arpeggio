@@ -271,9 +271,12 @@ export class MidiSession {
       }
     }
     this.liveNotes.clear();
-    // Null the callbacks so closures over this session are not retained.
-    this.liveNotes.onPressed = null;
-    this.liveNotes.onReleased = null;
+    // NOTE: do NOT null out liveNotes.onPressed / onReleased here. React
+    // StrictMode (dev) runs every effect cleanup in the middle of the
+    // mount → unmount → re-mount cycle; nulling callbacks that were wired
+    // in the constructor would leave them null after the re-mount, since
+    // the constructor doesn't re-run. The session is reachable via React
+    // state anyway, so closure-retention of `this` is moot.
   }
 
   /** The controller is enabled only on the MIDI tab with wait-mode requested. */
