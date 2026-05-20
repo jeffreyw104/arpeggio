@@ -20,6 +20,10 @@ export class PianoRollLane {
   private readonly measuresPerPage: number;
   private _currentPage: { first: number; last: number } = { first: 0, last: -1 };
 
+  private dragStart: number | null = null;
+  private readonly onMouseDown: (e: MouseEvent) => void;
+  private readonly onMouseUp: (e: MouseEvent) => void;
+
   constructor(container: HTMLElement, transport: Transport, opts: LaneOptions) {
     this.container = container;
     this.transport = transport;
@@ -39,6 +43,28 @@ export class PianoRollLane {
       width: canvas.width,
       height: canvas.height,
     });
+
+    this.onMouseDown = (e) => {
+      this.dragStart = this.measureIndexAt(e);
+    };
+    this.onMouseUp = (e) => {
+      const end = this.measureIndexAt(e);
+      if (this.dragStart === null || end === null) {
+        this.dragStart = null;
+        return;
+      }
+      if (this.dragStart === end) {
+        const m = this.transport.score.measures[end];
+        if (m) this.transport.clock.seek(m.start);
+      } else {
+        const first = Math.min(this.dragStart, end);
+        const last = Math.max(this.dragStart, end);
+        this.transport.loopMeasures(first, last);
+      }
+      this.dragStart = null;
+    };
+    this.canvas.addEventListener("mousedown", this.onMouseDown);
+    this.canvas.addEventListener("mouseup", this.onMouseUp);
   }
 
   get currentPage(): { first: number; last: number } {
@@ -66,7 +92,24 @@ export class PianoRollLane {
     this.renderer.setViewport({ start: first.start, end: last.end });
   }
 
+  private measureIndexAt(e: MouseEvent): number | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const measures = this.transport.score.measures;
+    const first = measures[this._currentPage.first];
+    const lastIdx = Math.min(this._currentPage.last, measures.length - 1);
+    const last = measures[lastIdx];
+    const t = first.start + (x / rect.width) * (last.end - first.start);
+    for (let i = this._currentPage.first; i <= lastIdx; i += 1) {
+      const m = measures[i];
+      if (t >= m.start && t < m.end) return i;
+    }
+    return null;
+  }
+
   destroy(): void {
+    this.canvas.removeEventListener("mousedown", this.onMouseDown);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
     this.container.innerHTML = "";
   }
 }
