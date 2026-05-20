@@ -1,7 +1,8 @@
 # Arpeggio — Session Handover
 
-_Last updated: 2026-05-20. Branch: **`feature/midi-practice-mode`** — 104 commits
-ahead of `main`. Clean working tree, full gate green, **not yet merged**._
+_Last updated: 2026-05-20. Branch: **`main`** — feature/midi-practice-mode
+was fast-forwarded into main and pushed (Vercel auto-deploys); clean
+working tree, full gate green._
 
 ## What this is
 
@@ -11,9 +12,106 @@ practice with a Canvas2D **falldown** + an engraved **score**, one master clock.
 - **Live:** https://arpeggio-piano.vercel.app/ (auto-deploys on push to `main`)
 - **Repo:** github.com/jeffreyw104/arpeggio · Node ≥ 20 · `npm run dev`
 - **Verify gate:** `npm run lint && npm run typecheck && npm test && npm run build && npm run e2e`
-  — currently all green (357 Vitest, 11 Playwright e2e).
+  — currently all green (386 Vitest, 11 Playwright e2e).
 
-## This round — "Plan 4 + UX polish"
+## Latest round — "MIDI Practice correctness + ergonomics" (merged to main)
+
+The five bugs reported in the previous session plus several pieces of
+ergonomics shaped by live-piano testing. All shipped on `main` as separate
+small commits. The MIDI Practice tab is the focus throughout.
+
+### Wait-mode correctness
+
+- **A single press no longer satisfies two consecutive steps.** Old
+  evaluateStep accepted any held pitch in `requiredPitches` regardless of
+  press time — so when two adjacent steps shared a pitch and the player
+  couldn't release-and-re-press between them (fast repetitions, tied
+  figures buildSteps doesn't classify), the controller silently advanced
+  through a step the player didn't play. WaitModeController now tracks a
+  `(pitch → consumed pressTime)` map; a held note whose pressTime equals
+  the consumed entry doesn't count as accepted, unless the new step's
+  `sustainingPitches` marks the pitch as score-tied. Cleared on
+  resyncToPosition (seek / loop wrap). The simultaneity-spread
+  calculation now only considers fresh presses so tied carry-overs
+  don't stretch the spread of the fresh chord.
+- **Tempo "Flatten" no longer breaks practice.** Transport now emits
+  `onScoreChange` at the end of `setTempoMode`. MidiSession subscribes via
+  a new `setScore(score)` that rebuilds wait-mode steps in the post-
+  flatten time space. Previously the controller's steps stayed at
+  preserve-mode seconds and the clock parked at stale points.
+- **Defer other-hand notes at a wait-mode hold.** AudioEngine now
+  postpones any score note whose `start === clock.holdAt` and fires it
+  when the hold lifts (next step armed, or wait-mode disabled). Without
+  this, the computer's side of a simultaneous chord landed before the
+  player could press their part, so wait-mode matches felt off-beat. The
+  deferred state clears on seek/loop wrap so an abandoned hold never
+  leaves a ghost note.
+
+### Score muting & input echo — MIDI-aware
+
+- **All hand-mute and echo-suppression gated on `midiInput.status ===
+  "connected"`.** With no MIDI device the computer is the user's only
+  sound source, so `applyHandMutes` leaves both hands audible and the
+  echo gate echoes every input. With a MIDI device:
+  - no hand selected → un-mute both (user is listening)
+  - Right selected → mute right, play left
+  - Left selected → mute left, play right
+  - Both selected → mute both
+- **Echo suppression uses score-attributed hand, not a middle-C split.**
+  `pitchCoveredByPlayer` searches `score.notes` for a note matching the
+  input pitch with `note.hand ∈ handsIPlay`, active within ±0.5 s of the
+  clock. Crossing-hand passages (right hand below middle C, left above)
+  are now routed correctly. Off-script presses and wrong notes still
+  echo so the player hears their input.
+- **Input-monitor release no longer leaks.** The release branch dropped
+  its `monitorOn` gate (`triggerRelease` on a non-attacking pitch is a
+  no-op in Tone.js). `setMonitorOn(false)` and `setHandsIPlay()` also
+  proactively release any held voice whose echo just turned off — the
+  toggle "snaps" silent rather than letting the held note ring.
+- **Hot-plug.** `midiInput.onStatusChange` re-applies hand mutes and
+  releases held input voices on connect/disconnect; the new gating
+  flips correctly without a tab cycle.
+- **`savedMutes` captured BEFORE `midiInput.start()`.** In jsdom and
+  any environment where Web MIDI resolves synchronously, `setStatus`
+  fires `onStatusChange` immediately, which now calls applyHandMutes —
+  capture order matters so the saved snapshot is the user's pre-overlay
+  mute state.
+
+### Metronome — free-run mode
+
+- New "Metronome always on" checkbox in the Tempo section of the Tools
+  popover (CommonTools). When checked, the metronome runs from
+  `performance.now()` at the user's BPM, completely independent of
+  `transport.clock` — keeps clicking while wait-mode parks the clock on
+  a step. `Metronome.freeRun` + `updateFree(bpm, nowMs)` drive the new
+  path; the score-locked `update(prev, cur)` becomes a no-op while
+  freeRun is on. AudioEngine runs `updateFree` BEFORE the no-advance
+  early-out so held clocks keep ticking.
+
+### Audio latency tuning
+
+- `Tone.context.lookAhead` lowered from the default 100 ms to **10 ms**;
+  `Tone.context.latencyHint = "interactive"` requested. Tightens MIDI
+  input → audible output by ~90 ms. The latencyHint setter is wrapped
+  in `try/catch` for older browsers that reject hint changes after
+  context creation. Trade-off: occasional click-pops possible on slow
+  machines — if reported, the next move is to expose a toggle.
+
+### UI polish
+
+- **Reading-lane highlight + loop overlays stronger on dark theme.**
+  `.lane-highlight` bumped from `rgba(63,174,79,0.2)` → `0.32` to match
+  paper (same for `.lane-hover` 0.1 → 0.16 and `.lane-drag` 0.2 → 0.32).
+  `.lane-loop` fill `0.1` → `0.18`, outline `0.55` → `0.7`. The lane's
+  backdrop-filter was washing the original opacities out against the
+  busy falldown.
+- **On-canvas piano lit-keys are distinguishable in dense chords.**
+  Halo `shadowBlur` is proportional to key width (`max(3, w * 0.3)`),
+  not a fixed 16 px; halo `globalAlpha` 0.7; a 1.25 px dark inset
+  stroke runs just inside every active key so a pedal-sustained chord
+  reads as a row of lit keys instead of one continuous glow.
+
+## Previous round — "Plan 4 + UX polish" (also merged to main)
 
 Spec: `docs/superpowers/specs/2026-05-19-practice-mode-independence-design.md`.
 Plan 4: `docs/superpowers/plans/2026-05-20-plan-4-tappable-keys-qwerty-bugfixes.md`.
