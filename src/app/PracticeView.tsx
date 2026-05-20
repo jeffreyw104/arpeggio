@@ -120,7 +120,7 @@ export function PracticeView({
   const [scoreReady, setScoreReady] = useState(false);
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
   const [practiceLayout, setPracticeLayout] = useState<PracticeLayout>("lane");
-  const [laneTheme, setLaneTheme] = useState<LaneTheme>("dark");
+  const [laneTheme, setLaneTheme] = useState<LaneTheme>("paper");
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the Tools popover render against them in JSX.

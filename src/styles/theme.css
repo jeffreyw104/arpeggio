@@ -792,8 +792,8 @@ textarea {
   display: block;
   pointer-events: none;
   border-radius: 3px;
-  background: rgba(217, 83, 79, 0.28);
-  outline: 1.5px solid rgba(217, 83, 79, 0.85);
+  background: rgba(217, 83, 79, 0.16);
+  outline: 1px solid rgba(217, 83, 79, 0.6);
   outline-offset: -1px;
 }
 
