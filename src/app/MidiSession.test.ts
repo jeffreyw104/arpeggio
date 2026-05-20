@@ -216,6 +216,54 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
+  it("setWaitEnabled(true) snaps the clock back to the current measure's start", () => {
+    // Three measures: 0–2, 2–4, 4–6. Position 3.5 lives in measure 1 (2–4).
+    const score: Score = {
+      source: "midi",
+      notes: [],
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 4, denominator: 4 },
+        { index: 2, start: 4, end: 6, numerator: 4, denominator: 4 },
+      ],
+      pedalEvents: [],
+      timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
+      tempoMap: [{ start: 0, bpm: 120 }],
+      durationSeconds: 6,
+      musicXml: "",
+      qualityWarning: null,
+    };
+    const clock = new Clock(6);
+    const session = new MidiSession(clock, score, new HandState());
+    session.setWaitEnabled(false); // start with wait-mode off
+    clock.seek(3.5);
+    session.setWaitEnabled(true);
+    expect(clock.position).toBe(2); // start of measure 1
+  });
+
+  it("setWaitEnabled(true) leaves the position alone when already at a measure start", () => {
+    const score: Score = {
+      source: "midi",
+      notes: [],
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 4, denominator: 4 },
+      ],
+      pedalEvents: [],
+      timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
+      tempoMap: [{ start: 0, bpm: 120 }],
+      durationSeconds: 4,
+      musicXml: "",
+      qualityWarning: null,
+    };
+    const clock = new Clock(4);
+    const session = new MidiSession(clock, score, new HandState());
+    session.setWaitEnabled(false);
+    clock.seek(2); // already at the start of measure 1
+    session.setWaitEnabled(true);
+    expect(clock.position).toBe(2);
+  });
+
   it("reports unsupported MIDI status under jsdom", () => {
     const score = makeScore([]);
     const session = new MidiSession(new Clock(10), score, new HandState());
