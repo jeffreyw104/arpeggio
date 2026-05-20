@@ -10,6 +10,9 @@ const RIGHT = "#4a90d9";
 const LEFT = "#e08a3c";
 const MIN_NOTE_ALPHA = 0.5;
 const GLOW_BLUR = 12;
+const LOOP_FILL = "rgba(217, 83, 79, 0.16)";
+const WAIT_HOLD = "rgba(68, 170, 136, 0.45)";
+const SECTION_LABEL = "#e6e6ea";
 
 export interface RendererOptions {
   width: number;
@@ -60,7 +63,10 @@ export class PianoRollRenderer {
     ctx.fillRect(0, 0, this.width, this.height);
 
     this.drawBeatGrid();
+    this.drawLoopBand();
+    this.drawWaitHold();
     this.drawNotes();
+    this.drawSections();
     this.drawPlayhead();
   }
 
@@ -123,6 +129,41 @@ export class PianoRollRenderer {
       ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
       ctx.restore();
     }
+  }
+
+  private drawLoopBand(): void {
+    const loop = this.transport.clock.loop;
+    if (!loop) return;
+    const x0 = this.timeToX(loop.start);
+    const x1 = this.timeToX(loop.end);
+    this.ctx.fillStyle = LOOP_FILL;
+    this.ctx.fillRect(x0, 0, x1 - x0, this.height);
+  }
+
+  private drawSections(): void {
+    const { ctx } = this;
+    ctx.fillStyle = SECTION_LABEL;
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "left";
+    for (const s of this.transport.score.sections) {
+      if (s.start < this.viewport.start) continue;
+      if (s.start > this.viewport.end) break;
+      const x = this.timeToX(s.start);
+      ctx.fillText(s.label, x + 2, 12);
+    }
+  }
+
+  private drawWaitHold(): void {
+    const hold = this.transport.clock.holdAt;
+    if (hold === null || hold === undefined) return;
+    if (hold < this.viewport.start || hold > this.viewport.end) return;
+    const x = this.timeToX(hold);
+    this.ctx.strokeStyle = WAIT_HOLD;
+    this.ctx.lineWidth = 3;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x, 0);
+    this.ctx.lineTo(x, this.height);
+    this.ctx.stroke();
   }
 
   private drawPlayhead(): void {

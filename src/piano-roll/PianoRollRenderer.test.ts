@@ -92,3 +92,35 @@ describe("PianoRollRenderer notes", () => {
     expect(fillRectCalls.length).toBe(1);
   });
 });
+
+describe("PianoRollRenderer extras", () => {
+  it("draws a section label at the section's x", () => {
+    const score = { ...baseScore, sections: [{ start: 1, label: "Verse" }] };
+    const transport = new Transport(score);
+    const { ctx, calls } = fakeCtx();
+    const r = new PianoRollRenderer(ctx, transport, { width: 200, height: 100 });
+    r.setViewport({ start: 0, end: 2 });
+    r.renderFrame();
+    expect(calls.some((c) => c.startsWith("fillText(Verse"))).toBe(true);
+  });
+
+  it("draws a red loop band when a loop is set inside the viewport", () => {
+    const transport = new Transport(baseScore);
+    transport.loopMeasures(0, 1);
+    const { ctx, calls } = fakeCtx();
+    const r = new PianoRollRenderer(ctx, transport, { width: 200, height: 100 });
+    r.setViewport({ start: 0, end: 4 });
+    r.renderFrame();
+    expect(calls.some((c) => c.startsWith("fillRect"))).toBe(true);
+  });
+
+  it("draws a green vertical band at a wait-mode hold time", () => {
+    const transport = new Transport(baseScore);
+    transport.clock.setHold(1.5);
+    const { ctx, calls } = fakeCtx();
+    const r = new PianoRollRenderer(ctx, transport, { width: 200, height: 100 });
+    r.setViewport({ start: 0, end: 2 });
+    r.renderFrame();
+    expect(calls.some((c) => c === "moveTo(150,0)")).toBe(true);
+  });
+});
