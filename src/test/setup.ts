@@ -38,7 +38,7 @@ if (typeof HTMLCanvasElement !== "undefined") {
       font: "", textAlign: "left", globalAlpha: 1,
       shadowColor: "", shadowBlur: 0,
     } as unknown as CanvasRenderingContext2D;
-  } as typeof HTMLCanvasElement.prototype.getContext;
+  } as unknown as typeof HTMLCanvasElement.prototype.getContext;
 }
 
 // Reset the DOM between tests so leaked elements from one test cannot leak
