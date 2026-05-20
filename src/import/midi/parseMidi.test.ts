@@ -93,4 +93,25 @@ describe("parseMidi", () => {
     expect(score.pedalEvents[0].start).toBeCloseTo(0, 2);
     expect(score.pedalEvents[0].end).toBeCloseTo(1.0, 2);
   });
+
+  it("extracts marker meta events as sections", () => {
+    const midi = new Midi();
+    midi.header.setTempo(120);
+    midi.header.meta = [
+      { type: "marker", ticks: 0, text: "Intro" },
+      { type: "marker", ticks: 960, text: "Verse" },
+      { type: "trackName", ticks: 0, text: "Piano" }, // should be ignored
+    ];
+    midi.addTrack().addNote({ midi: 60, time: 0, duration: 0.5 });
+    const score = parseMidi(toBuffer(midi));
+    expect(score.sections).toEqual([
+      { start: 0, label: "Intro" },
+      { start: 1, label: "Verse" }, // 960 ticks at default 480 ppq @ 120 bpm = 1s
+    ]);
+  });
+
+  it("returns empty sections when no markers are present", () => {
+    const score = parseMidi(load("clean.mid"));
+    expect(score.sections).toEqual([]);
+  });
 });
