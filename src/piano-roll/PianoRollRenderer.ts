@@ -1,9 +1,15 @@
 import type { Transport } from "../transport/transport";
+import { noteRectsInWindow } from "./noteRectsInWindow";
+import { pitchAutoFit } from "./pitchAutoFit";
 
 const BG = "#15151a";
 const BEAT_LINE = "#34343c";
 const DOWNBEAT_LINE = "#5a5a66";
 const PLAYHEAD = "#e6e6ea";
+const RIGHT = "#4a90d9";
+const LEFT = "#e08a3c";
+const MIN_NOTE_ALPHA = 0.5;
+const GLOW_BLUR = 12;
 
 export interface RendererOptions {
   width: number;
@@ -54,6 +60,7 @@ export class PianoRollRenderer {
     ctx.fillRect(0, 0, this.width, this.height);
 
     this.drawBeatGrid();
+    this.drawNotes();
     this.drawPlayhead();
   }
 
@@ -89,6 +96,32 @@ export class PianoRollRenderer {
         ctx.lineTo(xb, this.height);
         ctx.stroke();
       }
+    }
+  }
+
+  private drawNotes(): void {
+    const { ctx } = this;
+    const notes = this.transport.score.notes;
+    const range = pitchAutoFit(notes, { minSpan: 24, maxSpan: 88 });
+    const t = this.transport.clock.position;
+    const rects = noteRectsInWindow(notes, {
+      viewport: { left: 0, top: 0, width: this.width, height: this.height },
+      timeWindow: this.viewport,
+      pitchRange: range,
+      rightColor: RIGHT,
+      leftColor: LEFT,
+    });
+    for (const rect of rects) {
+      ctx.save();
+      ctx.globalAlpha = MIN_NOTE_ALPHA + (1 - MIN_NOTE_ALPHA) * rect.velocity;
+      const sounding = rect.start <= t && rect.end > t;
+      if (sounding) {
+        ctx.shadowColor = rect.color;
+        ctx.shadowBlur = GLOW_BLUR;
+      }
+      ctx.fillStyle = rect.color;
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.restore();
     }
   }
 

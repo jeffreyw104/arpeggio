@@ -57,3 +57,38 @@ describe("PianoRollRenderer skeleton", () => {
     expect(calls).toContain("moveTo(100,0)");
   });
 });
+
+describe("PianoRollRenderer notes", () => {
+  it("draws a rect per note inside the viewport, hand-coloured", () => {
+    const score = {
+      ...baseScore,
+      notes: [
+        { midi: 64, start: 0, duration: 0.5, velocity: 1, hand: "right" as const },
+        { midi: 60, start: 0.5, duration: 0.5, velocity: 1, hand: "left" as const },
+      ],
+    };
+    const transport = new Transport(score);
+    const { ctx, calls } = fakeCtx();
+    const r = new PianoRollRenderer(ctx, transport, { width: 200, height: 100 });
+    r.setViewport({ start: 0, end: 2 });
+    r.renderFrame();
+    const fillRectCalls = calls.filter((c) => c.startsWith("fillRect"));
+    expect(fillRectCalls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("skips notes whose end is before the viewport start", () => {
+    const score = {
+      ...baseScore,
+      notes: [
+        { midi: 60, start: -1, duration: 0.5, velocity: 1, hand: "right" as const },
+      ],
+    };
+    const transport = new Transport(score);
+    const { ctx, calls } = fakeCtx();
+    const r = new PianoRollRenderer(ctx, transport, { width: 200, height: 100 });
+    r.setViewport({ start: 0, end: 2 });
+    r.renderFrame();
+    const fillRectCalls = calls.filter((c) => c.startsWith("fillRect"));
+    expect(fillRectCalls.length).toBe(1);
+  });
+});
