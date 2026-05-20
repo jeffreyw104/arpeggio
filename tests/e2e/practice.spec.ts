@@ -80,8 +80,9 @@ test("the Tools popover opens and exposes loop controls", async ({
   ).toBeVisible();
 
   // Clicking elsewhere does not close the popover — it floats until the Tools
-  // button is pressed again.
-  await page.locator(".top-bar-logo").click();
+  // button is pressed again. Use the time display: it's a non-interactive span
+  // in the top bar (the logo wordmark is now the Library button).
+  await page.locator(".hud-time").click();
   await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
 
   // Re-pressing the Tools button closes it.
