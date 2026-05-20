@@ -45,6 +45,44 @@ describe("WaitModeController", () => {
     expect(clock.holdAt).toBeNull();
   });
 
+  it("resyncs to the new position on a manual seek when no loop is active", () => {
+    // steps at t=1 and t=2. Match step 0, then advance to step 1.
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    const ctrl = new WaitModeController(clock, steps, live, () => 5000);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched → hold parked at t=2 (step 1)
+    expect(clock.holdAt).toBe(2);
+    // User seeks back to t=0 — wait-mode should re-arm at step 0 (t=1).
+    clock.seek(0);
+    ctrl.update();
+    expect(clock.holdAt).toBe(1);
+  });
+
+  it("does NOT resync to a manual seek while a loop is active", () => {
+    // Same advance pattern as above; the loop wraps via clock.onLoop separately.
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    const ctrl = new WaitModeController(clock, steps, live, () => 5000);
+    clock.setLoop({ start: 1, end: 3 });
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched → hold parked at t=2 (step 1)
+    expect(clock.holdAt).toBe(2);
+    // Manual seek inside the loop — wait-mode keeps its current arming
+    // (step 1 / hold at t=2). The looper owns navigation here.
+    clock.seek(1.5);
+    ctrl.update();
+    expect(clock.holdAt).toBe(2);
+  });
+
   it("resyncs stepIndex after a loop wrap", () => {
     // Use steps at t=3 and t=4 so the hold (t=3) sits beyond loop.end (t=2).
     // This means tick() reaches loop.end before the hold clamps it, firing onLoop.

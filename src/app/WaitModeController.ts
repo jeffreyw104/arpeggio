@@ -20,6 +20,7 @@ export class WaitModeController {
   private armedFor = -1;
   private enabled = false;
   private readonly unsubscribeLoop: () => void;
+  private readonly unsubscribeSeek: () => void;
 
   constructor(
     private readonly clock: Clock,
@@ -28,6 +29,13 @@ export class WaitModeController {
     private readonly now: () => number = () => performance.now(),
   ) {
     this.unsubscribeLoop = clock.onLoop(() => this.resyncToPosition());
+    // Re-arm at the new position whenever the user manually seeks — except
+    // when a loop is active, in which case the looper owns navigation and a
+    // mid-loop click shouldn't drag wait-mode out of the loop region.
+    this.unsubscribeSeek = clock.onSeek(() => {
+      if (this.clock.loop) return;
+      this.resyncToPosition();
+    });
   }
 
   /** Replace the steps (e.g. after the hand selection changes). */
@@ -92,6 +100,7 @@ export class WaitModeController {
   dispose(): void {
     this.enabled = false;
     this.unsubscribeLoop();
+    this.unsubscribeSeek();
     this.clock.setHold(null);
   }
 }
