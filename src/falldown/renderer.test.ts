@@ -225,6 +225,35 @@ describe("FalldownRenderer pedalDown", () => {
   });
 });
 
+describe("FalldownRenderer pitchAt", () => {
+  function makeRenderer880() {
+    const transport = new Transport(score);
+    const ctx = fakeCtx();
+    const renderer = new FalldownRenderer(
+      ctx as unknown as CanvasRenderingContext2D,
+      transport,
+      { width: 880, height: 300 },
+    );
+    return { transport, ctx, renderer };
+  }
+
+  it("pitchAt maps a coordinate inside the keyboard band to a MIDI pitch", () => {
+    const { renderer } = makeRenderer880();
+    renderer.renderFrame(); // realise the layout
+    // pianoHeight = min(140, 0.22 * 300) = 66; hitLineY = 300 - 66 = 234.
+    // Pick a y deep in the lower (white-key) band, plenty of white-key coverage.
+    const pitch = renderer.pitchAt(440, 290);
+    expect(pitch).not.toBeNull();
+    expect(typeof pitch).toBe("number");
+  });
+
+  it("pitchAt returns null above the keyboard", () => {
+    const { renderer } = makeRenderer880();
+    renderer.renderFrame();
+    expect(renderer.pitchAt(440, 10)).toBeNull();
+  });
+});
+
 describe("FalldownRenderer hand hide", () => {
   it("draws dimmed notes at reduced alpha", () => {
     // score note: midi 64, start 1.0, duration 0.5, velocity 0.7, hand left

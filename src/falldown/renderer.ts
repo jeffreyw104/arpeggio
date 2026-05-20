@@ -3,6 +3,7 @@ import { keyLayout, drawPiano, midiToNoteName, type KeyboardLayout } from "./pia
 import { noteRects, activeKeyColors } from "./notes";
 import { beatGridLines } from "./beatGrid";
 import { beatPulse } from "../audio/beats";
+import { pointerHit } from "./pointerHit";
 import type { Transport } from "../transport/transport";
 import type { Note } from "../model/score";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
@@ -268,5 +269,12 @@ export class FalldownRenderer {
       cancelAnimationFrame(this.rafHandle);
       this.rafHandle = null;
     }
+  }
+
+  /** Map a canvas-local (x, y) to the MIDI pitch under the pointer, or
+   *  null if outside the keyboard band. Used by PointerInput. */
+  pitchAt(x: number, y: number): number | null {
+    const layout = keyLayout(this.range(), this.width);
+    return pointerHit(layout, x, y, this.hitLineY, this.pianoHeight);
   }
 }
