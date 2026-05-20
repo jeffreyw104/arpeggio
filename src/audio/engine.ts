@@ -218,6 +218,20 @@ export async function createAudioEngine(
 ): Promise<AudioEngine> {
   const Tone = await import("tone");
 
+  // Latency tuning. Tone.js defaults Tone.context.lookAhead to 100 ms, which
+  // is comfortable for music playback but feels like noticeable lag when the
+  // user is pressing a MIDI key and waiting for the sampler to respond.
+  // Drop the look-ahead to 10 ms and ask the browser for an "interactive"
+  // audio context so it configures the underlying buffer for low latency
+  // rather than smooth streaming. Trade-off: on slow machines this can
+  // produce occasional click-pops; if that bites we'll expose a toggle.
+  try {
+    Tone.context.latencyHint = "interactive";
+  } catch {
+    // Older browsers may reject hint changes after context creation.
+  }
+  Tone.context.lookAhead = 0.01;
+
   // Sampled acoustic piano — Salamander grand, the Tone.js reference sample set.
   const sampler = new Tone.Sampler({
     urls: {
