@@ -981,19 +981,6 @@ textarea {
   }
 }
 
-.quality-warning {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 18;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  color: var(--hand-left);
-  background: rgba(224, 138, 60, 0.12);
-  border-top: 1px solid var(--border);
-}
-
 .metronome-pulse {
   width: 10px;
   height: 10px;
@@ -1319,11 +1306,15 @@ textarea {
   display: block; position: absolute; top: 68px; left: 0; right: 0; height: 400px;
   z-index: 4; overflow: hidden;
 }
-.practice-content--midi-roll.layout-split .piano-roll-panel {
+.practice-content--midi-roll.layout-split .piano-roll-panel,
+/* Play tab + MIDI source: the engraved score panel would be empty (no
+   Verovio render for MIDI), so put the piano-roll there instead. */
+.practice-content--play.practice-content--midi-roll .piano-roll-panel {
   display: block; flex: 1; min-width: 0; position: relative;
 }
 .practice-content--midi-roll.layout-lane .practice-lane-panel,
-.practice-content--midi-roll.layout-split .practice-score-panel {
+.practice-content--midi-roll.layout-split .practice-score-panel,
+.practice-content--play.practice-content--midi-roll .practice-score-panel {
   display: none;
 }
 .piano-roll-canvas, .piano-roll-panel-canvas {

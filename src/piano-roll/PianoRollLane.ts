@@ -71,9 +71,28 @@ export class PianoRollLane {
     return this._currentPage;
   }
 
+  /** Re-fit the canvas backing store and renderer to the container's current
+   *  size. The constructor sizes the canvas from clientWidth/Height at the
+   *  moment of mount — but the piano-roll panel starts CSS-hidden in
+   *  PracticeView's stable-mount tree, so initial clientWidth is 0. Call this
+   *  whenever the container's box changes (ResizeObserver in PracticeView). */
+  resize(): void {
+    const width = this.container.clientWidth;
+    const height = this.container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+    if (this.canvas.width === width && this.canvas.height === height) return;
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.renderer.resize(width, height);
+  }
+
   renderFrame(): void {
     const measures = this.transport.score.measures;
     if (measures.length === 0) return;
+
+    // Self-heal a 0-sized canvas (initial CSS-hidden mount). Cheap: only the
+    // first frame after the panel is revealed pays the resize cost.
+    if (this.canvas.width === 0 || this.canvas.height === 0) this.resize();
 
     const idx = currentMeasureIndex(this.transport.score, this.transport.clock.position);
     const page = pageForMeasure(idx, this.measuresPerPage);

@@ -357,6 +357,28 @@ export function PracticeView({
     return () => observer.disconnect();
   }, [falldown]);
 
+  // The piano-roll lane and panel start CSS-hidden in the stable-mount tree,
+  // so their containers are 0×0 at construction time. Re-fit them whenever
+  // the container box changes (CSS reveal, view-mode switch, divider drag,
+  // window resize) — the lane/panel handle the rest via .resize().
+  useEffect(() => {
+    if (score.source !== "midi") return;
+    if (typeof ResizeObserver === "undefined") return;
+    const observers: ResizeObserver[] = [];
+    const wire = (
+      el: HTMLElement | null,
+      instance: { resize(): void } | null,
+    ): void => {
+      if (!el || !instance) return;
+      const o = new ResizeObserver(() => instance.resize());
+      o.observe(el);
+      observers.push(o);
+    };
+    wire(pianoRollLaneRef.current, pianoRollLaneInstance.current);
+    wire(pianoRollPanelRef.current, pianoRollPanelInstance.current);
+    return () => observers.forEach((o) => o.disconnect());
+  }, [score.source]);
+
   // Resume the Web Audio context on the first user-driven play.
   useEffect(() => {
     return transport.clock.onChange(() => {
@@ -545,7 +567,9 @@ export function PracticeView({
           "practice-content",
           `practice-content--${mode}`,
           isMidi ? `layout-${practiceLayout}` : "",
-          isMidi ? `practice-content--midi-${score.source === "midi" ? "roll" : "engrave"}` : "",
+          // Tied to the score's SOURCE, not the tab. Play tab + MIDI also
+          // needs to swap the engraved score panel for the piano-roll.
+          score.source === "midi" ? "practice-content--midi-roll" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -683,9 +707,6 @@ export function PracticeView({
           </span>
           Rendering sheet music
         </div>
-      )}
-      {score.qualityWarning && (
-        <div className="quality-warning">{score.qualityWarning}</div>
       )}
     </div>
   );
