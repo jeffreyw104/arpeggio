@@ -3,6 +3,20 @@ import { Clock } from "../transport/clock";
 import { HandState } from "../practice/hands";
 import type { Score, Note } from "../model/score";
 import { MidiSession } from "./MidiSession";
+import type { AudioEngine } from "../audio/engine";
+
+/** A duck-typed audio engine that records playInputNote / releaseInputNote
+ *  calls. Cast through `unknown` because the real AudioEngine has many more
+ *  fields the input-monitor path doesn't touch. */
+function makeMockAudio() {
+  return {
+    playInputNote: vi.fn(),
+    releaseInputNote: vi.fn(),
+  };
+}
+function asEngine(mock: ReturnType<typeof makeMockAudio>): AudioEngine {
+  return mock as unknown as AudioEngine;
+}
 
 /** Build a minimal Score around a given note list. */
 function makeScore(notes: Note[]): Score {
@@ -312,6 +326,100 @@ describe("MidiSession", () => {
       pressTime: performance.now(),
     });
     expect(session.liveNotes.heldNotes().some((n) => n.pitch === 60)).toBe(true);
+  });
+
+  it("echoes input through playInputNote when monitor is on and no hand is being practised", () => {
+    const score = makeScore([note(60, 1, "right")]);
+    const audio = makeMockAudio();
+    const session = new MidiSession(new Clock(10), score, new HandState());
+    session.attachAudio(asEngine(audio));
+    // Clear the constructor default ({right}) so no hand is being practised.
+    session.setHandsIPlay(new Set());
+
+    session.liveNotes.press(60, 0.8, 1000);
+    expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
+    session.dispose();
+  });
+
+  it("suppresses echo for pitches in the hand the player performs", () => {
+    const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
+    const audio = makeMockAudio();
+    const session = new MidiSession(new Clock(10), score, new HandState());
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set(["right"]));
+
+    // 60 is right-hand by middle-C inference — covered by user's own piano,
+    // should be suppressed.
+    session.liveNotes.press(60, 0.8, 1000);
+    expect(audio.playInputNote).not.toHaveBeenCalled();
+
+    // 48 is left-hand — the computer plays this side, so the echo still sounds.
+    session.liveNotes.press(48, 0.8, 1001);
+    expect(audio.playInputNote).toHaveBeenCalledWith(48, 0.8);
+    session.dispose();
+  });
+
+  it("suppresses echo for both hands when the player practises both", () => {
+    const audio = makeMockAudio();
+    const session = new MidiSession(
+      new Clock(10),
+      makeScore([]),
+      new HandState(),
+    );
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set(["left", "right"]));
+
+    session.liveNotes.press(60, 0.8, 1000); // right
+    session.liveNotes.press(48, 0.8, 1001); // left
+    expect(audio.playInputNote).not.toHaveBeenCalled();
+    session.dispose();
+  });
+
+  it("releases the input voice even after the monitor was toggled off mid-note", () => {
+    // Bug 2 regression: with the old logic, the release branch was gated by
+    // monitorOn — toggling monitor off while a note was held meant
+    // triggerRelease never fired and the voice rang forever.
+    const audio = makeMockAudio();
+    const session = new MidiSession(
+      new Clock(10),
+      makeScore([]),
+      new HandState(),
+    );
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set()); // echo unconditionally
+    session.liveNotes.press(60, 0.8, 1000);
+    expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
+
+    session.setMonitorOn(false);
+    // setMonitorOn(false) snaps the held voice silent immediately.
+    expect(audio.releaseInputNote).toHaveBeenCalledWith(60);
+
+    audio.releaseInputNote.mockClear();
+    session.liveNotes.release(60);
+    // Physical release lands a release call too (idempotent, but it must
+    // always fire so a voice cannot leak past the toggle).
+    expect(audio.releaseInputNote).toHaveBeenCalledWith(60);
+    session.dispose();
+  });
+
+  it("releases voices whose hand becomes one being practised", () => {
+    // The user is holding a right-hand input note with monitor on, no hand
+    // selected (so it's echoing); they then switch to 'play right hand', so
+    // that note should no longer echo.
+    const audio = makeMockAudio();
+    const session = new MidiSession(
+      new Clock(10),
+      makeScore([]),
+      new HandState(),
+    );
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set()); // start with no hand selected
+    session.liveNotes.press(60, 0.8, 1000); // right-hand input, echoing
+    expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
+
+    session.setHandsIPlay(new Set(["right"]));
+    expect(audio.releaseInputNote).toHaveBeenCalledWith(60);
+    session.dispose();
   });
 
   it("setScore rebuilds wait-mode steps in the new time space", () => {

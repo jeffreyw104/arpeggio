@@ -14,6 +14,17 @@ import { WaitModeController } from "./WaitModeController";
 /** Hands in a fixed order, for iterating mute state. */
 const HANDS: readonly Hand[] = ["left", "right"];
 
+/** Middle C — the split point between left- and right-hand input inference. */
+const MIDDLE_C = 60;
+
+/** Infer the hand an input pitch belongs to. Standard piano convention:
+ *  pitches at or above middle C are right hand, below are left. Good enough
+ *  for the input-monitor echo gate; crossing-hand passages may misattribute
+ *  the occasional note but never affect the wait-mode matcher. */
+function handFromPitch(pitch: number): Hand {
+  return pitch >= MIDDLE_C ? "right" : "left";
+}
+
 /**
  * Non-React controller that assembles the whole MIDI Practice session: the two
  * input sources (Web MIDI + QWERTY fallback), the live held-notes store, the
@@ -83,7 +94,11 @@ export class MidiSession {
     this.pointerInput.onNoteOff = (e: MidiNoteEvent) =>
       this.liveNotes.release(e.pitch);
 
-    // Input monitor: sound the player's own notes when enabled.
+    // Input monitor: sound the player's own notes when enabled, EXCEPT for
+    // the hand(s) the player has chosen to perform — their own piano already
+    // covers those notes, so re-echoing them produces an audible double.
+    // The audio-context resume runs regardless of the echo gate so later
+    // score / metronome playback isn't gated on a user gesture.
     this.liveNotes.onPressed = (n) => {
       if (!this.audioStarted) {
         this.audioStarted = true;
@@ -91,15 +106,29 @@ export class MidiSession {
           this.audioStarted = false;
         });
       }
-      if (this.monitorOn && this.audioEngine) {
+      if (this.shouldEcho(n.pitch) && this.audioEngine) {
         this.audioEngine.playInputNote(n.pitch, n.velocity);
       }
     };
+    // Release is unconditional: a voice attacked under one echo-gate value
+    // must still release if the gate flips before key-up, otherwise the note
+    // rings forever. triggerRelease on a non-attacking pitch is a no-op.
     this.liveNotes.onReleased = (pitch) => {
-      if (this.monitorOn && this.audioEngine) {
+      if (this.audioEngine) {
         this.audioEngine.releaseInputNote(pitch);
       }
     };
+  }
+
+  /** Whether an input note of `pitch` should echo through the audio engine.
+   *  Off when the monitor is turned off. On when the player isn't practising
+   *  any particular hand. Otherwise on only for pitches whose inferred hand
+   *  is NOT one the player performs — those notes come from the player's
+   *  own piano, so a software echo would just double them. */
+  private shouldEcho(pitch: number): boolean {
+    if (!this.monitorOn) return false;
+    if (this.handsIPlay.size === 0) return true;
+    return !this.handsIPlay.has(handFromPitch(pitch));
   }
 
   /** Register the status-change listener (PracticeView mirrors it to state). */
@@ -185,8 +214,9 @@ export class MidiSession {
       this.pointerInput.detach();
       // Release any audio voices before dropping the held-notes map so that
       // piano voices attacked while the tab was showing are not stuck on.
-      for (const n of this.liveNotes.heldNotes()) {
-        if (this.monitorOn && this.audioEngine) {
+      // Unconditional — triggerRelease on a non-attacking pitch is a no-op.
+      if (this.audioEngine) {
+        for (const n of this.liveNotes.heldNotes()) {
           this.audioEngine.releaseInputNote(n.pitch);
         }
       }
@@ -214,7 +244,10 @@ export class MidiSession {
   }
 
   setMonitorOn(on: boolean): void {
+    if (this.monitorOn === on) return;
+    const wasEchoing = this.echoingPitches();
     this.monitorOn = on;
+    this.releaseLostEchoes(wasEchoing);
   }
 
   /** Swap in a new score (e.g. after a tempo-mode toggle re-times the piece).
@@ -227,11 +260,36 @@ export class MidiSession {
 
   /** Change which hand(s) the player performs; rebuilds steps and hand mutes. */
   setHandsIPlay(hands: ReadonlySet<Hand>): void {
+    const wasEchoing = this.echoingPitches();
     this.handsIPlay = new Set(hands);
     this.controller.setSteps(buildSteps(this.score.notes, this.handsIPlay));
     // Hand mutes only apply while the MIDI tab is active; on the play tab the
     // mutes stay under the user's own control.
     if (this.active) this.applyHandMutes();
+    // The hand change can flip a held note's echo from on to off (e.g. the
+    // user selects "play right hand" while holding a right-hand input). Drop
+    // those voices so the toggle takes effect immediately.
+    this.releaseLostEchoes(wasEchoing);
+  }
+
+  /** Pitches of currently-held notes that are currently echoing. */
+  private echoingPitches(): Set<number> {
+    const set = new Set<number>();
+    for (const n of this.liveNotes.heldNotes()) {
+      if (this.shouldEcho(n.pitch)) set.add(n.pitch);
+    }
+    return set;
+  }
+
+  /** Release input voices that were echoing in the pre-change snapshot but
+   *  shouldn't echo anymore — i.e. the echo gate JUST flipped to off for
+   *  those pitches. Voices that were already silent stay silent. */
+  private releaseLostEchoes(wasEchoing: Set<number>): void {
+    const engine = this.audioEngine;
+    if (!engine) return;
+    for (const pitch of wasEchoing) {
+      if (!this.shouldEcho(pitch)) engine.releaseInputNote(pitch);
+    }
   }
 
   /** Listen to a specific MIDI device by id. */
@@ -273,8 +331,8 @@ export class MidiSession {
     // does not persist the transient MIDI auto-mutes.
     this.restoreMutes();
     // Release any audio voices so disposal does not leave stuck voices.
-    for (const n of this.liveNotes.heldNotes()) {
-      if (this.monitorOn && this.audioEngine) {
+    if (this.audioEngine) {
+      for (const n of this.liveNotes.heldNotes()) {
         this.audioEngine.releaseInputNote(n.pitch);
       }
     }
