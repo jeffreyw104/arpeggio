@@ -393,15 +393,17 @@ export class MidiSession {
   }
 
   /**
-   * Mute the hand(s) the player performs so the app sounds only the other
-   * hand(s). Only applies when a MIDI device is connected — with no MIDI the
-   * computer is the user's only sound source, and muting the played hand
-   * would mean practising in partial silence.
+   * Mute the entire piano on the computer when a MIDI device is connected —
+   * the user's own piano is the sole sound source, so anything from the
+   * sampler would be a double. With no MIDI device, leave both hands
+   * unmuted so the computer plays the full score for QWERTY / pointer
+   * practice. Step 2 will re-introduce a selective "play only the OTHER
+   * hand" unmute once the all-muted baseline is verified.
    */
   private applyHandMutes(): void {
     const midi = this.isMidiConnected;
     for (const hand of HANDS) {
-      this.handState.setMuted(hand, midi && this.handsIPlay.has(hand));
+      this.handState.setMuted(hand, midi);
     }
   }
 }
