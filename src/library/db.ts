@@ -37,6 +37,8 @@ export interface StoredPracticeState {
     play: { bpm: number; loop: { start: number; end: number } | null };
     midi: { bpm: number; loop: { start: number; end: number } | null };
   };
+  /** Whether the minimap strip is visible. Defaults to true. */
+  minimapVisible?: boolean;
 }
 
 const DB_NAME = "arpeggio";
