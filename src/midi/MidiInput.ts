@@ -107,17 +107,12 @@ export class MidiInput {
     this.onStatusChange?.();
   }
 
-  /** Detach all handlers. */
-  dispose(): void {
-    if (this.access) {
-      for (const input of this.access.inputs.values()) {
-        input.onmidimessage = null;
-      }
-      this.access.onstatechange = null;
-    }
-    this.onNoteOn = null;
-    this.onNoteOff = null;
-    this.onPedal = null;
-    this.onStatusChange = null;
-  }
+  /** A no-op. Why: under React StrictMode's dev-mode mount→cleanup→mount
+   *  dance, this fires between the two mounts on the same MidiSession
+   *  instance. Anything destructive here (nulling callbacks, detaching
+   *  onmidimessage, clearing onstatechange) leaves the second mount
+   *  silently broken — no MIDI messages route in, no hot-plug detection.
+   *  The constructor-wired callbacks and MIDIAccess listeners stay live;
+   *  the browser GCs them when the session itself becomes unreachable. */
+  dispose(): void {}
 }
