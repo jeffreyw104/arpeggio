@@ -371,38 +371,65 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
-  it("suppresses echo for pitches in the hand the player performs (MIDI connected)", () => {
-    const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
+  it("suppresses echo when the input matches a score note in the played hand (MIDI connected)", () => {
+    // Two notes in the score at the SAME time: right-hand C5 (high pitch),
+    // left-hand A5 (even higher — crossing into the right-hand range).
+    // The middle-C heuristic would mis-classify A5 as right-hand and
+    // mis-suppress; the score-based lookup correctly uses the actual hand
+    // tags from the score.
+    const score = makeScore([
+      note(72, 1, "right"), // C5, right hand
+      note(81, 1, "left"), // A5, left hand crossing high
+    ]);
     const audio = makeMockAudio();
-    const session = new MidiSession(new Clock(10), score, new HandState());
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
     pinMidiStatus(session, "connected");
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set(["right"]));
+    clock.seek(1); // park the clock at the notes' onset
 
-    // 60 is right-hand by middle-C inference — covered by user's own piano,
-    // should be suppressed.
-    session.liveNotes.press(60, 0.8, 1000);
+    // C5 is a right-hand note → user's piano covers, suppress.
+    session.liveNotes.press(72, 0.8, 1000);
     expect(audio.playInputNote).not.toHaveBeenCalled();
 
-    // 48 is left-hand — the computer plays this side, so the echo still sounds.
-    session.liveNotes.press(48, 0.8, 1001);
-    expect(audio.playInputNote).toHaveBeenCalledWith(48, 0.8);
+    // A5 is a left-hand crossing note → the score says it's the computer's
+    // side, so the user pressing it (a crossing-hand mistake, or curiosity)
+    // still echoes.
+    session.liveNotes.press(81, 0.8, 1001);
+    expect(audio.playInputNote).toHaveBeenCalledWith(81, 0.8);
+    session.dispose();
+  });
+
+  it("echoes off-script presses with no matching score note even when the played hand is selected", () => {
+    // Pitch the user pressed has no score note nearby → it's a wrong note
+    // the player wants to hear. Echo it so they get feedback.
+    const score = makeScore([note(60, 1, "right")]);
+    const audio = makeMockAudio();
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
+    pinMidiStatus(session, "connected");
+    session.attachAudio(asEngine(audio));
+    session.setHandsIPlay(new Set(["right"]));
+    clock.seek(1);
+
+    session.liveNotes.press(72, 0.8, 1000); // not in the score → echo
+    expect(audio.playInputNote).toHaveBeenCalledWith(72, 0.8);
     session.dispose();
   });
 
   it("suppresses echo for both hands when the player practises both (MIDI connected)", () => {
+    const score = makeScore([note(60, 1, "right"), note(48, 1, "left")]);
     const audio = makeMockAudio();
-    const session = new MidiSession(
-      new Clock(10),
-      makeScore([]),
-      new HandState(),
-    );
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
     pinMidiStatus(session, "connected");
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set(["left", "right"]));
+    clock.seek(1);
 
-    session.liveNotes.press(60, 0.8, 1000); // right
-    session.liveNotes.press(48, 0.8, 1001); // left
+    session.liveNotes.press(60, 0.8, 1000); // right, covered
+    session.liveNotes.press(48, 0.8, 1001); // left, covered
     expect(audio.playInputNote).not.toHaveBeenCalled();
     session.dispose();
   });
@@ -414,18 +441,14 @@ describe("MidiSession", () => {
     const audio = makeMockAudio();
     const session = new MidiSession(
       new Clock(10),
-      makeScore([]),
+      makeScore([note(60, 1, "right")]),
       new HandState(),
     );
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set(["right"]));
 
-    session.liveNotes.press(60, 0.8, 1000); // right-hand QWERTY equivalent
+    session.liveNotes.press(60, 0.8, 1000); // even though it's a played-hand note
     expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
-
-    session.setHandsIPlay(new Set(["left", "right"]));
-    session.liveNotes.press(48, 0.8, 1001);
-    expect(audio.playInputNote).toHaveBeenCalledWith(48, 0.8);
     session.dispose();
   });
 
@@ -459,17 +482,17 @@ describe("MidiSession", () => {
   it("releases voices whose hand becomes one being practised (MIDI connected)", () => {
     // The user is holding a right-hand input note with monitor on, no hand
     // selected (so it's echoing); they then switch to 'play right hand', so
-    // that note should no longer echo.
+    // the score-attributed note is now covered by the player and the echo
+    // must be released.
+    const score = makeScore([note(60, 1, "right")]);
     const audio = makeMockAudio();
-    const session = new MidiSession(
-      new Clock(10),
-      makeScore([]),
-      new HandState(),
-    );
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
     pinMidiStatus(session, "connected");
     session.attachAudio(asEngine(audio));
     session.setHandsIPlay(new Set()); // start with no hand selected
-    session.liveNotes.press(60, 0.8, 1000); // right-hand input, echoing
+    clock.seek(1);
+    session.liveNotes.press(60, 0.8, 1000); // echoing — no hand to suppress
     expect(audio.playInputNote).toHaveBeenCalledWith(60, 0.8);
 
     session.setHandsIPlay(new Set(["right"]));

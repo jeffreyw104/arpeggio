@@ -14,16 +14,11 @@ import { WaitModeController } from "./WaitModeController";
 /** Hands in a fixed order, for iterating mute state. */
 const HANDS: readonly Hand[] = ["left", "right"];
 
-/** Middle C — the split point between left- and right-hand input inference. */
-const MIDDLE_C = 60;
-
-/** Infer the hand an input pitch belongs to. Standard piano convention:
- *  pitches at or above middle C are right hand, below are left. Good enough
- *  for the input-monitor echo gate; crossing-hand passages may misattribute
- *  the occasional note but never affect the wait-mode matcher. */
-function handFromPitch(pitch: number): Hand {
-  return pitch >= MIDDLE_C ? "right" : "left";
-}
+/** Seconds of slack on either side of a score note's extent when deciding
+ *  whether an input press is "covering" that note. Loose enough for
+ *  comfortable early/late timing, tight enough that two different notes at
+ *  the same pitch in close succession don't collide. */
+const ECHO_LOOKUP_WINDOW_SEC = 0.5;
 
 /**
  * Non-React controller that assembles the whole MIDI Practice session: the two
@@ -64,7 +59,7 @@ export class MidiSession {
   private savedMutes: Record<Hand, boolean> | null = null;
 
   constructor(
-    clock: Clock,
+    private readonly clock: Clock,
     private score: Score,
     private readonly handState: HandState,
     startAudio: () => Promise<void> = startAudioContext,
@@ -135,15 +130,35 @@ export class MidiSession {
 
   /** Whether an input note of `pitch` should echo through the audio engine.
    *  Off when the monitor is turned off. With no MIDI device connected the
-   *  computer is the only sound source for the input, so every press echoes.
-   *  With MIDI connected, suppress notes whose inferred hand is one the
-   *  player performs — the user's own piano already covers them and a
-   *  software echo would just double the sound. */
+   *  computer is the only sound source, so every press echoes. With MIDI
+   *  connected, the score's actual hand attribution gates the echo: if the
+   *  pitch matches a score note in the player's hand at the current time,
+   *  the user's own piano is covering it and a software echo would just
+   *  double the sound — suppress. Off-script presses, wrong notes, and
+   *  crossing-hand notes whose score-hand isn't being practised all still
+   *  echo so the player hears their input. */
   private shouldEcho(pitch: number): boolean {
     if (!this.monitorOn) return false;
     if (!this.isMidiConnected) return true;
     if (this.handsIPlay.size === 0) return true;
-    return !this.handsIPlay.has(handFromPitch(pitch));
+    return !this.pitchCoveredByPlayer(pitch);
+  }
+
+  /** True when there's a score note at this pitch in a hand the player is
+   *  practising, currently active (within a generous early/late window).
+   *  Replaces the old middle-C split — the score's own hand tags handle
+   *  crossing-hand passages correctly. */
+  private pitchCoveredByPlayer(pitch: number): boolean {
+    const t = this.clock.position;
+    const slack = ECHO_LOOKUP_WINDOW_SEC;
+    for (const note of this.score.notes) {
+      if (note.midi !== pitch) continue;
+      if (!this.handsIPlay.has(note.hand)) continue;
+      if (note.start - slack > t) continue;
+      if (note.start + note.duration + slack < t) continue;
+      return true;
+    }
+    return false;
   }
 
   /** Whether a hardware MIDI device is currently delivering input. The hand
