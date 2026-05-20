@@ -664,19 +664,16 @@ textarea {
   overflow: hidden;
 }
 
-/* Holds the themed background. Rounded corners soften the panel so it
-   doesn't read as a hard block; overflow:hidden clips the notation to
-   the rounded shape. Originally also used backdrop-filter blur for a
-   frosted-glass effect, but that triggered a Chromium compositor bug
-   on Vercel (HTTPS) where z-index:-1 descendants — our highlight /
-   loop overlays — rendered as invisible. Localhost (HTTP) hit a
-   different compositor path that worked. Dropped the filter; the
-   high-opacity background carries the visual on its own. */
+/* Holds the themed background and the frosted blur. Rounded corners
+   soften the panel so it doesn't read as a hard block; overflow:hidden
+   clips the notation to the rounded shape. */
 .practice-lane-bg {
   width: 100%;
   height: 100%;
   border-radius: 24px;
   overflow: hidden;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
 /* --- Reading-lane themes --- */
@@ -687,7 +684,7 @@ textarea {
    filter on the same element. The green highlight is a separate overlay, so
    the filter never tints it. */
 .lane-theme-dark .practice-lane-bg {
-  background: rgba(21, 21, 26, 0.96);
+  background: rgba(21, 21, 26, 0.72);
 }
 
 .lane-theme-dark .reading-lane-track {
@@ -696,7 +693,7 @@ textarea {
 
 /* Paper: a warm-cream sheet with the natural black engraving. */
 .lane-theme-paper .practice-lane-bg {
-  background: rgba(247, 243, 234, 0.97);
+  background: rgba(247, 243, 234, 0.88);
 }
 
 .lane-theme-paper .reading-lane-track {
@@ -717,8 +714,14 @@ textarea {
 
 /* The track holds the stacked-systems engraving. ReadingLaneView used to
    shift it vertically via a CSS transform; it now uses container.scrollTop
-   instead so the user can scroll. */
+   instead so the user can scroll. position:relative + z-index:1 lets the
+   overlay <div>s (highlight, hover, drag, loop) sit at default z=auto
+   and still paint BEHIND the engraving — avoids z-index:-1, which had a
+   Chromium compositor bug that hid the overlays inside backdrop-filter
+   ancestors on the Vercel deploy. */
 .reading-lane-track {
+  position: relative;
+  z-index: 1;
   width: 100%;
 }
 
@@ -730,16 +733,15 @@ textarea {
 
 /* Current-measure highlight and hover marker — overlay divs positioned by
    ReadingLaneView, OUTSIDE the recolour filter so they keep their exact
-   green. Negative z-index puts them BEHIND the engraving (the track's SVG
-   is transparent except where there's ink), so the green washes the measure
-   without tinting the notes themselves. */
+   green. Default z-index (auto) puts them BEHIND the engraving since the
+   track is bumped to z-index:1 — the green washes the measure without
+   tinting the notes themselves. */
 .lane-highlight,
 .lane-hover {
   position: absolute;
   display: none;
   pointer-events: none;
   border-radius: 3px;
-  z-index: -1;
 }
 
 /* Highlight opacities bumped further so the green cuts through the
@@ -764,16 +766,14 @@ textarea {
 }
 
 /* Lane drag-to-loop preview — same green as the lane's current-measure
-   highlight, drawn on every measure between dragStart and dragEnd. The
-   z-index matches the highlight so it sits behind the engraving (notes
-   paint on top). Per-theme background to match the existing highlight
-   opacity choices for dark vs paper. */
+   highlight, drawn on every measure between dragStart and dragEnd. Sits
+   behind the engraving via the same default-z-index trick: track is at
+   z:1, overlays at z:auto. */
 .lane-drag {
   position: absolute;
   display: block;
   pointer-events: none;
   border-radius: 3px;
-  z-index: -1;
 }
 
 .lane-theme-dark .lane-drag {
@@ -785,16 +785,13 @@ textarea {
 }
 
 /* Persistent loop indicator in the lane. Faint red, distinct from the
-   green current-measure / drag highlight. Sits behind the notation like
-   the other lane overlays. Stronger fill + outline so the loop reads
-   clearly through the lane's backdrop-filter blur on top of a busy
-   falldown background. */
+   green current-measure / drag highlight. Sits behind the notation via
+   the track's positive z-index. */
 .lane-loop {
   position: absolute;
   display: block;
   pointer-events: none;
   border-radius: 3px;
-  z-index: -1;
   background: rgba(217, 83, 79, 0.28);
   outline: 1.5px solid rgba(217, 83, 79, 0.85);
   outline-offset: -1px;
