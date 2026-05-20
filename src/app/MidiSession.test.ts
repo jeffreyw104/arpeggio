@@ -50,7 +50,7 @@ describe("MidiSession", () => {
     const session = new MidiSession(new Clock(10), score, new HandState());
     session.setActive(true);
 
-    pressKey("a"); // 'a' maps to C4 = 60
+    pressKey("z"); // 'z' maps to C4 = 60 (2-octave FL layout)
 
     expect(session.liveNotes.heldNotes().map((n) => n.pitch)).toContain(60);
     session.dispose();
@@ -60,7 +60,7 @@ describe("MidiSession", () => {
     const score = makeScore([note(60, 1, "right")]);
     const session = new MidiSession(new Clock(10), score, new HandState());
 
-    pressKey("a");
+    pressKey("z");
 
     expect(session.liveNotes.heldNotes()).toHaveLength(0);
     session.dispose();
@@ -78,7 +78,7 @@ describe("MidiSession", () => {
     session.update(); // arm + hold at step 0 (t=1)
     expect(clock.holdAt).toBe(1);
 
-    pressKey("a"); // C4 = 60 — the required pitch for step 0
+    pressKey("z"); // C4 = 60 (z in 2-octave FL layout)
     session.update(); // match -> advance to step 1
 
     expect(clock.holdAt).toBe(2);
@@ -94,7 +94,7 @@ describe("MidiSession", () => {
     clock.play();
     clock.tick(1);
     session.update();
-    pressKey("s"); // D4 = 62 — wrong for step 0
+    pressKey("x"); // D4 = 62 (x in 2-octave FL layout) — wrong for step 0
     session.update();
 
     expect(clock.holdAt).toBe(1); // still parked on step 0
@@ -109,7 +109,7 @@ describe("MidiSession", () => {
     clock.play();
     clock.tick(1);
     session.update();
-    pressKey("a");
+    pressKey("z");
     expect(session.liveNotes.heldNotes()).toHaveLength(1);
     expect(clock.holdAt).toBe(1);
 
