@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Clock } from "../transport/clock";
 import { HandState } from "../practice/hands";
 import type { Score, Note } from "../model/score";
@@ -213,6 +213,47 @@ describe("MidiSession", () => {
     // environment without Web MIDI it becomes "unsupported".  The test accepts
     // either because it does not await the settle.
     expect(["unsupported", "no-device"]).toContain(session.status);
+    session.dispose();
+  });
+
+  it("lights every held note as 'held' on update()", () => {
+    const score = makeScore([note(60, 1, "right"), note(64, 2, "right")]);
+    const session = new MidiSession(new Clock(10), score, new HandState());
+    const falldown = {
+      inputHighlights: new Map<number, "correct" | "wrong" | "held">(),
+      pedalDown: false,
+    };
+    session.attachFalldown(falldown as never);
+
+    session.liveNotes.press(60, 0.7, performance.now());
+    session.liveNotes.press(64, 0.7, performance.now());
+    session.update();
+
+    expect(falldown.inputHighlights.get(60)).toBe("held");
+    expect(falldown.inputHighlights.get(64)).toBe("held");
+    session.dispose();
+  });
+
+  it("wait-mode accepted/blocking results override 'held' for those pitches", () => {
+    const score = makeScore([note(60, 1, "right"), note(64, 2, "right")]);
+    const session = new MidiSession(new Clock(10), score, new HandState());
+    const falldown = {
+      inputHighlights: new Map<number, "correct" | "wrong" | "held">(),
+      pedalDown: false,
+    };
+    session.attachFalldown(falldown as never);
+
+    session.liveNotes.press(60, 0.7, performance.now());
+    session.liveNotes.press(64, 0.7, performance.now());
+    vi.spyOn(session["controller"], "result", "get").mockReturnValue({
+      state: "wrong" as const,
+      accepted: [60],
+      blocking: [64],
+    });
+    session.update();
+
+    expect(falldown.inputHighlights.get(60)).toBe("correct");
+    expect(falldown.inputHighlights.get(64)).toBe("wrong");
     session.dispose();
   });
 });

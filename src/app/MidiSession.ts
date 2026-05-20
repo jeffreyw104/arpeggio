@@ -205,6 +205,13 @@ export class MidiSession {
     if (!falldown) return;
     const highlights = falldown.inputHighlights;
     highlights.clear();
+    // First, every key currently held gets the neutral 'held' colour — the
+    // baseline "you pressed this" feedback applied regardless of input source.
+    for (const note of this.liveNotes.heldNotes()) {
+      highlights.set(note.pitch, "held");
+    }
+    // Then the wait-mode controller's verdict OVERWRITES the held entries for
+    // the specific pitches it has an opinion about.
     const result = this.controller.result;
     if (result) {
       for (const pitch of result.accepted) highlights.set(pitch, "correct");
