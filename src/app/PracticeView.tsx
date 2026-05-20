@@ -671,7 +671,10 @@ export function PracticeView({
           />
         )}
       </ToolsPopover>
-      {!scoreReady && (
+      {/* Verovio's engraving render is async — show a loading pill until the
+       *  ScoreView mounts. MIDI imports use the piano-roll instead (no
+       *  engraving), so the spinner is only meaningful for MusicXML. */}
+      {!scoreReady && score.source === "musicxml" && (
         <div className="score-loading" role="status" aria-live="polite">
           <span className="score-loading-bars" aria-hidden="true">
             <span />
