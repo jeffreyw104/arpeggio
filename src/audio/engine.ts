@@ -62,6 +62,14 @@ export class AudioEngine {
   private firePrevBoundary = false;
   /** The score the metronome is currently gridded to; tracks tempo-mode swaps. */
   private score: Score;
+  /** When wait-mode parks the clock at a step.time and the clock arrives at
+   *  that position, any notes starting AT the hold (other-hand chord tones,
+   *  cross-hand voices etc.) are postponed instead of firing on arrival —
+   *  otherwise the computer's side of the chord sounds first and the user's
+   *  matching press lands a beat late. Stored as the score-time of the
+   *  postponed onset; cleared on seek/loop and on the next update when the
+   *  hold lifts. */
+  private deferredAt: number | null = null;
 
   constructor(
     private readonly transport: Transport,
@@ -82,6 +90,9 @@ export class AudioEngine {
     this.prevPosition = this.transport.clock.position;
     this.firePrevBoundary = true;
     this.metronome.resync();
+    // Any notes we were postponing for a wait-mode hold are stale after a
+    // jump — the clock's new position has nothing to do with the old hold.
+    this.deferredAt = null;
   }
 
   /** Trigger notes and metronome clicks for the clock advance since last call. */
@@ -98,6 +109,22 @@ export class AudioEngine {
     const prev = this.prevPosition;
     const playing = this.transport.clock.playing;
     const advance = cur - prev;
+    const holdAt = this.transport.clock.holdAt;
+    const notes = this.transport.score.notes;
+
+    // If we postponed any notes at a previous hold and the hold has just
+    // moved on (the user matched the step, or wait-mode was disabled), fire
+    // the postponed onset now so the other-hand voices sound together with
+    // the player's chord rather than ahead of it.
+    if (this.deferredAt !== null && holdAt !== this.deferredAt) {
+      const at = this.deferredAt;
+      this.deferredAt = null;
+      for (const note of notes) {
+        if (note.start === at && !this.handState.isMuted(note.hand)) {
+          this.piano.playNote(note.midi, note.duration, note.velocity);
+        }
+      }
+    }
 
     // No forward advance: paused, or the loop-wrap frame where the clock
     // jumped back. The wrap was already handled by onLoop -> resync.
@@ -107,8 +134,13 @@ export class AudioEngine {
       return;
     }
 
-    const notes = this.transport.score.notes;
     for (const note of notesToTrigger(notes, prev, cur)) {
+      // Postpone notes landing exactly on an active hold — they'll fire when
+      // the wait-mode controller releases the hold (i.e. the player matched).
+      if (holdAt !== null && note.start === holdAt) {
+        this.deferredAt = holdAt;
+        continue;
+      }
       if (!this.handState.isMuted(note.hand)) {
         this.piano.playNote(note.midi, note.duration, note.velocity);
       }
@@ -118,7 +150,12 @@ export class AudioEngine {
     // target, or loop start.
     if (this.firePrevBoundary || (playing && !this.wasPlaying)) {
       for (const note of notes) {
-        if (note.start === prev && !this.handState.isMuted(note.hand)) {
+        if (note.start !== prev) continue;
+        if (holdAt !== null && note.start === holdAt) {
+          this.deferredAt = holdAt;
+          continue;
+        }
+        if (!this.handState.isMuted(note.hand)) {
           this.piano.playNote(note.midi, note.duration, note.velocity);
         }
       }

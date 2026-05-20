@@ -136,6 +136,86 @@ describe("AudioEngine", () => {
     expect(click.count).toBe(4); // stale grid (beats 0, 0.5, 1.0) would give 3
   });
 
+  it("postpones notes that land on an active wait-mode hold", () => {
+    // Two simultaneous notes at t=0.1 — one in each hand. Wait-mode parks
+    // the clock at 0.1 expecting the player to press their part. The
+    // other-hand voice must NOT sound on arrival at the hold; it must wait
+    // for the hold to lift so the player's chord and the computer's chord
+    // sound together rather than the computer landing first.
+    const chordScore = {
+      ...score,
+      notes: [
+        { midi: 60, start: 0.1, duration: 0.5, velocity: 0.8, hand: "right" },
+        { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
+      ],
+    } satisfies Score;
+    const t = new Transport(chordScore);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    // The MIDI Practice tab would mute the played hand and park the hold.
+    const handState = new HandState();
+    handState.setMuted("right", true);
+    engine.handState = handState;
+    t.clock.setHold(0.1);
+    t.clock.play();
+    t.clock.tick(0.2); // crosses 0.1 — clock snaps to the hold
+    engine.update();
+    expect(piano.calls).toEqual([]); // left-hand voice postponed, not fired
+
+    // User matches the chord → wait-mode lifts the hold to the next step.
+    t.clock.setHold(null);
+    t.clock.tick(0.01);
+    engine.update();
+    expect(piano.calls).toEqual([48]); // postponed left-hand voice fires now
+  });
+
+  it("postpones notes once per hold even across silent ticks", () => {
+    // Several engine.update() calls happen while the hold is held — the
+    // deferred set must not duplicate the postponed onset.
+    const chordScore = {
+      ...score,
+      notes: [
+        { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
+      ],
+    } satisfies Score;
+    const t = new Transport(chordScore);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    t.clock.setHold(0.1);
+    t.clock.play();
+    t.clock.tick(0.2);
+    engine.update();
+    engine.update(); // no advance — still held
+    engine.update();
+    t.clock.setHold(null);
+    t.clock.tick(0.01);
+    engine.update();
+    expect(piano.calls).toEqual([48]); // fired exactly once
+  });
+
+  it("drops postponed notes on a seek instead of firing them at the new position", () => {
+    const chordScore = {
+      ...score,
+      notes: [
+        { midi: 48, start: 0.1, duration: 0.5, velocity: 0.8, hand: "left" },
+      ],
+    } satisfies Score;
+    const t = new Transport(chordScore);
+    const { piano, click } = fakes();
+    const engine = new AudioEngine(t, piano, click);
+    t.clock.setHold(0.1);
+    t.clock.play();
+    t.clock.tick(0.2);
+    engine.update();
+    expect(piano.calls).toEqual([]); // postponed
+
+    // User seeks far away. The postponed note should not fire later.
+    t.clock.seek(2.0);
+    t.clock.tick(0.01);
+    engine.update();
+    expect(piano.calls).toEqual([]);
+  });
+
   it("playClick forwards to the click sink", () => {
     const clicks: boolean[] = [];
     const piano = { playNote: () => {}, attackNote: () => {}, releaseNote: () => {} };
