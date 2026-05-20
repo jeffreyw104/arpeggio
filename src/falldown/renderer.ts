@@ -31,7 +31,7 @@ const PULSE_COLOR = "#44aa88";
 /** Key-lighting colours for live MIDI input. */
 const INPUT_CORRECT = "#44aa88";
 const INPUT_WRONG = "#d9534f";
-const INPUT_HELD = "#7e8597";
+const INPUT_HELD = "#f0a040";
 
 export interface FalldownRendererOptions {
   width: number;

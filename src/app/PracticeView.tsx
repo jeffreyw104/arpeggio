@@ -326,6 +326,24 @@ export function PracticeView({
     });
   }, [transport]);
 
+  // Also resume on the FIRST user gesture anywhere in the document. Tapping
+  // the on-canvas piano (or pressing a QWERTY key) before Play is pressed
+  // needs an already-running audio context, otherwise the first input note
+  // is silent — Tone.js can't schedule against a suspended context.
+  useEffect(() => {
+    const resume = (): void => {
+      if (audioStartedRef.current) return;
+      audioStartedRef.current = true;
+      void startAudioContext();
+    };
+    document.addEventListener("pointerdown", resume, { once: true, capture: true });
+    document.addEventListener("keydown", resume, { once: true, capture: true });
+    return () => {
+      document.removeEventListener("pointerdown", resume, { capture: true });
+      document.removeEventListener("keydown", resume, { capture: true });
+    };
+  }, []);
+
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);

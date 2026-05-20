@@ -192,12 +192,12 @@ describe("FalldownRenderer inputHighlights", () => {
     expect(() => renderer.renderFrame()).not.toThrow();
   });
 
-  it("paints the neutral held colour (#7e8597) for a 'held' entry", () => {
+  it("paints the neutral held colour (#f0a040) for a 'held' entry", () => {
     const { ctx, renderer } = makeRenderer();
     renderer.inputHighlights = new Map([[60, "held"]]);
     ctx.calls.length = 0;
     renderer.renderFrame();
-    expect(ctx.calls).toContain("fillStyle=#7e8597");
+    expect(ctx.calls).toContain("fillStyle=#f0a040");
   });
 });
 
