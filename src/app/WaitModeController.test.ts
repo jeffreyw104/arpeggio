@@ -111,6 +111,92 @@ describe("WaitModeController", () => {
     expect(clock.position).toBeGreaterThanOrEqual(3);
   });
 
+  it("does not auto-advance through a repeated pitch held across two steps", () => {
+    // Both steps require pitch 60. The player presses 60 once — that single
+    // press matched step 0; step 1 must NOT pass without a fresh re-press.
+    const repeatedSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      {
+        time: 1.05,
+        requiredPitches: new Set([60]),
+        sustainingPitches: new Set(),
+      },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    let now = 5000;
+    const ctrl = new WaitModeController(clock, repeatedSteps, live, () => now);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched → consume 60 at pressTime 5001
+    expect(ctrl.result?.state).toBe("matched");
+
+    // Clock advances to step 1's onset; arm step 1 with a fresh armTime.
+    now = 5200;
+    clock.tick(0.05);
+    ctrl.update();
+    expect(ctrl.result?.state).toBe("pending");
+    expect(clock.holdAt).toBe(1.05);
+  });
+
+  it("advances a repeated step on a fresh re-press", () => {
+    const repeatedSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      {
+        time: 1.05,
+        requiredPitches: new Set([60]),
+        sustainingPitches: new Set(),
+      },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    let now = 5000;
+    const ctrl = new WaitModeController(clock, repeatedSteps, live, () => now);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched
+    // Player releases and re-presses with a new pressTime.
+    live.release(60);
+    live.press(60, 0.8, 5200);
+    now = 5200;
+    clock.tick(0.05);
+    ctrl.update();
+    expect(ctrl.result?.state).toBe("matched");
+  });
+
+  it("advances a score-tied repeated step without re-press", () => {
+    // Step 1 marks 60 as sustainingPitches — the score says it's tied over,
+    // so the same press legitimately satisfies both steps.
+    const tiedSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      {
+        time: 1.05,
+        requiredPitches: new Set([60]),
+        sustainingPitches: new Set([60]),
+      },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    let now = 5000;
+    const ctrl = new WaitModeController(clock, tiedSteps, live, () => now);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched
+    now = 5200;
+    clock.tick(0.05);
+    ctrl.update(); // tied → step 1 matches without re-press
+    expect(ctrl.result?.state).toBe("matched");
+  });
+
   it("resyncs stepIndex after a loop wrap", () => {
     // Use steps at t=3 and t=4 so the hold (t=3) sits beyond loop.end (t=2).
     // This means tick() reaches loop.end before the hold clamps it, firing onLoop.

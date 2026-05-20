@@ -28,20 +28,41 @@ export interface MatchResult {
  * is keeping alive. They CAN still satisfy required pitches, so arpeggiated
  * chords with the pedal down still match.
  *
+ * `consumedPresses` (pitch → the pressTime that satisfied an earlier step)
+ * blocks a single key-hold from auto-satisfying consecutive steps. A held
+ * note whose `(pitch, pressTime)` matches a consumed entry no longer counts
+ * as accepted — the player must release and re-press for the next step. The
+ * exception is `sustainingPitches`: the score explicitly carries that pitch
+ * over (a tie), so the same press legitimately satisfies both steps.
+ *
  * Press times are in milliseconds, so the seconds window is scaled by 1000.
  */
 export function evaluateStep(
   step: PracticeStep,
   held: HeldNote[],
   armTime: number,
+  consumedPresses: ReadonlyMap<number, number> = new Map(),
 ): MatchResult {
   const required = step.requiredPitches;
   const sustaining = step.sustainingPitches;
   const accepted: number[] = [];
   const blocking: number[] = [];
+  // pressTimes of required pitches that count toward the simultaneity spread
+  // — score-tied carry-overs are excluded so their old pressTime doesn't
+  // stretch the spread of the fresh chord.
+  const freshTimes: number[] = [];
   for (const note of held) {
     if (required.has(note.pitch)) {
-      accepted.push(note.pitch);
+      const isConsumed = consumedPresses.get(note.pitch) === note.pressTime;
+      if (!isConsumed) {
+        accepted.push(note.pitch);
+        freshTimes.push(note.pressTime);
+      } else if (sustaining.has(note.pitch)) {
+        // Score-tied: the same press legitimately satisfies this step too.
+        accepted.push(note.pitch);
+      }
+      // else: this exact press already satisfied an earlier step and the
+      //       score doesn't carry the pitch over — needs a re-press.
     } else if (
       !note.sustained &&
       !sustaining.has(note.pitch) &&
@@ -56,10 +77,12 @@ export function evaluateStep(
   if (accepted.length < required.size) {
     return { state: "pending", accepted, blocking };
   }
-  const times = held
-    .filter((n) => required.has(n.pitch))
-    .map((n) => n.pressTime);
-  const spread = Math.max(...times) - Math.min(...times);
+  // All required pitches accepted; if EVERY one was tied-over, there's no
+  // fresh chord to spread-check — it's a match by definition.
+  if (freshTimes.length === 0) {
+    return { state: "matched", accepted, blocking };
+  }
+  const spread = Math.max(...freshTimes) - Math.min(...freshTimes);
   if (spread > SIMULTANEITY_SEC * 1000) {
     return { state: "staggered", accepted, blocking };
   }

@@ -19,6 +19,10 @@ export class WaitModeController {
   private armTime = 0;
   private armedFor = -1;
   private enabled = false;
+  /** Press times (pitch → pressTime) of held notes that have already
+   *  satisfied an earlier step. Keeps a single key-hold from auto-passing
+   *  consecutive steps that share a required pitch. Cleared on seek/loop. */
+  private readonly consumedPresses = new Map<number, number>();
 
   constructor(
     private readonly clock: Clock,
@@ -60,6 +64,10 @@ export class WaitModeController {
     this.stepIndex = idx === -1 ? this.steps.length : idx;
     this.armedFor = -1;
     this.result = null; // clear stale evaluation from the previous position
+    // Consumed marks are tied to a continuous step run — a seek / loop wrap
+    // re-opens every step's accept window, so any pressing-and-holding from
+    // before the jump shouldn't keep "satisfying" the new arming.
+    this.consumedPresses.clear();
   }
 
   /** Call once per frame, after the clock has ticked. */
@@ -85,8 +93,17 @@ export class WaitModeController {
       this.armTime = this.now();
       this.armedFor = this.stepIndex;
     }
-    this.result = evaluateStep(step, this.live.heldNotes(), this.armTime);
+    const held = this.live.heldNotes();
+    this.result = evaluateStep(step, held, this.armTime, this.consumedPresses);
     if (this.result.state === "matched") {
+      // Mark the presses that satisfied this step so the same key-hold can't
+      // silently satisfy a later step requiring the same pitch — the player
+      // must release and re-press for it to count again.
+      for (const note of held) {
+        if (step.requiredPitches.has(note.pitch)) {
+          this.consumedPresses.set(note.pitch, note.pressTime);
+        }
+      }
       this.stepIndex++;
       this.armedFor = -1;
       const next = this.steps[this.stepIndex];

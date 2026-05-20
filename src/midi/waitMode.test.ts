@@ -113,4 +113,70 @@ describe("evaluateStep", () => {
     );
     expect(r.accepted.sort()).toEqual([60, 64, 67]);
   });
+
+  it("does not accept a pitch consumed by an earlier step", () => {
+    // The same physical press matched a previous step. A subsequent step
+    // requiring the same pitch must NOT auto-pass — the player needs to
+    // release and re-press.
+    const repeated: PracticeStep = {
+      time: 2,
+      requiredPitches: new Set([60]),
+      sustainingPitches: new Set(),
+    };
+    const consumed = new Map([[60, 1000]]);
+    const r = evaluateStep(repeated, [held(60, 1000)], 1500, consumed);
+    expect(r.state).toBe("pending");
+    expect(r.accepted).toEqual([]);
+  });
+
+  it("accepts a previously consumed pitch when the score has it as sustaining (tied over)", () => {
+    // Score-tied: the same press legitimately carries through the notation,
+    // so it still counts for the next step even though it's consumed.
+    const tied: PracticeStep = {
+      time: 2,
+      requiredPitches: new Set([60, 64]),
+      sustainingPitches: new Set([60]),
+    };
+    const consumed = new Map([[60, 1000]]);
+    const r = evaluateStep(
+      tied,
+      [held(60, 1000), held(64, 1600)],
+      1500,
+      consumed,
+    );
+    expect(r.state).toBe("matched");
+    expect(r.accepted.sort()).toEqual([60, 64]);
+  });
+
+  it("accepts a fresh re-press of a previously consumed pitch", () => {
+    // Player released and re-pressed — the new pressTime differs from the
+    // consumed entry so the press counts as fresh.
+    const repeated: PracticeStep = {
+      time: 2,
+      requiredPitches: new Set([60]),
+      sustainingPitches: new Set(),
+    };
+    const consumed = new Map([[60, 1000]]);
+    const r = evaluateStep(repeated, [held(60, 1700)], 1500, consumed);
+    expect(r.state).toBe("matched");
+  });
+
+  it("does not flag a tied carry-over as staggered when paired with a fresh press", () => {
+    // Tied 60 with a much earlier pressTime; freshly pressed 64 starts the
+    // new chord. The spread must only account for the fresh presses,
+    // otherwise the tie would always stagger the step.
+    const tied: PracticeStep = {
+      time: 2,
+      requiredPitches: new Set([60, 64]),
+      sustainingPitches: new Set([60]),
+    };
+    const consumed = new Map([[60, 1000]]);
+    const r = evaluateStep(
+      tied,
+      [held(60, 1000), held(64, 1600)],
+      1500,
+      consumed,
+    );
+    expect(r.state).toBe("matched");
+  });
 });
