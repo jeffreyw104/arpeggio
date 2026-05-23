@@ -31,7 +31,10 @@ export function splitAt(
   const target = state.sections[idx];
   if (time <= target.start || time >= target.end) return state;
 
-  const left: Section = { ...target, end: time, isAuto: false };
+  // Splitting creates a new boundary at `time` that did not exist in the
+  // original auto layout, so neither half can offer the old autoEnd as a snap
+  // target — clear it on both sides.
+  const left: Section = { ...target, end: time, autoEnd: undefined, isAuto: false };
   const right: Section = {
     id: newSectionId(),
     start: time,
@@ -57,9 +60,12 @@ export function mergeRight(
   if (idx === -1 || idx === state.sections.length - 1) return state;
   const left = state.sections[idx];
   const right = state.sections[idx + 1];
+  // Merging removes a boundary; the merged section's right edge is now the
+  // right neighbour's old edge — keep that as the snap target if it existed.
   const merged: Section = {
     ...left,
     end: right.end,
+    autoEnd: right.autoEnd,
     isAuto: false,
   };
   const sections = [
@@ -68,6 +74,16 @@ export function mergeRight(
     ...state.sections.slice(idx + 2),
   ];
   return normalize({ ...state, sections }, duration);
+}
+
+export function mergeLeft(
+  state: SectionState,
+  sectionId: string,
+  duration: number,
+): SectionState {
+  const idx = state.sections.findIndex((s) => s.id === sectionId);
+  if (idx <= 0) return state;
+  return mergeRight(state, state.sections[idx - 1].id, duration);
 }
 
 export function resizeBoundary(
@@ -106,6 +122,7 @@ export function deleteSection(
   const sections = state.sections.map((s) => ({ ...s }));
   if (idx > 0) {
     sections[idx - 1].end = target.end;
+    sections[idx - 1].autoEnd = target.autoEnd;
     sections[idx - 1].isAuto = false;
   } else {
     sections[idx + 1].start = target.start;

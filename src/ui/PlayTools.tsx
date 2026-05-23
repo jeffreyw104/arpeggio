@@ -3,6 +3,7 @@ import type { Transport } from "../transport/transport";
 import type { HandState, HandVisibility } from "../practice/hands";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
+import type { StripPosition } from "../section-strip/stripPosition";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { CommonTools } from "./CommonTools";
 
@@ -13,6 +14,10 @@ interface PlayToolsProps {
   falldown: FalldownRenderer | null;
   countInBars: number;
   onCountInBarsChange: (bars: number) => void;
+  /** Section-strip position controls — only used for MIDI source files. */
+  isMidiSource?: boolean;
+  stripPosition?: StripPosition;
+  onStripPositionChange?: (p: StripPosition) => void;
 }
 
 /**
@@ -27,6 +32,9 @@ export function PlayTools({
   falldown,
   countInBars,
   onCountInBarsChange,
+  isMidiSource = false,
+  stripPosition = "bottom",
+  onStripPositionChange,
 }: PlayToolsProps): React.JSX.Element {
   const [handsOpen, setHandsOpen] = useState(true);
   const [leftVis, setLeftVis] = useState<HandVisibility>(() =>
@@ -40,6 +48,30 @@ export function PlayTools({
 
   return (
     <div className="play-tools">
+      {isMidiSource && onStripPositionChange && (
+        <fieldset className="midi-tools-strip-position">
+          <legend>Strip position</legend>
+          <label>
+            <input
+              type="radio"
+              name="strip-position-play"
+              checked={stripPosition === "top"}
+              onChange={() => onStripPositionChange("top")}
+            />
+            Top
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="strip-position-play"
+              checked={stripPosition === "bottom"}
+              onChange={() => onStripPositionChange("bottom")}
+            />
+            Bottom
+          </label>
+        </fieldset>
+      )}
+
       <CollapsibleSection
         label="Hands"
         open={handsOpen}

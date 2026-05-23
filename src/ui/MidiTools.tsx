@@ -22,8 +22,10 @@ interface MidiToolsProps {
   onWaitEnabledChange: (on: boolean) => void;
   monitorOn: boolean;
   onMonitorOnChange: (on: boolean) => void;
-  stripPosition: StripPosition;
-  onStripPositionChange: (p: StripPosition) => void;
+  /** Section-strip position controls — only used for MIDI source files. */
+  isMidiSource?: boolean;
+  stripPosition?: StripPosition;
+  onStripPositionChange?: (p: StripPosition) => void;
 }
 
 /** Human-readable status line for each MIDI connection state. */
@@ -73,7 +75,8 @@ export function MidiTools({
   onWaitEnabledChange,
   monitorOn,
   onMonitorOnChange,
-  stripPosition,
+  isMidiSource = false,
+  stripPosition = "bottom",
   onStripPositionChange,
 }: MidiToolsProps): React.JSX.Element {
   const selectedName =
@@ -82,6 +85,30 @@ export function MidiTools({
 
   return (
     <div className="play-tools midi-tools">
+      {isMidiSource && onStripPositionChange && (
+        <fieldset className="midi-tools-strip-position">
+          <legend>Strip position</legend>
+          <label>
+            <input
+              type="radio"
+              name="strip-position-midi"
+              checked={stripPosition === "top"}
+              onChange={() => onStripPositionChange("top")}
+            />
+            Top
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="strip-position-midi"
+              checked={stripPosition === "bottom"}
+              onChange={() => onStripPositionChange("bottom")}
+            />
+            Bottom
+          </label>
+        </fieldset>
+      )}
+
       <div className="midi-tools-input">
         <label className="hud-mini">
           <span className="hud-mini-label">Device</span>
@@ -165,28 +192,6 @@ export function MidiTools({
         />
         <span>Input sound</span>
       </label>
-
-      <fieldset className="midi-tools-strip-position">
-        <legend>Strip position</legend>
-        <label>
-          <input
-            type="radio"
-            name="strip-position"
-            checked={stripPosition === "top"}
-            onChange={() => onStripPositionChange("top")}
-          />
-          Top
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="strip-position"
-            checked={stripPosition === "bottom"}
-            onChange={() => onStripPositionChange("bottom")}
-          />
-          Bottom
-        </label>
-      </fieldset>
 
       <CommonTools
         transport={transport}

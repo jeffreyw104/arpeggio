@@ -11,6 +11,10 @@ export interface Section {
   start: number;
   /** Exclusive-at-shared-boundary end time, seconds. Equals next section's start. */
   end: number;
+  /** The right-boundary position originally produced by auto-detect, if any.
+   *  Preserved across `resizeBoundary` so the UI can offer a snap target for
+   *  "back to the default break point". Cleared on split / merge. */
+  autoEnd?: number;
   /** Display name. Editable. "Section N" when auto-generated. */
   name: string;
   /** True until the user edits this section. */
