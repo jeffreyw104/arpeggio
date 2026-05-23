@@ -2,6 +2,7 @@ import type { Transport } from "../transport/transport";
 import type { HandState } from "../practice/hands";
 import type { StoredPracticeState } from "./db";
 import type { TabMode } from "../layout/practiceMode";
+import type { SectionState } from "../model/sections";
 import { captureTab, type TabSnapshot } from "../transport/tabSnapshot";
 
 /** Read the current tempo, loop, hand, and session settings. */
@@ -13,6 +14,7 @@ export function capturePracticeState(
     mode: TabMode;
     tabs?: Record<TabMode, { bpm: number; loop: { start: number; end: number } | null }>;
   },
+  sectionState?: SectionState,
 ): StoredPracticeState {
   const loop = transport.clock.loop;
   return {
@@ -46,6 +48,7 @@ export function capturePracticeState(
         },
       }),
     }),
+    ...(sectionState && { sectionState }),
   };
 }
 
