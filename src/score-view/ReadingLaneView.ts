@@ -100,7 +100,22 @@ export class ReadingLaneView {
       if (this.dragStart !== null && end !== null) {
         if (this.dragStart === end) {
           const measure = this.transport.score.measures[end];
-          if (measure) this.transport.clock.seek(measure.start);
+          if (measure) {
+            // A single-measure click is a navigation intent. If a loop is
+            // active and the user is clicking outside it, treat this as an
+            // intentional exit — otherwise the clock would wrap back to
+            // loop.start on the next tick, the "playhead snaps back" bug
+            // that surfaces in production when an old loop has been
+            // restored from IndexedDB.
+            const loop = this.transport.clock.loop;
+            if (
+              loop &&
+              (measure.start < loop.start || measure.start >= loop.end)
+            ) {
+              this.transport.clock.setLoop(null);
+            }
+            this.transport.clock.seek(measure.start);
+          }
         } else {
           const { first, last } = orderedRange(this.dragStart, end);
           this.transport.loopMeasures(first, last);

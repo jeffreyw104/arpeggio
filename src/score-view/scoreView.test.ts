@@ -157,6 +157,39 @@ describe("ScoreView", () => {
     );
   });
 
+  it("a single-measure click outside an active loop clears the loop before seeking", () => {
+    // Regression: a forgotten loop persisted across reloads (per-piece
+    // IndexedDB practice state) made every forward click "snap back almost
+    // instantly" — seek landed in the clicked measure but the next tick
+    // wrapped position back to loop.start because the loop was still
+    // active. Fix: single-measure click outside the loop range clears the
+    // loop, then seeks.
+    const { container, transport } = setup();
+    transport.clock.setLoop({ start: 0, end: 2 }); // loop covers measure 0 only
+
+    // Simulate a click on measure 2 (start=4) — outside the loop.
+    const m2 = container.querySelector('[data-measure-index="2"]')!;
+    m2.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    m2.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+
+    expect(transport.clock.loop).toBeNull();
+    expect(transport.clock.position).toBe(4);
+  });
+
+  it("a single-measure click INSIDE an active loop keeps the loop", () => {
+    // Counter-test: clicks within the loop range are intentional — the user
+    // is navigating inside their practice loop, the loop must stay on.
+    const { container, transport } = setup();
+    transport.clock.setLoop({ start: 2, end: 6 }); // covers measures 1 and 2
+
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    m1.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    m1.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+
+    expect(transport.clock.loop).toEqual({ start: 2, end: 6 });
+    expect(transport.clock.position).toBe(2);
+  });
+
   it("re-renders without error while the clock is not playing", () => {
     const { container, transport, view } = setup();
     transport.clock.seek(2.5);

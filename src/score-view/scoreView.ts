@@ -89,9 +89,18 @@ export class ScoreView {
       const end = measureIndexFromTarget(e.target);
       if (this.dragStart !== null && end !== null) {
         if (this.dragStart === end) {
-          this.transport.clock.seek(
-            this.transport.score.measures[end].start,
-          );
+          const target = this.transport.score.measures[end].start;
+          // A single-measure click is a navigation intent. If a loop is
+          // active and the user is clicking outside it, treat this as an
+          // intentional exit from the loop — otherwise the clock would wrap
+          // back to loop.start on the very next tick, which is the "playhead
+          // snaps back almost instantly" symptom that surfaces on production
+          // when an old loop has been restored from IndexedDB.
+          const loop = this.transport.clock.loop;
+          if (loop && (target < loop.start || target >= loop.end)) {
+            this.transport.clock.setLoop(null);
+          }
+          this.transport.clock.seek(target);
         } else {
           const { first, last } = orderedRange(this.dragStart, end);
           this.transport.loopMeasures(first, last);

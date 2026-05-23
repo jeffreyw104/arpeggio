@@ -390,6 +390,13 @@ export function PracticeView({
         transport.clock.position,
         e.key === "ArrowRight" ? "next" : "prev",
       );
+      // Same exit-the-loop semantics as a measure click: if the user is
+      // navigating outside an active loop, treat it as an intentional exit
+      // so the next tick doesn't wrap them back to loop.start.
+      const loop = transport.clock.loop;
+      if (loop && (target < loop.start || target >= loop.end)) {
+        transport.clock.setLoop(null);
+      }
       transport.clock.seek(target);
     }
     window.addEventListener("keydown", onKey);
