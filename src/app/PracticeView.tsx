@@ -531,8 +531,9 @@ export function PracticeView({
 
   return (
     <div className="practice-view">
-      {/* SectionStrip — top position, shown only for MIDI sources */}
-      {isMidiSource && sectionState && stripPosition === "top" && (
+      {/* SectionStrip — single mount; CSS flex order places it above or below
+          .practice-content depending on the section-strip--top/bottom modifier. */}
+      {isMidiSource && sectionState && (
         <SectionStrip
           state={sectionState}
           transport={transport}
@@ -606,17 +607,6 @@ export function PracticeView({
           </div>
         </div>
       </div>
-
-      {/* SectionStrip — bottom position, shown only for MIDI sources */}
-      {isMidiSource && sectionState && stripPosition === "bottom" && (
-        <SectionStrip
-          state={sectionState}
-          transport={transport}
-          position={stripPosition}
-          onChange={setSectionState}
-          onPositionChange={handleStripPositionChange}
-        />
-      )}
 
       <TopBar
         pieceName={pieceName}

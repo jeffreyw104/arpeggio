@@ -829,8 +829,8 @@ textarea {
 /* For MIDI source files the engraved score and reading-lane panels are
    replaced by the SectionStrip. Hide both unconditionally so they do not
    flicker while the section state loads. */
-.practice-content--midi-source .practice-score-panel,
-.practice-content--midi-source .practice-lane-panel { display: none !important; }
+.practice-content.practice-content--midi-source .practice-score-panel,
+.practice-content.practice-content--midi-source .practice-lane-panel { display: none; }
 
 /* --- MidiTools popover content --- */
 
