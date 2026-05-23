@@ -180,8 +180,9 @@ function endsLongRest(notes: Note[], time: number, measures: Score["measures"]):
     else break;
   }
   if (time - latestEnd < LONG_REST_SECONDS) return false;
-  // Also require it spans at least LONG_REST_MIN_MEASURES.
-  const restStartMeasure = measures.findIndex((m) => m.start >= latestEnd);
+  // Rest starts in the measure that CONTAINS latestEnd (m.end > latestEnd),
+  // not the next measure that starts after it.
+  const restStartMeasure = measures.findIndex((m) => m.end > latestEnd);
   const boundaryMeasure = measures.findIndex((m) => m.start >= time);
   if (restStartMeasure < 0 || boundaryMeasure < 0) return false;
   return boundaryMeasure - restStartMeasure >= LONG_REST_MIN_MEASURES;
