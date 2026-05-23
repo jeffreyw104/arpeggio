@@ -109,6 +109,76 @@ describe("WaitModeController", () => {
     expect(clock.holdAt).toBe(2);
   });
 
+  it("re-arms wait-mode at the next step after a forward seek to a position between steps", () => {
+    // Steps at t=1,2,3,4. Player matches step 0 (now parked at step 1, t=2),
+    // then clicks a measure ahead of where they are (e.g. m. corresponding to
+    // t=2.5 — between step 1 and step 2). Wait-mode must re-arm at step 2 (t=3)
+    // instead of being stuck at the old hold.
+    const fwdSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      { time: 2, requiredPitches: new Set([62]), sustainingPitches: new Set() },
+      { time: 3, requiredPitches: new Set([64]), sustainingPitches: new Set() },
+      { time: 4, requiredPitches: new Set([65]), sustainingPitches: new Set() },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    const ctrl = new WaitModeController(clock, fwdSteps, live, () => 5000);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched → parked at step 1 (t=2)
+    expect(clock.holdAt).toBe(2);
+    live.release(60);
+
+    // Forward seek to between step 1 (t=2) and step 2 (t=3).
+    clock.seek(2.5);
+    ctrl.update();
+    // Next step at or after 2.5 is step 2 (t=3). Hold should park there.
+    expect(clock.holdAt).toBe(3);
+  });
+
+  it("re-arms cleanly on a forward seek even when the future chord is already held", () => {
+    // Player is still pressing C4 (60) after step 0 matched. They click a far-
+    // forward measure whose first step ALSO requires C4. Without the
+    // consumed-press populate the held 60 would race through that step on the
+    // very next frame — the same shape as the back-click bug.
+    const fwdSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      { time: 2, requiredPitches: new Set([62]), sustainingPitches: new Set() },
+      { time: 3, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    let now = 5000;
+    const ctrl = new WaitModeController(clock, fwdSteps, live, () => now);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched
+    // Don't release — the player is still holding C4.
+    expect(live.heldNotes().map((n) => n.pitch)).toEqual([60]);
+
+    // Forward seek to step 2's onset (t=3).
+    now = 5500;
+    clock.seek(3);
+    ctrl.update();
+    expect(clock.holdAt).toBe(3);
+    expect(ctrl.result?.state).toBe("pending");
+
+    // Fresh re-press satisfies it.
+    live.release(60);
+    live.press(60, 0.8, 5600);
+    now = 5600;
+    ctrl.update();
+    expect(ctrl.result?.state).toBe("matched");
+    // Past last step → hold lifted.
+    expect(clock.holdAt).toBeNull();
+  });
+
   it("does NOT resync to a manual seek while a loop is active", () => {
     // Same advance pattern as above; the loop wraps via clock.onLoop separately.
     const clock = new Clock(10);
