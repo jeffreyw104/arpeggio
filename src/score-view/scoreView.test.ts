@@ -66,6 +66,47 @@ describe("ScoreView", () => {
     });
   });
 
+  it("rebuilds hit rects when the container width changes after mount", () => {
+    // Regression: when ScoreView mounts inside a display:none panel (MIDI
+    // Practice's default lane layout), getBBox returns 0 and the hit rects
+    // come out 0x0 — silently breaking hovering/clicking on whitespace
+    // forever, since the score-panel is at a stable React tree position and
+    // the view never remounts. Fix: renderFrame rebuilds hit rects when the
+    // container's clientWidth changes (panel switches from hidden to visible).
+    const { container, view } = setup();
+
+    // Initial: constructor built rects against getBBox() → {0,0,0,0}.
+    const m1 = container.querySelector('[data-measure-index="1"]')!;
+    expect(m1.querySelector("rect.measure-hit")!.getAttribute("width")).toBe(
+      "0",
+    );
+
+    // Simulate the panel becoming visible: clientWidth rises, getBBox now
+    // returns real measure dimensions.
+    Object.defineProperty(container, "clientWidth", {
+      configurable: true,
+      get: () => 400,
+    });
+    const svgProto = SVGElement.prototype as unknown as {
+      getBBox: () => DOMRect;
+    };
+    const originalGetBBox = svgProto.getBBox;
+    svgProto.getBBox = () =>
+      ({ x: 5, y: 10, width: 100, height: 50 }) as DOMRect;
+
+    view.renderFrame();
+
+    // Hit rects rebuilt with the now-valid bbox.
+    const rebuilt = m1.querySelector("rect.measure-hit")!;
+    expect(rebuilt.getAttribute("width")).toBe("100");
+    expect(rebuilt.getAttribute("height")).toBe("50");
+    expect(rebuilt.getAttribute("x")).toBe("5");
+    // Still exactly one hit rect per measure — rebuild replaces, not appends.
+    expect(m1.querySelectorAll("rect.measure-hit")).toHaveLength(1);
+
+    svgProto.getBBox = originalGetBBox;
+  });
+
   it("draws a measure-hover rect when hovering the measure-hit area (not a note)", () => {
     const { container } = setup();
     const m1 = container.querySelector('[data-measure-index="1"]')!;

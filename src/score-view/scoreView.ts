@@ -27,6 +27,10 @@ export class ScoreView {
   private loopRects: SVGRectElement[] = [];
   private lastScrolledIndex: number | null = null;
   private lastHoverIndex: number | null = null;
+  /** Container width at the last hit-rect (re)build. Used in renderFrame to
+   *  detect "container just became visible / resized" and rebuild the rects
+   *  with fresh getBBox values. -1 means "never built." */
+  private lastHitContainerWidth = -1;
   private readonly onMouseDown: (e: MouseEvent) => void;
   private readonly onMouseUp: (e: MouseEvent) => void;
   private readonly onMouseMove: (e: MouseEvent) => void;
@@ -59,27 +63,21 @@ export class ScoreView {
     this.pagesEl = pagesEl;
 
     // Tag measures in document order across all pages.
-    const measures = container.querySelectorAll("g.measure");
-    measures.forEach((el, i) => {
+    container.querySelectorAll("g.measure").forEach((el, i) => {
       el.setAttribute("data-measure-index", String(i));
-      // Give each measure an invisible, full-measure hit area so hovering or
-      // clicking anywhere inside the measure — over notes OR whitespace —
-      // registers as that measure. SVG pointer hit-testing only fires on
-      // painted geometry, so without this an empty gap between notes hits no
-      // measure element. Appended last (on top) to reliably catch events; the
-      // app only does measure-level interaction so this never steals a needed
-      // per-note event.
-      const box = measureBox(el);
-      const hit = document.createElementNS(SVG_NS, "rect");
-      hit.setAttribute("class", "measure-hit");
-      hit.setAttribute("x", String(box.x));
-      hit.setAttribute("y", String(box.y));
-      hit.setAttribute("width", String(box.width));
-      hit.setAttribute("height", String(box.height));
-      hit.setAttribute("fill", "transparent");
-      hit.setAttribute("pointer-events", "all");
-      el.appendChild(hit);
     });
+    // Build hit rects. If this view mounts while its panel is display:none —
+    // the common case in MIDI Practice, whose default layout is the reading
+    // lane and only switches to the engraved-split layout on demand — every
+    // SVG getBBox call returns 0, so the rects come out 0×0 and capture no
+    // pointer events. The renderFrame check below detects the eventual
+    // "panel becomes visible" transition (container.clientWidth changes from
+    // 0 to non-zero) and rebuilds the rects against now-valid measureBox()
+    // values. Without this, hovering on whitespace silently fails in any
+    // build where the user first opens the engraved-split panel after mount
+    // (dev StrictMode happened to mask the bug by mounting twice).
+    this.rebuildHitRects();
+    this.lastHitContainerWidth = container.clientWidth;
 
     this.onMouseDown = (e) => {
       const idx = measureIndexFromTarget(e.target);
@@ -153,6 +151,16 @@ export class ScoreView {
 
   /** Update the current-measure highlight and scroll from the clock time. */
   renderFrame(): void {
+    // Rebuild hit rects if the container's width changed since the last build
+    // — most importantly, when the panel transitions from display:none to
+    // visible (0 → real width), so the 0×0 rects from the initial mount are
+    // refreshed against the now-valid measure bboxes.
+    const cw = this.container.clientWidth;
+    if (cw !== this.lastHitContainerWidth) {
+      this.lastHitContainerWidth = cw;
+      this.rebuildHitRects();
+    }
+
     const t = this.transport.clock.position;
     const idx = currentMeasureIndex(this.transport.score, t);
     const current = this.container.querySelector(
@@ -177,6 +185,32 @@ export class ScoreView {
     } else {
       this.hideRect(this.highlightRect);
     }
+  }
+
+  /** Replace every measure's invisible full-bar hit area with a fresh rect
+   *  sized from the current `measureBox`. Called from the constructor and
+   *  again from renderFrame when the container's width changes — most
+   *  importantly when the panel transitions from hidden (clientWidth=0,
+   *  getBBox=0) to visible. Hovering or clicking the rect — over notes OR
+   *  whitespace — registers as that measure. SVG pointer hit-testing only
+   *  fires on painted geometry, so without this an empty gap inside a measure
+   *  hits nothing. Appended last (on top) to reliably catch events; the app
+   *  only does measure-level interaction so this never steals a per-note
+   *  event. */
+  private rebuildHitRects(): void {
+    this.container.querySelectorAll("g.measure").forEach((el) => {
+      el.querySelectorAll("rect.measure-hit").forEach((r) => r.remove());
+      const box = measureBox(el);
+      const hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("class", "measure-hit");
+      hit.setAttribute("x", String(box.x));
+      hit.setAttribute("y", String(box.y));
+      hit.setAttribute("width", String(box.width));
+      hit.setAttribute("height", String(box.height));
+      hit.setAttribute("fill", "transparent");
+      hit.setAttribute("pointer-events", "all");
+      el.appendChild(hit);
+    });
   }
 
   /** Lazily create an SVG overlay rect with the given class. */
