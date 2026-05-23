@@ -129,3 +129,44 @@ describe("autoDetect — Pass 1 time-signature changes", () => {
     expect(state.sections.map((s) => s.start)).toContain(10);
   });
 });
+
+import type { Note } from "../model/score";
+
+function note(start: number, midi: number, duration = 0.4, hand: "left" | "right" = "right"): Note {
+  return { start, midi, duration, velocity: 0.7, hand };
+}
+
+describe("autoDetect — Pass 2 soft boundaries", () => {
+  it("a long rest alone is NOT a boundary (needs cluster of 2+)", () => {
+    const measures = fourFourMeasures(10, 2); // 20 sec, 2 sec/measure
+    const score = baseScore({
+      durationSeconds: 20,
+      measures,
+      // Notes only in first 6 sec and last 6 sec — rest in the middle.
+      notes: [
+        note(0, 60), note(1, 62), note(2, 64), note(3, 65), note(4, 67),
+        note(14, 60), note(15, 62), note(16, 64), note(17, 65),
+      ],
+    });
+    const state = autoDetect(score);
+    expect(state.sections.length).toBe(1);
+  });
+
+  it("density jump + register shift at the same boundary splits", () => {
+    const measures = fourFourMeasures(20, 2); // 40 sec
+    // Prior 4 measures: sparse low-register left-hand notes.
+    // Next 4 measures: dense high-register right-hand notes.
+    const lefts: Note[] = [];
+    for (let t = 0; t < 16; t += 1) lefts.push(note(t, 40, 0.5, "left"));
+    const rights: Note[] = [];
+    for (let t = 0; t < 8; t += 0.1) rights.push(note(16 + t, 80, 0.1, "right"));
+    const score = baseScore({
+      durationSeconds: 40,
+      measures,
+      notes: [...lefts, ...rights].sort((a, b) => a.start - b.start),
+    });
+    const state = autoDetect(score);
+    expect(state.sections.length).toBeGreaterThanOrEqual(2);
+    expect(state.sections.map((s) => s.start)).toContain(16);
+  });
+});

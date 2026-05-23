@@ -4,11 +4,17 @@ import {
   type Section,
   type SectionState,
 } from "../model/sections";
-import type { Score } from "../model/score";
+import type { Note, Score } from "../model/score";
 
 // === Thresholds (named constants for easy tuning) ===
 const TEMPO_DELTA_THRESHOLD = 0.08;        // 8%
-// Soft-boundary thresholds added in Task 5.
+// Soft-boundary thresholds (Pass 2).
+const LONG_REST_SECONDS = 2.0;
+const LONG_REST_MIN_MEASURES = 1;
+const DENSITY_RATIO_THRESHOLD = 2.0;
+const REGISTER_JUMP_SEMITONES = 12;
+const SOFT_CLUSTER_REQUIRED = 2;
+// SIGNAL_WINDOW_MEASURES = 1             // ± measures the cluster spans (reserved for Task 6 tuning)
 // Smart-label thresholds added in Task 7.
 const MAX_SECTIONS = 12;                   // Pass 3 cap; declared early.
 
@@ -140,21 +146,118 @@ function candidatesToSections(
   return sections;
 }
 
+// === Pass 2 helpers ===
+
+/** Notes per second within [a, b). */
+function densityIn(notes: Note[], a: number, b: number): number {
+  const span = Math.max(0.0001, b - a);
+  let count = 0;
+  for (const n of notes) {
+    if (n.start >= a && n.start < b) count += 1;
+  }
+  return count / span;
+}
+
+/** Mean MIDI pitch within [a, b), or NaN if no notes. */
+function meanPitchIn(notes: Note[], a: number, b: number): number {
+  let sum = 0;
+  let count = 0;
+  for (const n of notes) {
+    if (n.start >= a && n.start < b) {
+      sum += n.midi;
+      count += 1;
+    }
+  }
+  return count === 0 ? NaN : sum / count;
+}
+
+/** Is there ≥ LONG_REST_SECONDS of silence ending exactly at `time`? */
+function endsLongRest(notes: Note[], time: number, measures: Score["measures"]): boolean {
+  // Find the latest note sustain end strictly before `time`.
+  let latestEnd = 0;
+  for (const n of notes) {
+    if (n.start < time) latestEnd = Math.max(latestEnd, n.start + n.duration);
+    else break;
+  }
+  if (time - latestEnd < LONG_REST_SECONDS) return false;
+  // Also require it spans at least LONG_REST_MIN_MEASURES.
+  const restStartMeasure = measures.findIndex((m) => m.start >= latestEnd);
+  const boundaryMeasure = measures.findIndex((m) => m.start >= time);
+  if (restStartMeasure < 0 || boundaryMeasure < 0) return false;
+  return boundaryMeasure - restStartMeasure >= LONG_REST_MIN_MEASURES;
+}
+
+function pass2SoftBoundaries(score: Score, hardIndices: Set<number>): Candidate[] {
+  const measures = score.measures;
+  const notes = score.notes;
+  const candidates: Candidate[] = [];
+
+  for (let i = 1; i < measures.length; i += 1) {
+    if (hardIndices.has(i)) continue;
+    const time = measures[i].start;
+    const signals: string[] = [];
+
+    // Long rest just before this boundary.
+    if (endsLongRest(notes, time, measures)) signals.push("rest");
+
+    // Density shift: compare 2 measures before vs 2 measures after the boundary.
+    // A narrow window avoids counting notes separated from the boundary by a rest.
+    const beforeStart = measures[Math.max(0, i - 2)].start;
+    const afterEnd = measures[Math.min(measures.length - 1, i + 1)].end;
+    const dPrev = densityIn(notes, beforeStart, time);
+    const dNext = densityIn(notes, time, afterEnd);
+    if (
+      (dPrev > 0 && dNext / dPrev >= DENSITY_RATIO_THRESHOLD) ||
+      (dNext > 0 && dPrev / dNext >= DENSITY_RATIO_THRESHOLD)
+    ) {
+      signals.push("density");
+    }
+
+    // Register shift.
+    const mPrev = meanPitchIn(notes, beforeStart, time);
+    const mNext = meanPitchIn(notes, time, afterEnd);
+    if (
+      !Number.isNaN(mPrev) &&
+      !Number.isNaN(mNext) &&
+      Math.abs(mNext - mPrev) >= REGISTER_JUMP_SEMITONES
+    ) {
+      signals.push("register");
+    }
+
+    if (signals.length >= SOFT_CLUSTER_REQUIRED) {
+      candidates.push({
+        measureIndex: i,
+        time,
+        kind: "soft",
+        signals,
+      });
+    }
+  }
+
+  return candidates;
+}
+
 /**
  * Pure: given a Score, produce an initial SectionState.
  * Runs in four passes — see spec docs/superpowers/specs/2026-05-23-midi-section-navigator-design.md.
  *
- * Current passes implemented: 1 (hard boundaries) + fallback.
+ * Current passes implemented: 1 (hard boundaries), 2 (soft cluster) + fallback.
  */
 export function autoDetect(score: Score): SectionState {
   const duration = Math.max(0, score.durationSeconds);
-  const hasMarkers = (score.midiMarkers?.length ?? 0) > 0;
 
   // Pass 1
   const { candidates: hardCands, measureZeroName } = pass1HardBoundaries(score);
+  const hardIndices = new Set(hardCands.map((c) => c.measureIndex));
 
-  // Pass 2 / 3 / 4 added in later tasks.
-  let sections = candidatesToSections(hardCands, duration, hasMarkers, measureZeroName);
+  // Pass 2
+  const softCands = pass2SoftBoundaries(score, hardIndices);
+  const allCands = [...hardCands, ...softCands].sort(
+    (a, b) => a.measureIndex - b.measureIndex,
+  );
+
+  // Pass 3 / 4 added in later tasks.
+  let sections = candidatesToSections(allCands, duration, (score.midiMarkers?.length ?? 0) > 0, measureZeroName);
 
   // Cap (Pass 3) — partial: hard boundaries can also be capped at MAX_SECTIONS,
   // but markers are never dropped. (Later tasks refine this.)
