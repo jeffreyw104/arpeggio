@@ -2,26 +2,25 @@
 
 ## Feature docs are part of the contract
 
-`docs/features/` is the canonical map of what this app does. There's one
-`<letter>-<feature>.md` per feature (see existing `A` through `J`) with a
-**Scope**, **Dependencies**, **Changes log**, **Keywords**, **Testing**, and
-**Manual checklist** section.
+`docs/features/` is the canonical map of what this app does — one
+`<letter>-<feature>.md` per feature (`A` through `J` today) with **Scope**,
+**Dependencies**, **Changes log**, **Keywords**, **Testing**, and **Manual
+checklist** sections.
 
-Whenever you change anything under `src/`, before you commit or push:
+**Before every commit or push, self-check:** did this work touch `src/`?
+If yes, ask yourself:
 
-1. **Touched an existing feature?** Append a dated bullet to that feature's
-   `## Changes log`. Update Keywords / Testing / Manual checklist if those
-   sections drifted.
-2. **Introduced a new feature?** Create `docs/features/<next-letter>-<slug>.md`
-   following the format used by `J-midi-section-navigator.md` (the most
-   recent template).
-3. **Pure refactor / test-only / typo / chore?** No doc update needed.
+1. **Did I extend an existing feature?** Append a dated bullet to that
+   feature's `## Changes log`. Update Keywords / Testing / Manual checklist
+   if those sections drifted.
+2. **Did I introduce a new feature?** Create
+   `docs/features/<next-letter>-<slug>.md` following the format used by
+   `J-midi-section-navigator.md` (the most recent template).
+3. **Pure refactor / test-only / typo / chore?** Skip — no doc update needed.
 
-A PreToolUse hook in `.claude/settings.json` runs
-`scripts/check-feature-docs.sh` before any `git commit` or `git push` and
-prints a non-blocking reminder to stderr if `src/` changed without a
-corresponding `docs/features/` change. The reminder is a prompt, not a
-gate — judgement still applies.
+This is a self-check, not an external gate. Run it at the same point you
+run the verify gate. If you'd be embarrassed for a teammate to read the
+diff and ask "where's the doc update?", update the doc first.
 
 ## Verify gate
 
