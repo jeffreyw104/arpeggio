@@ -25,6 +25,15 @@ C (Transport), D (Audio), E (Falldown View).
   metronome, beat grid, full-88, note labels, and the four hand controls;
   `PracticeView` creates a stable `HandState`, wires it into both engines, and
   renders the `ControlPanel`.
+- 2026-05-23 — For MIDI source files, the practice-layout segmented control
+  and lane-theme picker in the Tools popover are hidden (the reading-lane
+  doesn't apply when Feature J's section strip is the navigation primitive).
+  Both `PlayTools` and `MidiTools` now expose a "Strip position: Top /
+  Bottom" radio at the very top of the panel (gated on `isMidiSource`) —
+  shared backing via the `arpeggio.stripPosition` localStorage key. The
+  Tools popover gained a `below-strip` placement variant used when the
+  strip is top-docked. Escape now closes the Tools popover (in addition to
+  exiting Feature J's drill-in mode and dismissing context menus).
 
 ## Keywords
 

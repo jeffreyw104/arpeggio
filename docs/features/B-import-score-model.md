@@ -26,6 +26,10 @@ A (Scaffold & Deploy).
   durations always sum to the bar length (overlapping notes in one hand no longer
   overflow the measure); added parseMidi tests for the polyrhythm fixture,
   single-track hand split, and sustain-pedal scan.
+- 2026-05-23 — Added `midiMarkers?: ReadonlyArray<{ time, text }>` to `Score`
+  and re-introduced marker meta-event extraction in `parseMidi` (sourced from
+  the conductor track only per @tonejs/midi). Consumed by Feature J's
+  auto-detect Pass 1 as hard boundaries.
 
 ## Keywords
 

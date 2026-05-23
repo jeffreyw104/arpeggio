@@ -26,6 +26,14 @@ E (Falldown View), F (Score View).
   integration milestone — the app now loads a file and plays falldown + score
   synced to one clock. Also raised the Workbox precache limit (vite.config.ts)
   so the ~8 MB Verovio WASM precaches for offline use.
+- 2026-05-23 — For MIDI source files only, the view-mode toggle in the top
+  bar is hidden — the engraved score panel and reading lane are replaced by
+  Feature J's section navigator strip. The falldown takes the full width.
+  The strip wraps in a measured `section-strip-wrapper` whose height is
+  exposed as `--section-strip-height` so the Tools popover can anchor
+  below it when the strip is top-docked. CSS flex-order on the wrapper
+  swaps strip top↔bottom without unmounting (preserves strip internal state
+  across toggle).
 
 ## Keywords
 

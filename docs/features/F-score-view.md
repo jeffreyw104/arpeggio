@@ -24,6 +24,13 @@ B (Score Model), C (Transport), D (Audio).
   view, click-to-seek, drag-to-loop). Added `src/verovio.d.ts` (verovio ships
   no types) and a global `afterEach` DOM cleanup in `src/test/setup.ts` for
   test isolation.
+- 2026-05-23 — For MIDI source files, the engraved score panel is hidden
+  (Feature J replaces it with the section navigator strip). The Verovio
+  engraving still runs for MusicXML imports — engraving is now skipped for
+  MIDI sources, and the loading overlay is short-circuited so the strip
+  becomes visible immediately. Right-clicking inside the engraved score (or
+  the lane/falldown) while a loop is active opens a "Clear loop" floating
+  menu (shared `ContextMenu` component from Feature J).
 
 ## Keywords
 

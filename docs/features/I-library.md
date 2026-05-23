@@ -24,6 +24,15 @@ B (Import & Score Model), H (Practice Controls).
   view and the library, importing saves the piece, opening a library entry
   re-parses its bytes and restores its practice state, and `PracticeView` saves
   practice state when the session ends. Added `fake-indexeddb` (dev) for tests.
+- 2026-05-23 — `StoredPracticeState` gained an optional `sectionState`
+  field used by Feature J (MIDI Section Navigator) — present only for MIDI
+  source files; written on every section edit and read on piece open. Also
+  bumped `DB_VERSION` from 1 → 2 to recover from a now-reverted earlier
+  feature that had created the DB at v2 in some browsers (opening at v1
+  would otherwise throw `VersionError` and break the import flow). The
+  `onupgradeneeded` block is unchanged — the existing PIECES/PRACTICE
+  stores are re-asserted on the v1→v2 upgrade and no new stores are
+  introduced.
 
 ## Keywords
 
