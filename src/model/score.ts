@@ -69,6 +69,8 @@ export interface Score {
   musicXml: string;
   /** Non-null when the source MIDI looks like a live performance. */
   qualityWarning: string | null;
-  /** MIDI marker meta-events, when present. Always sorted by `time`. */
+  /** MIDI marker meta-events from the conductor track, when present.
+   *  Always sorted by `time`. (@tonejs/midi only reads track-0 meta events,
+   *  so markers on other tracks are not surfaced here.) */
   midiMarkers?: ReadonlyArray<{ time: number; text: string }>;
 }
