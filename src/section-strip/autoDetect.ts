@@ -252,7 +252,7 @@ function smoothCandidates(
   measures: Score["measures"],
 ): Candidate[] {
   if (cands.length === 0) return cands;
-  let cur = [...cands].sort((a, b) => a.measureIndex - b.measureIndex);
+  const cur = [...cands].sort((a, b) => a.measureIndex - b.measureIndex);
 
   // Merge: drop boundaries that would create a section < MIN_SECTION_MEASURES_AUTO measures.
   // Walk left-to-right, virtually keeping a "starts" list (0, then each boundary).

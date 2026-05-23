@@ -10,12 +10,7 @@ import {
   renameBookmark,
   deleteBookmark,
 } from "./edits";
-import {
-  newSectionId,
-  newBookmarkId,
-  normalize,
-  type SectionState,
-} from "../model/sections";
+import { normalize, type SectionState } from "../model/sections";
 
 const DURATION = 60;
 

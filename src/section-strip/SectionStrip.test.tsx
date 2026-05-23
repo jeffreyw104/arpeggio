@@ -186,7 +186,8 @@ describe("SectionStrip — rename, menu, loop", () => {
     const input = screen.getByLabelText("Rename section") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "Chorus" } });
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(captured?.sections.find((s) => s.name === "Chorus")).toBeDefined();
+    expect(captured).not.toBeNull();
+    expect(captured!.sections.find((s) => s.name === "Chorus")).toBeDefined();
   });
 
   it("right-click opens a section menu with the expected items", () => {
