@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { fireEvent } from "@testing-library/react";
 import { SectionStrip } from "./SectionStrip";
 import { Transport } from "../transport/transport";
 import { newSectionId, newBookmarkId, type SectionState } from "../model/sections";
@@ -71,5 +72,98 @@ describe("SectionStrip rendering", () => {
       />,
     );
     expect(container.querySelector(".section-strip")?.className).toMatch(/section-strip--top/);
+  });
+});
+
+describe("SectionStrip — click and key", () => {
+  it("clicking a block seeks to its start", () => {
+    const transport = new Transport(makeScore());
+    const state = makeState();
+    render(
+      <SectionStrip
+        state={state}
+        transport={transport}
+        position="bottom"
+        onChange={() => {}}
+        onPositionChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("Verse"));
+    expect(transport.clock.position).toBeCloseTo(20, 5);
+  });
+
+  it("clicking a bookmark seeks to its time", () => {
+    const transport = new Transport(makeScore());
+    const state = makeState();
+    render(
+      <SectionStrip
+        state={state}
+        transport={transport}
+        position="bottom"
+        onChange={() => {}}
+        onPositionChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("tricky"));
+    expect(transport.clock.position).toBeCloseTo(25, 5);
+  });
+
+  it("S key adds a section at the current playhead", () => {
+    const transport = new Transport(makeScore());
+    transport.clock.seek(10);
+    const state = makeState();
+    let captured: SectionState | null = null;
+    render(
+      <SectionStrip
+        state={state}
+        transport={transport}
+        position="bottom"
+        onChange={(s) => (captured = s)}
+        onPositionChange={() => {}}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "S" });
+    expect(captured).not.toBeNull();
+    expect(captured!.sections.some((s) => s.start === 10)).toBe(true);
+  });
+
+  it("B key adds a bookmark at the current playhead", () => {
+    const transport = new Transport(makeScore());
+    transport.clock.seek(33);
+    const state = makeState();
+    let captured: SectionState | null = null;
+    render(
+      <SectionStrip
+        state={state}
+        transport={transport}
+        position="bottom"
+        onChange={(s) => (captured = s)}
+        onPositionChange={() => {}}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "B" });
+    expect(captured).not.toBeNull();
+    expect(captured!.bookmarks.some((b) => b.time === 33)).toBe(true);
+  });
+
+  it("S/B keys are ignored when an input is focused", () => {
+    const transport = new Transport(makeScore());
+    let captured: SectionState | null = null;
+    render(
+      <>
+        <input data-testid="dummy" />
+        <SectionStrip
+          state={makeState()}
+          transport={transport}
+          position="bottom"
+          onChange={(s) => (captured = s)}
+          onPositionChange={() => {}}
+        />
+      </>,
+    );
+    const dummy = screen.getByTestId("dummy");
+    dummy.focus();
+    fireEvent.keyDown(dummy, { key: "S" });
+    expect(captured).toBeNull();
   });
 });
