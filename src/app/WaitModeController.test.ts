@@ -63,6 +63,52 @@ describe("WaitModeController", () => {
     expect(clock.holdAt).toBe(1);
   });
 
+  it("does not auto-advance past the seek target when the player is still holding the chord", () => {
+    // Repro: player matches step 0 (chord 60), the controller advances to step
+    // 1 and parks. Player is STILL holding pitch 60. They click measure 1 to
+    // retry — clock.seek(1) re-arms wait-mode at step 0 (t=1). Before the fix,
+    // resyncToPosition() cleared consumedPresses, so the held 60 immediately
+    // re-satisfied step 0 and the controller raced past — wait-mode never
+    // stopped at the clicked measure.
+    const sameSteps: PracticeStep[] = [
+      { time: 1, requiredPitches: new Set([60]), sustainingPitches: new Set() },
+      {
+        time: 2,
+        requiredPitches: new Set([60]),
+        sustainingPitches: new Set(),
+      },
+    ];
+    const clock = new Clock(10);
+    const live = new LiveNotes();
+    let now = 5000;
+    const ctrl = new WaitModeController(clock, sameSteps, live, () => now);
+    ctrl.setEnabled(true);
+    clock.play();
+    clock.tick(1);
+    ctrl.update();
+    live.press(60, 0.8, 5001);
+    ctrl.update(); // step 0 matched → parked at step 1 (t=2)
+    expect(clock.holdAt).toBe(2);
+
+    // Player STILL holds 60, then clicks measure 1 (t=1) to retry.
+    expect(live.heldNotes().map((n) => n.pitch)).toEqual([60]);
+    now = 5500;
+    clock.seek(1);
+    ctrl.update();
+    // The fix: the held 60 (pressTime 5001) is now in consumedPresses, so it
+    // can't re-satisfy step 0. The hold must stay parked at t=1.
+    expect(clock.holdAt).toBe(1);
+    expect(ctrl.result?.state).toBe("pending");
+
+    // A fresh release+repress satisfies step 0 cleanly.
+    live.release(60);
+    live.press(60, 0.8, 5600);
+    now = 5600;
+    ctrl.update();
+    expect(ctrl.result?.state).toBe("matched");
+    expect(clock.holdAt).toBe(2);
+  });
+
   it("does NOT resync to a manual seek while a loop is active", () => {
     // Same advance pattern as above; the loop wraps via clock.onLoop separately.
     const clock = new Clock(10);

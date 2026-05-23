@@ -64,10 +64,16 @@ export class WaitModeController {
     this.stepIndex = idx === -1 ? this.steps.length : idx;
     this.armedFor = -1;
     this.result = null; // clear stale evaluation from the previous position
-    // Consumed marks are tied to a continuous step run — a seek / loop wrap
-    // re-opens every step's accept window, so any pressing-and-holding from
-    // before the jump shouldn't keep "satisfying" the new arming.
+    // Mark every currently-held note as consumed so a chord the player is
+    // still holding from before the jump can't auto-satisfy the freshly armed
+    // step. The player must physically release and re-press to count — that
+    // matches "click a measure to restart wait-mode from its start," even if
+    // they're still holding the chord they just played. A fresh re-press
+    // produces a new pressTime that isn't in the map, so it accepts cleanly.
     this.consumedPresses.clear();
+    for (const note of this.live.heldNotes()) {
+      this.consumedPresses.set(note.pitch, note.pressTime);
+    }
   }
 
   /** Call once per frame, after the clock has ticked. */
