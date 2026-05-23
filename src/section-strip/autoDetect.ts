@@ -15,7 +15,14 @@ const DENSITY_RATIO_THRESHOLD = 2.0;
 const REGISTER_JUMP_SEMITONES = 12;
 const SOFT_CLUSTER_REQUIRED = 2;
 // SIGNAL_WINDOW_MEASURES = 1             // ± measures the cluster spans (reserved for Task 6 tuning)
-// Smart-label thresholds added in Task 7.
+// Smart-label thresholds (Pass 4).
+const CLIMAX_DENSITY_RATIO = 1.8;
+const CLIMAX_REGISTER_DELTA = 6;
+const QUIET_DENSITY_RATIO = 0.4;
+const FAST_TEMPO_RATIO = 1.2;
+const SLOW_TEMPO_RATIO = 0.8;
+const HAND_ISOLATION_PCT = 0.95;
+const MIN_SMART_LABEL_MEASURES = 4;
 const MAX_SECTIONS = 12;                   // Pass 3 cap; declared early.
 const MIN_SECTION_MEASURES_AUTO = 2;
 
@@ -322,11 +329,147 @@ function smoothCandidates(
   return cur;
 }
 
+// === Pass 4 helpers ===
+
+interface SectionStats {
+  density: number;
+  meanPitch: number;
+  tempo: number;
+  durationMeasures: number;
+  rightFrac: number;
+  leftFrac: number;
+}
+
+function statsFor(section: Section, score: Score): SectionStats {
+  const inSection = (n: Note) => n.start >= section.start && n.start < section.end;
+  const sectionNotes = score.notes.filter(inSection);
+  const density = densityIn(score.notes, section.start, section.end);
+  const meanPitch = meanPitchIn(score.notes, section.start, section.end);
+  // Mean tempo across the section (weighted by time slice).
+  // For simplicity, use the bpm in effect at the section midpoint.
+  const mid = (section.start + section.end) / 2;
+  let tempo = score.tempoMap[0]?.bpm ?? 120;
+  for (const t of score.tempoMap) {
+    if (t.start <= mid) tempo = t.bpm;
+  }
+  const measureStart = score.measures.findIndex((m) => m.start >= section.start);
+  const measureEnd = score.measures.findIndex((m) => m.end >= section.end);
+  const durationMeasures = Math.max(
+    1,
+    (measureEnd < 0 ? score.measures.length : measureEnd) -
+      (measureStart < 0 ? 0 : measureStart) +
+      1,
+  );
+  const rightCount = sectionNotes.filter((n) => n.hand === "right").length;
+  const leftCount = sectionNotes.length - rightCount;
+  const total = Math.max(1, sectionNotes.length);
+  return {
+    density,
+    meanPitch,
+    tempo,
+    durationMeasures,
+    rightFrac: rightCount / total,
+    leftFrac: leftCount / total,
+  };
+}
+
+function applySmartLabels(sections: Section[], score: Score): Section[] {
+  const hasMarkers = (score.midiMarkers?.length ?? 0) > 0;
+  if (sections.length === 0) return sections;
+
+  // Compute medians across the piece.
+  const allDensities = sections.map((s) => densityIn(score.notes, s.start, s.end));
+  const allTempos = sections.map((s) => {
+    let cur = score.tempoMap[0]?.bpm ?? 120;
+    for (const t of score.tempoMap) if (t.start <= (s.start + s.end) / 2) cur = t.bpm;
+    return cur;
+  });
+  const median = (xs: number[]) => {
+    const ys = [...xs].sort((a, b) => a - b);
+    const mid = Math.floor(ys.length / 2);
+    return ys.length === 0 ? 0 : (ys.length % 2 ? ys[mid] : (ys[mid - 1] + ys[mid]) / 2);
+  };
+  const allMeanPitches = sections
+    .map((s) => meanPitchIn(score.notes, s.start, s.end))
+    .filter((x) => !Number.isNaN(x));
+  const medDensity = median(allDensities);
+  const medTempo = median(allTempos);
+  const medPitch = median(allMeanPitches);
+
+  // Pick the climax candidate up-front (at most one).
+  let climaxIdx = -1;
+  if (!hasMarkers) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < sections.length; i += 1) {
+      const s = sections[i];
+      const stats = statsFor(s, score);
+      if (
+        stats.density >= CLIMAX_DENSITY_RATIO * medDensity &&
+        stats.meanPitch >= medPitch + CLIMAX_REGISTER_DELTA &&
+        stats.durationMeasures >= MIN_SMART_LABEL_MEASURES
+      ) {
+        const composite = stats.density * stats.meanPitch;
+        if (composite > bestScore) {
+          bestScore = composite;
+          climaxIdx = i;
+        }
+      }
+    }
+  }
+
+  return sections.map((section, i) => {
+    // Rule 1: marker-name sections keep their name unchanged.
+    if (!section.name.startsWith("Section ") && !section.name.startsWith("Whole piece")) {
+      // (Already named — preserve.)
+      return section;
+    }
+
+    // Default fallback if smart labels can't apply (Rule 8).
+    let name = `Section ${i + 1}`;
+
+    if (!hasMarkers) {
+      const isFirst = i === 0;
+      const isLast = i === sections.length - 1 && sections.length >= 3;
+      const stats = statsFor(section, score);
+      const longEnough = stats.durationMeasures >= MIN_SMART_LABEL_MEASURES;
+
+      const hasDensitySignal = medDensity > 0;
+
+      // Rule 7 combinations (position prefix).
+      if (isFirst) {
+        if (longEnough && hasDensitySignal && stats.density <= QUIET_DENSITY_RATIO * medDensity) {
+          name = "Quiet intro";
+        } else if (longEnough && stats.tempo < SLOW_TEMPO_RATIO * medTempo) {
+          name = "Slow intro";
+        } else {
+          name = "Intro";
+        }
+      } else if (isLast) {
+        name = "Outro";
+      } else if (i === climaxIdx) {
+        name = "Climax";
+      } else if (stats.rightFrac >= HAND_ISOLATION_PCT && longEnough) {
+        name = "Melody";
+      } else if (stats.leftFrac >= HAND_ISOLATION_PCT && longEnough) {
+        name = "Bass line";
+      } else if (longEnough && hasDensitySignal && stats.density <= QUIET_DENSITY_RATIO * medDensity) {
+        name = "Quiet section";
+      } else if (longEnough && stats.tempo >= FAST_TEMPO_RATIO * medTempo) {
+        name = "Fast section";
+      } else if (longEnough && stats.tempo <= SLOW_TEMPO_RATIO * medTempo) {
+        name = "Slow section";
+      }
+    }
+
+    return { ...section, name };
+  });
+}
+
 /**
  * Pure: given a Score, produce an initial SectionState.
  * Runs in four passes — see spec docs/superpowers/specs/2026-05-23-midi-section-navigator-design.md.
  *
- * Current passes implemented: 1 (hard boundaries), 2 (soft cluster) + fallback.
+ * Passes implemented: 1 (hard boundaries), 2 (soft cluster), 3 (smooth + cap), 4 (smart labels).
  */
 export function autoDetect(score: Score): SectionState {
   const duration = Math.max(0, score.durationSeconds);
@@ -344,6 +487,9 @@ export function autoDetect(score: Score): SectionState {
   // Pass 3: smooth (merge tiny sections, cap at MAX_SECTIONS).
   const smoothed = smoothCandidates(merged, score.measures);
   let sections = candidatesToSections(smoothed, duration, (score.midiMarkers?.length ?? 0) > 0, measureZeroName);
+
+  // Pass 4: smart labels (gated on no markers).
+  sections = applySmartLabels(sections, score);
 
   // Fallback if no boundaries: one "Whole piece" section.
   if (sections.length === 0) {

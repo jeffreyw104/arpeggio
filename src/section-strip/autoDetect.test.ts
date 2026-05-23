@@ -223,3 +223,95 @@ describe("autoDetect — Pass 3 smoothing", () => {
     // For now we accept that the cap is enforced strictly even on hard boundaries when there is no other choice; if we ever change this, this test becomes more lenient.
   });
 });
+
+describe("autoDetect — Pass 4 smart labels", () => {
+  function withBoundaries(numBoundaries: number): Score {
+    // Builds a score with `numBoundaries` tempo-induced hard boundaries.
+    const totalMeasures = (numBoundaries + 1) * 4; // 4 measures per section
+    const measures = fourFourMeasures(totalMeasures, 2);
+    const tempoMap = [
+      { start: 0, bpm: 120 },
+      ...Array.from({ length: numBoundaries }, (_, i) => ({
+        start: (i + 1) * 4 * 2, // every 4 measures (8 sec)
+        bpm: 120 + (i + 1) * 20,
+      })),
+    ];
+    return baseScore({
+      durationSeconds: totalMeasures * 2,
+      measures,
+      tempoMap,
+    });
+  }
+
+  it("first section becomes 'Intro' and last becomes 'Outro' when there are >= 3 sections", () => {
+    const score = withBoundaries(3); // 4 sections
+    const state = autoDetect(score);
+    expect(state.sections.length).toBe(4);
+    expect(state.sections[0].name).toBe("Intro");
+    expect(state.sections.at(-1)?.name).toBe("Outro");
+  });
+
+  it("does not apply 'Outro' when there are fewer than 3 sections", () => {
+    const score = withBoundaries(1); // 2 sections
+    const state = autoDetect(score);
+    expect(state.sections.length).toBe(2);
+    expect(state.sections[0].name).toBe("Intro");
+    expect(state.sections[1].name).not.toBe("Outro");
+  });
+
+  it("labels a hand-isolated section 'Melody' or 'Bass line'", () => {
+    const measures = fourFourMeasures(16, 2); // 32 sec, 4 sections of 4 measures
+    // 4 sections induced by 3 tempo changes at 8/16/24 sec.
+    const tempoMap = [
+      { start: 0, bpm: 120 },
+      { start: 8, bpm: 140 },
+      { start: 16, bpm: 160 },
+      { start: 24, bpm: 180 },
+    ];
+    // Sections: [0,8] right-hand dominated; [8,16] left-hand only; [16,24] mixed; [24,32] right-hand only.
+    const notes: Note[] = [];
+    for (let t = 0; t < 8; t += 0.5) notes.push(note(t, 72, 0.3, "right"));
+    for (let t = 8; t < 16; t += 0.5) notes.push(note(t, 45, 0.3, "left"));
+    for (let t = 16; t < 24; t += 0.5) {
+      notes.push(note(t, 72, 0.3, "right"));
+      notes.push(note(t + 0.25, 45, 0.3, "left"));
+    }
+    for (let t = 24; t < 32; t += 0.5) notes.push(note(t, 80, 0.3, "right"));
+
+    const state = autoDetect(
+      baseScore({ durationSeconds: 32, measures, tempoMap, notes }),
+    );
+    expect(state.sections.length).toBe(4);
+    expect(state.sections[1].name).toBe("Bass line");
+    // Section 4 (last) is right-hand-only and is also the last → it becomes "Outro"
+    // because position rules outrank content rules.
+    expect(state.sections[3].name).toBe("Outro");
+  });
+
+  it("skips smart labels entirely when the file has any MIDI marker", () => {
+    const measures = fourFourMeasures(20, 2);
+    const tempoMap = [
+      { start: 0, bpm: 120 },
+      { start: 16, bpm: 160 }, // hard boundary at measure 8
+    ];
+    const midiMarkers = [{ time: 0, text: "Movement I" }];
+    const state = autoDetect(
+      baseScore({ durationSeconds: 40, measures, tempoMap, midiMarkers }),
+    );
+    // Section 0 keeps marker text, section 1 is "Section 2" (NOT "Outro" / smart label).
+    expect(state.sections[0].name).toBe("Movement I");
+    expect(state.sections[1].name).toMatch(/^Section \d+$/);
+  });
+
+  it("falls through to 'Section N' rather than mislabeling on borderline signal", () => {
+    // Two sections, barely-different density (under threshold) — no smart label.
+    const measures = fourFourMeasures(8, 2); // 16 sec
+    const tempoMap = [{ start: 0, bpm: 120 }, { start: 8, bpm: 130 }];
+    // borderline = below cluster threshold; tempo change is the only signal
+    const state = autoDetect(baseScore({ durationSeconds: 16, measures, tempoMap }));
+    expect(state.sections.length).toBe(2);
+    // 2 sections: first → "Intro" (position rule), second → fallback "Section 2"
+    expect(state.sections[0].name).toBe("Intro");
+    expect(state.sections[1].name).toMatch(/^Section \d+$/);
+  });
+});
