@@ -103,8 +103,10 @@ test("arrow keys jump the playhead by measure", async ({ page }) => {
 });
 
 test("switching view modes keeps the panels rendering", async ({ page }) => {
+  // View-mode buttons (Score only / Both / Falldown only) are only shown for
+  // non-MIDI-source files, so we load a MusicXML fixture here.
   await page.goto("/");
-  await page.setInputFiles("input[type=\"file\"]", "src/test/fixtures/clean.mid");
+  await page.setInputFiles("input[type=\"file\"]", "src/test/fixtures/simple.musicxml");
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });
@@ -129,8 +131,10 @@ test("switching view modes keeps the panels rendering", async ({ page }) => {
 test("MIDI Practice tab: layout toggles between reading-lane and split", async ({
   page,
 }) => {
+  // Reading-lane / Split layout controls are only shown for non-MIDI-source
+  // files (isMidiSource hides those top-bar buttons), so we use MusicXML.
   await page.goto("/");
-  await page.setInputFiles('input[type="file"]', "src/test/fixtures/clean.mid");
+  await page.setInputFiles('input[type="file"]', "src/test/fixtures/simple.musicxml");
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible({
     timeout: 15_000,
   });

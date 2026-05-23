@@ -1,0 +1,446 @@
+/* === Stacking layers (z-index legend) ============================
+ *   0  default content (section blocks, bookmark pins, names)
+ *   1  bookmark-tether (faint dotted line behind everything)
+ *   7  drag-snap-line
+ *   8  loop-indicator + label
+ *  10  playhead bar + label
+ *  20  hover-line
+ *  21  hover-line-label
+ *  50  context menu (.section-strip__menu)
+ * ================================================================ */
+.section-strip {
+  background: #ebe5d4;
+  border-top: 1px solid #d3cab3;
+  padding: 6px 12px 8px;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+/* Default child order: bookmarks (top of strip), sections, toolbar (bottom of strip). */
+.section-strip__bookmarks { order: 1; }
+.section-strip__sections  { order: 2; }
+.section-strip__toolbar   { order: 3; }
+
+/* When the strip itself is docked at the TOP of the page, lay it out as a
+   true vertical mirror of the bottom-strip version: toolbar (was bottom →
+   now top), sections row (always middle), bookmarks lane (was top → now
+   bottom). The measure pills flip too — at top-strip they sit BELOW the
+   section row, in the same band the bookmarks lane occupies. Padding/margin
+   are also mirrored so the section row sits at the same vertical position
+   inside the beige in both orientations. */
+.section-strip--top {
+  border-top: 0;
+  border-bottom: 1px solid #d3cab3;
+  padding: 8px 12px 6px;
+}
+.section-strip--top .section-strip__toolbar   { order: 1; margin-top: 0; margin-bottom: 6px; }
+.section-strip--top .section-strip__sections  { order: 2; }
+/* Mirrors the bottom-strip's bookmarks `margin-bottom: 2px`. */
+.section-strip--top .section-strip__bookmarks { order: 3; margin-top: 2px; margin-bottom: 0; }
+
+/* (No editing-time fade — the measure pill, loop bracket, and snap line all
+   live in different vertical bands from the rename input now, so they don't
+   block each other.) */
+
+.section-strip__bookmarks {
+  position: relative;
+  /* Holds the name+pin stack; sized to fit name (≈12px) + pin (≈14px). */
+  height: 28px;
+  /* Just a small gap to the section row — the dotted tether bridges the rest
+     visually, so we don't need a tall empty band here. */
+  margin-bottom: 2px;
+}
+.section-strip__bookmark {
+  position: absolute;
+  /* Wrapper centered on the bookmark's time so name AND pin both sit on the
+     time tick. Stacked vertically with the pin at the bottom (closest to the
+     section row) and the name above it. */
+  transform: translateX(-50%);
+  bottom: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  color: #7a6a48;
+  white-space: nowrap;
+  line-height: 1;
+}
+.section-strip__bookmark-name {
+  /* Sits in its own band ABOVE the pin. */
+  margin-bottom: 1px;
+  padding: 0 2px;
+}
+.section-strip__bookmark-pin {
+  display: inline-block;
+  /* Visual width matches the pin glyph, but transparent padding extends
+     the hit area to ~24px wide so right-click/double-click are reliable
+     even if the user is a few pixels off the pin. */
+  width: 14px;
+  padding: 4px 5px;
+  margin: -4px -5px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Half-opaque dotted tether — extends from the bookmark pin (in the
+   bookmarks lane ABOVE the section row) down to the BOTTOM of the section
+   row, anchored at the bookmark's time. `mix-blend-mode: difference` keeps
+   the tether readable across every section-block palette color (it stays
+   visible against both light and dark backgrounds). */
+.section-strip__bookmark-tether {
+  position: absolute;
+  top: -2px;        /* tether starts right under the bookmarks lane */
+  bottom: 0;        /* through section row to its bottom */
+  width: 0;
+  border-left: 1px dotted rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: difference;
+}
+.section-strip--top .section-strip__bookmark-tether {
+  /* Top-strip: tether extends DOWN from sections row into bookmarks band. */
+  top: 0;
+  bottom: -2px;
+}
+
+.section-strip__sections {
+  position: relative;
+  display: flex;
+  gap: 1px;
+  height: 48px;
+}
+.section-strip__block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Drill-down: the clicked block lifts and brightens, the rest dim. */
+.section-strip__sections--has-active .section-strip__block:not(.section-strip__block--active) {
+  opacity: 0.55;
+  filter: brightness(0.8) saturate(0.7);
+}
+.section-strip__block--active {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: -2px;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+  z-index: 1;
+  filter: brightness(1.08);
+}
+.section-strip__hover-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  /* Above bookmark pins (no z-index, default auto) and above the playhead
+     (z:10) so the hover pill is never blocked when drilling near the
+     playhead position. */
+  z-index: 20;
+}
+.section-strip__hover-line-label {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  /* Bumped above the bar (z:20) so the pill paints on top of anything else
+     in the strip, including bookmark pin glyphs. */
+  z-index: 21;
+}
+
+/* Loop bracket — a red, top-only border that hooks down at the ends to
+   frame the looped range. Extends INTO the section row a bit so the bracket
+   is unmistakable even when the bookmarks band is sitting right next to it,
+   and the bracket+fill tint the looped span faintly red across the whole
+   section row height. */
+.section-strip__loop-indicator {
+  position: absolute;
+  top: 0;
+  height: 48px;
+  border-left: 2px solid #d9534f;
+  border-right: 2px solid #d9534f;
+  border-top: 3px solid #d9534f;
+  border-radius: 5px 5px 0 0;
+  background: rgba(217, 83, 79, 0.18);
+  pointer-events: none;
+  z-index: 8;
+}
+.section-strip__loop-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -1px);
+  background: #d9534f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(217, 83, 79, 0.4);
+}
+/* When the bracket is too narrow for its label, dock it just outside. */
+.section-strip__loop-indicator--label-right .section-strip__loop-label {
+  left: 100%;
+  transform: translate(4px, 2px);
+}
+.section-strip__loop-indicator--label-left .section-strip__loop-label {
+  left: auto;
+  right: 100%;
+  transform: translate(-4px, 2px);
+}
+.section-strip__block-name {
+  padding: 0 6px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+/* Playhead bar — confined to the section row (does NOT jut out into the
+   bookmarks band above or the toolbar below). Pill sits ON the bar, centred
+   vertically inside the 48px section row. The hover/snap lines below are
+   the only indicators that EXTEND the bar with a pill floating above it. */
+.section-strip__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+.section-strip__playhead-label {
+  position: absolute;
+  top: 17px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Drag snap line — a dashed white line at the section's original (auto)
+   right boundary, visible only while dragging. */
+.section-strip__snap-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  z-index: 7;
+}
+.section-strip__snap-line-label {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 26, 26, 0.75);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Top-strip variants: the playhead pill is centred inside the section row in
+   both orientations (symmetric). Hover and snap pills are transient
+   cursor-style indicators that pop ABOVE the line — they need to flip side
+   so they sit in the bookmarks-side band beneath sections when at top. */
+.section-strip--top .section-strip__hover-line-label,
+.section-strip--top .section-strip__snap-line-label {
+  top: auto;
+  bottom: -14px;
+}
+
+/* Top-strip bookmark stack flips vertically: pin at TOP (closest to section
+   row above), name BELOW pin. */
+.section-strip--top .section-strip__bookmark {
+  bottom: auto;
+  top: 0;
+  flex-direction: column-reverse;
+}
+.section-strip--top .section-strip__bookmark-name {
+  margin-bottom: 0;
+  margin-top: 1px;
+}
+.section-strip--top .section-strip__loop-indicator {
+  /* Mirror: bracket hooks UP at the bottom (opens upward toward the section
+     row sitting above). */
+  border-top: 0;
+  border-bottom: 3px solid #d9534f;
+  border-radius: 0 0 5px 5px;
+}
+.section-strip--top .section-strip__loop-label {
+  bottom: auto;
+  top: 100%;
+  transform: translate(-50%, 1px);
+}
+.section-strip--top .section-strip__loop-indicator--label-right .section-strip__loop-label {
+  transform: translate(4px, 1px);
+}
+.section-strip--top .section-strip__loop-indicator--label-left .section-strip__loop-label {
+  transform: translate(-4px, 1px);
+}
+
+.section-strip__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 14px;
+  /* Fixed height so toggling the hint visibility on/off does NOT change the
+     strip's overall size — the hint just slides in/out to the left of "?". */
+  height: 14px;
+  color: #6a5e3e;
+}
+.section-strip__hint {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+/* Inline undo link in the strip toolbar — no chrome, just text that
+   matches the toolbar hint color, with a subtle underline. */
+.section-strip__undo,
+.section-strip__help-toggle {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  color: #6a5e3e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  flex-shrink: 0;
+}
+.section-strip__undo:disabled {
+  opacity: 0.4;
+  cursor: default;
+  text-decoration: none;
+}
+.section-strip__undo:not(:disabled):hover,
+.section-strip__help-toggle:hover {
+  color: #2e2810;
+}
+.section-strip__help-toggle[aria-pressed="true"] {
+  color: #2e2810;
+  font-weight: 700;
+}
+
+.section-strip__rename-input {
+  background: rgba(255,255,255,0.92);
+  border: 0;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font: inherit;
+  width: 80%;
+  text-align: center;
+}
+/* Liquid-glass context menu — matches the top bar / Tools popover chrome. */
+.section-strip__menu {
+  position: fixed;
+  z-index: 50;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow);
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  min-width: 160px;
+  color: var(--text);
+  overflow: hidden;
+}
+.section-strip__menu li button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+}
+.section-strip__menu li button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.section-strip__boundary-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  cursor: ew-resize;
+}
+
+/* --- SectionStrip layout integration --- */
+
+/* The practice-view is already position:relative; we also make it a flex
+   column so the strip can sit above or below the content area. The top-bar
+   and tools popover are absolutely positioned and unaffected. */
+.practice-view {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The strip is wrapped in `.section-strip-wrapper` (in PracticeView) so its
+   rendered height can be measured for the tools popover offset. The wrapper
+   carries the flex-order + margin rules; the strip itself just paints inside
+   it. `.practice-view .practice-content` overrides the mode-specific
+   `height: 100%` rules in theme.css — in a flex column those would push the
+   wrapper out of view. */
+.section-strip-wrapper--top {
+  order: 1;
+  margin-top: 68px;
+}
+.practice-view .practice-content {
+  order: 2;
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+.section-strip-wrapper--bottom { order: 3; }

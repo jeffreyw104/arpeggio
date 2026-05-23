@@ -37,10 +37,16 @@ export interface StoredPracticeState {
     play: { bpm: number; loop: { start: number; end: number } | null };
     midi: { bpm: number; loop: { start: number; end: number } | null };
   };
+  /** Per-piece section navigator state (MIDI source only). */
+  sectionState?: import("../model/sections").SectionState;
 }
 
 const DB_NAME = "arpeggio";
-const DB_VERSION = 1;
+// Held at 2 because an earlier (now-reverted) feature created the DB at v2
+// in some browsers. Opening at a lower version throws VersionError and
+// breaks the import flow. Keeping v2 is harmless — the optional third
+// store (sectionOverrides) from that feature sits unused.
+const DB_VERSION = 2;
 const PIECES = "pieces";
 const PRACTICE = "practiceState";
 

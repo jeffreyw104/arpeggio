@@ -42,6 +42,15 @@ import {
   switchTab,
   type TabSnapshot,
 } from "../transport/tabSnapshot";
+import { SectionStrip } from "../section-strip/SectionStrip";
+import { ContextMenu } from "../section-strip/ContextMenu";
+import { autoDetect } from "../section-strip/autoDetect";
+import { normalize, type SectionState } from "../model/sections";
+import {
+  loadStripPosition,
+  saveStripPosition,
+  type StripPosition,
+} from "../section-strip/stripPosition";
 
 interface PracticeViewProps {
   score: Score;
@@ -131,6 +140,55 @@ export function PracticeView({
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+
+  // True when the loaded piece is a MIDI file — affects layout and strip.
+  const isMidiSource = score.source === "midi";
+  const [sectionState, setSectionState] = useState<SectionState | null>(null);
+  const [sectionHistory, setSectionHistory] = useState<SectionState[]>([]);
+  // Undo stack cap — long editing sessions won't grow this without bound.
+  // 50 covers any realistic interactive session; older snapshots silently
+  // drop off the back so memory stays small.
+  const UNDO_HISTORY_MAX = 50;
+  function applySectionStateChange(next: SectionState): void {
+    setSectionHistory((h) => {
+      if (!sectionState) return h;
+      const trimmed =
+        h.length >= UNDO_HISTORY_MAX ? h.slice(h.length - UNDO_HISTORY_MAX + 1) : h;
+      return [...trimmed, sectionState];
+    });
+    setSectionState(next);
+  }
+  function undoSectionStateChange(): void {
+    setSectionHistory((h) => {
+      if (h.length === 0) return h;
+      const last = h[h.length - 1];
+      setSectionState(last);
+      return h.slice(0, -1);
+    });
+  }
+  const [stripPosition, setStripPosition] = useState<StripPosition>(() =>
+    loadStripPosition(),
+  );
+  // Measured height of the rendered strip — drives the tools-popover offset
+  // when the strip is docked at the top so the popover stays below it. We
+  // re-attach the ResizeObserver only when the wrapper element itself comes
+  // and goes (toggled by `isMidiSource && sectionState`); section edits and
+  // position changes don't unmount the wrapper so they don't rebind the RO.
+  const stripWrapperRef = useRef<HTMLDivElement>(null);
+  const stripMounted = isMidiSource && sectionState !== null;
+  const [stripHeight, setStripHeight] = useState(0);
+  useEffect(() => {
+    const el = stripWrapperRef.current;
+    if (!el) {
+      setStripHeight(0);
+      return;
+    }
+    const measure = (): void => setStripHeight(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stripMounted]);
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -225,6 +283,14 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
+      // Seed section state for MIDI sources.
+      if (score.source === "midi") {
+        if (state?.sectionState) {
+          setSectionState(normalize(state.sectionState, score.durationSeconds));
+        } else {
+          setSectionState(autoDetect(score));
+        }
+      }
       const initialMode: TabMode = state?.mode === "midi" ? "midi" : "play";
       const snapshots = seedTabSnapshots(transport, state ?? null);
       applyTab(snapshots[initialMode], transport);
@@ -233,46 +299,52 @@ export function PracticeView({
       setPracticeReady(true);
     })();
 
-    void (async () => {
-      try {
-        const { svgPages, timemap } = await renderScore(
-          transport.score.musicXml,
-        );
-        if (cancelled) return;
-        const container = scoreContainerRef.current;
-        if (!container) return;
-        const scoreView = new ScoreView(
-          container,
-          transport,
-          svgPages,
-          timemap,
-        );
-        // Start slightly zoomed out; the zoom buttons drive subsequent changes.
-        scoreView.setZoom(DEFAULT_SCORE_ZOOM);
-        scoreViewRef.current = scoreView;
-        loop.onFrame(() => scoreView.renderFrame());
-        setScoreReady(true);
-      } catch {
-        // Verovio failed; leave the score panel empty rather than crashing.
-      }
-    })();
+    if (score.source === "midi") {
+      // MIDI sources have no engraved score — mark ready immediately so the
+      // loading overlay never blocks the SectionStrip.
+      setScoreReady(true);
+    } else {
+      void (async () => {
+        try {
+          const { svgPages, timemap } = await renderScore(
+            transport.score.musicXml,
+          );
+          if (cancelled) return;
+          const container = scoreContainerRef.current;
+          if (!container) return;
+          const scoreView = new ScoreView(
+            container,
+            transport,
+            svgPages,
+            timemap,
+          );
+          // Start slightly zoomed out; the zoom buttons drive subsequent changes.
+          scoreView.setZoom(DEFAULT_SCORE_ZOOM);
+          scoreViewRef.current = scoreView;
+          loop.onFrame(() => scoreView.renderFrame());
+          setScoreReady(true);
+        } catch {
+          // Verovio failed; leave the score panel empty rather than crashing.
+        }
+      })();
 
-    // The reading lane is a second, separate engraving — systems stacked on
-    // one page (see renderReadingLane) — driven by the same clock as the split
-    // ScoreView, so the two views stay in sync across a layout switch.
-    void (async () => {
-      try {
-        const laneSvgs = await renderReadingLane(transport.score.musicXml);
-        if (cancelled) return;
-        const container = laneContainerRef.current;
-        if (!container) return;
-        const laneView = new ReadingLaneView(container, transport, laneSvgs);
-        laneViewRef.current = laneView;
-        loop.onFrame(() => laneView.renderFrame());
-      } catch {
-        // The reading lane is optional; ignore render failures.
-      }
-    })();
+      // The reading lane is a second, separate engraving — systems stacked on
+      // one page (see renderReadingLane) — driven by the same clock as the split
+      // ScoreView, so the two views stay in sync across a layout switch.
+      void (async () => {
+        try {
+          const laneSvgs = await renderReadingLane(transport.score.musicXml);
+          if (cancelled) return;
+          const container = laneContainerRef.current;
+          if (!container) return;
+          const laneView = new ReadingLaneView(container, transport, laneSvgs);
+          laneViewRef.current = laneView;
+          loop.onFrame(() => laneView.renderFrame());
+        } catch {
+          // The reading lane is optional; ignore render failures.
+        }
+      })();
+    }
 
     return () => {
       cancelled = true;
@@ -300,7 +372,7 @@ export function PracticeView({
         }),
       );
     };
-  }, [transport, handState, pieceId, midiSession]);
+  }, [transport, handState, pieceId, midiSession, score]);
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
   // divider drag, or window resize). The renderer holds onto a fixed pixel
@@ -371,6 +443,27 @@ export function PracticeView({
     midiSession.setMonitorOn(monitorOn);
   }, [handsIPlay, waitEnabled, monitorOn, midiSession]);
 
+  // Persist sectionState whenever it changes (MIDI source only).
+  useEffect(() => {
+    if (!isMidiSource || !sectionState) return;
+    const renderer = falldownRef.current;
+    const beat = renderer
+      ? {
+          numerator: renderer.beatMeter.numerator,
+          denominator: renderer.beatMeter.denominator,
+          subdivision: engineRef.current?.metronome.subdivision ?? 1,
+        }
+      : undefined;
+    const snapshots = snapshotsRef.current;
+    void savePracticeState(
+      pieceId,
+      capturePracticeState(transport, handState, beat, {
+        mode: modeRef.current,
+        ...(snapshots && { tabs: snapshots }),
+      }, sectionState),
+    );
+  }, [isMidiSource, sectionState, pieceId, transport, handState]);
+
   // Arrow keys jump the playhead one measure back/forward, in both modes.
   // Spacebar toggles play/pause.
   // Both are ignored while a form control is focused (so typing is not stolen).
@@ -402,6 +495,34 @@ export function PracticeView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [transport]);
+
+  // Global shortcuts: Cmd/Ctrl+Z undoes the last section-strip edit; Escape
+  // closes the tools popover. Both are ignored while a form control is
+  // focused so the browser's text-editing semantics keep working.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent): void {
+      const t = e.target as HTMLElement | null;
+      const inForm = t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName);
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        if (inForm) return;
+        if (sectionHistory.length === 0) return;
+        e.preventDefault();
+        undoSectionStateChange();
+        return;
+      }
+      if (e.key === "Escape") {
+        if (inForm) return;
+        if (toolsOpen) {
+          e.preventDefault();
+          setToolsOpen(false);
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // sectionHistory.length is included so the guard sees the latest count;
+    // undoSectionStateChange itself only reads via setSectionHistory's updater.
+  }, [sectionHistory.length, toolsOpen]);
 
   function zoomIn(): void {
     const next = Math.min(2.5, Math.round((scoreZoom + 0.25) * 100) / 100);
@@ -444,7 +565,11 @@ export function PracticeView({
   // Falldown panel flex style. Play mode is unchanged; the MIDI split layout
   // sizes its panels exactly the way play's side-by-side view does, and the
   // MIDI reading-lane layout is driven purely by CSS.
-  const falldownPanelStyle = isMidi
+  // MIDI-source files have no engraved score and no reading lane, so the
+  // falldown takes the full width regardless of mode/layout.
+  const falldownPanelStyle = isMidiSource
+    ? { flex: 1 }
+    : isMidi
     ? practiceLayout === "split"
       ? { flexBasis: `${split * 100}%`, flexGrow: 0, flexShrink: 0 }
       : undefined
@@ -474,8 +599,56 @@ export function PracticeView({
   // its arrangement (play column / midi lane overlay / midi split panel).
   const scorePanelClass = "practice-score-panel";
 
+  function handleStripPositionChange(p: StripPosition): void {
+    saveStripPosition(p);
+    setStripPosition(p);
+  }
+
+  // Right-click anywhere in the practice content (engraved score, reading
+  // lane, falldown) when a loop is active opens a small "Clear loop" menu.
+  const [loopMenuPos, setLoopMenuPos] = useState<{ x: number; y: number } | null>(null);
+  function handlePracticeContextMenu(e: React.MouseEvent<HTMLDivElement>): void {
+    if (!transport.clock.loop) return;
+    e.preventDefault();
+    setLoopMenuPos({ x: e.clientX, y: e.clientY });
+  }
+  useEffect(() => {
+    if (!loopMenuPos) return;
+    const close = (): void => setLoopMenuPos(null);
+    window.addEventListener("click", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [loopMenuPos]);
+
   return (
-    <div className="practice-view">
+    <div
+      className="practice-view"
+      style={
+        {
+          "--section-strip-height": `${stripHeight}px`,
+        } as React.CSSProperties
+      }
+    >
+      {/* SectionStrip — single mount; CSS flex order places it above or below
+          .practice-content depending on the section-strip--top/bottom modifier. */}
+      {isMidiSource && sectionState && (
+        <div
+          ref={stripWrapperRef}
+          className={`section-strip-wrapper section-strip-wrapper--${stripPosition}`}
+        >
+          <SectionStrip
+            state={sectionState}
+            transport={transport}
+            position={stripPosition}
+            onChange={applySectionStateChange}
+            canUndo={sectionHistory.length > 0}
+            onUndo={undoSectionStateChange}
+          />
+        </div>
+      )}
       {/*
        * ONE stable content area. The falldown <canvas> (position A) and the
        * score-container <div> (position B) are ALWAYS rendered here, never
@@ -487,9 +660,11 @@ export function PracticeView({
           "practice-content",
           `practice-content--${mode}`,
           isMidi ? `layout-${practiceLayout}` : "",
+          isMidiSource ? "practice-content--midi-source" : "",
         ]
           .filter(Boolean)
           .join(" ")}
+        onContextMenu={handlePracticeContextMenu}
       >
         {/* [A] Falldown panel — stable tree position, always rendered */}
         <div className="practice-falldown-panel" style={falldownPanelStyle}>
@@ -561,11 +736,23 @@ export function PracticeView({
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
+        isMidiSource={isMidiSource}
       />
       <ToolsPopover
         open={toolsOpen}
         placement={
-          mode === "midi" && practiceLayout === "lane" ? "below-lane" : "default"
+          // MIDI source files don't have an engraved reading lane, so the
+          // popover never uses the below-lane position regardless of which
+          // tab is active — its placement depends only on where the section
+          // strip is docked. The below-lane case applies only to MusicXML
+          // sources in MIDI Practice mode's lane layout.
+          isMidiSource
+            ? stripPosition === "top"
+              ? "below-strip"
+              : "default"
+            : mode === "midi" && practiceLayout === "lane"
+              ? "below-lane"
+              : "default"
         }
       >
         {practiceReady && mode === "play" && (
@@ -576,6 +763,9 @@ export function PracticeView({
             falldown={falldown}
             countInBars={countInBars}
             onCountInBarsChange={setCountInBars}
+            isMidiSource={isMidiSource}
+            stripPosition={stripPosition}
+            onStripPositionChange={handleStripPositionChange}
           />
         )}
         {practiceReady && mode === "midi" && (
@@ -595,6 +785,9 @@ export function PracticeView({
             onWaitEnabledChange={setWaitEnabled}
             monitorOn={monitorOn}
             onMonitorOnChange={setMonitorOn}
+            isMidiSource={isMidiSource}
+            stripPosition={stripPosition}
+            onStripPositionChange={handleStripPositionChange}
           />
         )}
       </ToolsPopover>
@@ -608,8 +801,24 @@ export function PracticeView({
           Rendering sheet music
         </div>
       )}
-      {score.qualityWarning && (
+      {!isMidiSource && score.qualityWarning && (
         <div className="quality-warning">{score.qualityWarning}</div>
+      )}
+      {loopMenuPos && (
+        <ContextMenu
+          className="practice-loop-menu"
+          x={loopMenuPos.x}
+          y={loopMenuPos.y}
+          items={[
+            {
+              label: "Clear loop",
+              onClick: () => {
+                transport.clock.setLoop(null);
+                setLoopMenuPos(null);
+              },
+            },
+          ]}
+        />
       )}
     </div>
   );

@@ -94,3 +94,36 @@ describe("parseMidi", () => {
     expect(score.pedalEvents[0].end).toBeCloseTo(1.0, 2);
   });
 });
+
+describe("midi markers", () => {
+  it("extracts marker meta events into score.midiMarkers", () => {
+    const m = new Midi();
+    // Use setTempo (calls header.update()) so tempo.time is set correctly;
+    // addNote({time, duration}) needs secondsToTicks which reads tempo.time.
+    m.header.setTempo(120);
+    // Add markers at tick 0 ("Intro") and tick 1920 ("Verse").
+    // header.meta is a public MetaEvent[] array; push directly.
+    m.header.meta.push({ type: "marker", text: "Intro", ticks: 0 });
+    m.header.meta.push({ type: "marker", text: "Verse", ticks: 1920 });
+    const track = m.addTrack();
+    track.addNote({ midi: 60, ticks: 0, durationTicks: 240 });
+    track.addNote({ midi: 64, ticks: 1920, durationTicks: 240 });
+
+    const score = parseMidi(toBuffer(m));
+    expect(score.midiMarkers).toBeDefined();
+    expect(score.midiMarkers).toHaveLength(2);
+    expect(score.midiMarkers?.[0]).toMatchObject({ text: "Intro" });
+    expect(score.midiMarkers?.[1]).toMatchObject({ text: "Verse" });
+    expect(score.midiMarkers?.[0].time).toBeCloseTo(0, 5);
+    expect(score.midiMarkers?.[1].time).toBeGreaterThan(0);
+  });
+
+  it("midiMarkers is undefined or empty when the file has no markers", () => {
+    const m = new Midi();
+    m.header.setTempo(120);
+    const track = m.addTrack();
+    track.addNote({ midi: 60, ticks: 0, durationTicks: 240 });
+    const score = parseMidi(toBuffer(m));
+    expect(score.midiMarkers ?? []).toEqual([]);
+  });
+});

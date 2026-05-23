@@ -3,6 +3,7 @@ import { capturePracticeState, applyPracticeState } from "./practiceState";
 import { seedTabSnapshots } from "./practiceState";
 import { Transport } from "../transport/transport";
 import { HandState } from "../practice/hands";
+import { normalize, newSectionId, type SectionState } from "../model/sections";
 import type { Score } from "../model/score";
 import { TAB_MODES } from "../layout/practiceMode";
 
@@ -187,5 +188,29 @@ describe("per-tab transport snapshots", () => {
     expect(seeded.midi.bpm).toBeCloseTo(95, 3);
     expect(seeded.play.position).toBe(1.5);
     expect(seeded.midi.position).toBe(1.5);
+  });
+});
+
+describe("sectionState persistence", () => {
+  it("plumbs sectionState through when provided", () => {
+    const transport = new Transport(score);
+    const hands = new HandState();
+    const ss: SectionState = normalize(
+      {
+        sections: [{ id: newSectionId(), start: 0, end: 4, name: "A", isAuto: true }],
+        bookmarks: [],
+        version: 1,
+      },
+      4,
+    );
+    const stored = capturePracticeState(transport, hands, undefined, undefined, ss);
+    expect(stored.sectionState).toEqual(ss);
+  });
+
+  it("omits sectionState when not provided", () => {
+    const transport = new Transport(score);
+    const hands = new HandState();
+    const stored = capturePracticeState(transport, hands);
+    expect(stored.sectionState).toBeUndefined();
   });
 });

@@ -9,6 +9,7 @@ vi.mock("../score-view/verovio", () => ({
     svgPages: ['<svg><g class="measure"></g></svg>'],
     timemap: [],
   }),
+  renderReadingLane: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("../audio/engine", () => ({
   createAudioEngine: vi.fn().mockResolvedValue({
@@ -202,12 +203,18 @@ describe("PracticeView", () => {
     expect(screen.getByTestId("reading-lane")).toBeInTheDocument();
   });
 
-  it("TopBar layout buttons switch between reading-lane and split layouts", async () => {
+  it("TopBar layout buttons switch between reading-lane and split layouts (MusicXML only)", async () => {
+    // Layout toggle only applies to MusicXML sources; MIDI sources use the
+    // SectionStrip instead and the layout buttons are hidden.
+    const musicXmlScore = {
+      ...score,
+      source: "musicxml" as const,
+    };
     render(
       <PracticeView
-        score={score}
+        score={musicXmlScore}
         pieceId="reading-lane-toggle"
-        pieceName="moonlight.mid"
+        pieceName="moonlight.musicxml"
         onExit={() => {}}
       />,
     );

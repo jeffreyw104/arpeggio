@@ -247,7 +247,7 @@ textarea {
 }
 
 /* The Tools floating panel — anchored below the top bar's left side, under
-   the Tools button. */
+   the Tools button. Sized to fit its content (no internal scroll). */
 .tools-popover {
   position: absolute;
   top: 68px;
@@ -265,8 +265,52 @@ textarea {
   border-radius: 14px;
   box-shadow: var(--glass-shadow);
   min-width: 16rem;
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
+}
+
+/* When a top-docked section strip sits between the top bar and the practice
+   content, the popover drops below the strip. PracticeView measures the
+   actual strip height via ResizeObserver and exposes it as
+   --section-strip-height; we add the top-bar bottom edge (68px from the
+   top-bar's top:10px + height:50px + an 8px gap) and an extra 6px breathing
+   room below the strip. The fallback covers a first-paint frame where the
+   measurement hasn't landed yet. */
+.tools-popover--below-strip {
+  top: calc(74px + var(--section-strip-height, 132px));
+}
+
+/* Floating "Clear loop" menu opened by right-clicking anywhere in the
+   practice content (engraved score / reading lane / falldown) while a loop
+   is active. Matches the liquid-glass chrome shared with the top bar and
+   the Tools popover. */
+.practice-loop-menu {
+  position: fixed;
+  z-index: 60;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow);
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  min-width: 140px;
+  color: var(--text);
+  overflow: hidden;
+}
+.practice-loop-menu li button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.practice-loop-menu li button:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* When the reading lane is showing (MIDI Practice / lane layout) the popover
@@ -276,7 +320,6 @@ textarea {
    the popover stays solid on a busy backdrop. */
 .tools-popover--below-lane {
   top: 488px;
-  max-height: calc(100vh - 510px);
   background: linear-gradient(
     rgba(20, 20, 24, 0.94),
     rgba(8, 8, 11, 0.97)
@@ -825,6 +868,12 @@ textarea {
   overflow: hidden;
   position: relative;
 }
+
+/* For MIDI source files the engraved score and reading-lane panels are
+   replaced by the SectionStrip. Hide both unconditionally so they do not
+   flicker while the section state loads. */
+.practice-content.practice-content--midi-source .practice-score-panel,
+.practice-content.practice-content--midi-source .practice-lane-panel { display: none; }
 
 /* --- MidiTools popover content --- */
 

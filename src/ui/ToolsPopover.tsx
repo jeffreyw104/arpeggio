@@ -2,8 +2,9 @@ interface ToolsPopoverProps {
   open: boolean;
   /** Where the popover floats. "default" hugs the top bar; "below-lane"
    *  drops it under the reading-lane ribbon so the engraved sheet music
-   *  stays visible. */
-  placement?: "default" | "below-lane";
+   *  stays visible; "below-strip" drops it just under a top-docked section
+   *  navigator strip. */
+  placement?: "default" | "below-lane" | "below-strip";
   children: React.ReactNode;
 }
 
@@ -24,7 +25,9 @@ export function ToolsPopover({
   const className =
     placement === "below-lane"
       ? "tools-popover tools-popover--below-lane"
-      : "tools-popover";
+      : placement === "below-strip"
+        ? "tools-popover tools-popover--below-strip"
+        : "tools-popover";
 
   return (
     <div className={className} role="dialog" aria-label="Tools">

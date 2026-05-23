@@ -175,6 +175,18 @@ export function parseMidi(buffer: ArrayBuffer): Score {
         }))
       : [{ start: 0, numerator: 4, denominator: 4 }];
 
+  // Marker meta-events (used by the section navigator as hard boundaries).
+  const midiMarkers = (midi.header.meta ?? [])
+    .filter(
+      (e): e is { type: "marker"; text: string; ticks: number } =>
+        e.type === "marker" && typeof e.text === "string",
+    )
+    .map((e) => ({
+      time: midi.header.ticksToSeconds(e.ticks),
+      text: e.text,
+    }))
+    .sort((a, b) => a.time - b.time);
+
   // Duration — the latest of the file duration and the last note's end.
   const lastNoteEnd = notes.reduce(
     (max, n) => Math.max(max, n.start + n.duration),
@@ -201,5 +213,6 @@ export function parseMidi(buffer: ArrayBuffer): Score {
     durationSeconds,
     musicXml: "",
     qualityWarning: null,
+    ...(midiMarkers.length > 0 ? { midiMarkers } : {}),
   };
 }
