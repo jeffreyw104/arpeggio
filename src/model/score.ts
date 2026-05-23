@@ -69,4 +69,6 @@ export interface Score {
   musicXml: string;
   /** Non-null when the source MIDI looks like a live performance. */
   qualityWarning: string | null;
+  /** MIDI marker meta-events, when present. Always sorted by `time`. */
+  midiMarkers?: ReadonlyArray<{ time: number; text: string }>;
 }
