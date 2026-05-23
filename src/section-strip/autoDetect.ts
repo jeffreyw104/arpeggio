@@ -17,6 +17,7 @@ const SOFT_CLUSTER_REQUIRED = 2;
 // SIGNAL_WINDOW_MEASURES = 1             // ± measures the cluster spans (reserved for Task 6 tuning)
 // Smart-label thresholds added in Task 7.
 const MAX_SECTIONS = 12;                   // Pass 3 cap; declared early.
+const MIN_SECTION_MEASURES_AUTO = 2;
 
 /** Candidate boundary in the auto-detect pipeline. */
 interface Candidate {
@@ -238,6 +239,90 @@ function pass2SoftBoundaries(score: Score, hardIndices: Set<number>): Candidate[
   return candidates;
 }
 
+/** Smooth a candidate list: merge any tiny sections into neighbours, then cap. */
+function smoothCandidates(
+  cands: Candidate[],
+  measures: Score["measures"],
+): Candidate[] {
+  if (cands.length === 0) return cands;
+  let cur = [...cands].sort((a, b) => a.measureIndex - b.measureIndex);
+
+  // Merge: drop boundaries that would create a section < MIN_SECTION_MEASURES_AUTO measures.
+  // Walk left-to-right, virtually keeping a "starts" list (0, then each boundary).
+  // If a candidate creates too-short a span from the previous start, drop it.
+  // Prefer dropping soft over hard; if both options are hard, prefer dropping the one
+  // creating the shortest of the two adjacent sections.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const starts = [0, ...cur.map((c) => c.measureIndex), measures.length];
+    for (let i = 0; i < cur.length; i += 1) {
+      const a = starts[i];
+      const b = starts[i + 1];
+      const c = starts[i + 2];
+      const leftLen = b - a;
+      const rightLen = c - b;
+      if (leftLen < MIN_SECTION_MEASURES_AUTO || rightLen < MIN_SECTION_MEASURES_AUTO) {
+        // Drop the boundary causing the shorter section. The boundary is cur[i].
+        // If left is short and right is long, dropping cur[i] merges left into right.
+        // If right is short, dropping cur[i+1] (the next boundary) merges right into left.
+        // Whichever side is short, drop the boundary on the SHORT side.
+        const dropIdx = leftLen < rightLen ? i : i + 1;
+        if (dropIdx < cur.length) {
+          // But: never drop a hard boundary unless we have no choice.
+          if (cur[dropIdx].kind === "hard") {
+            // Try the other boundary if it's soft.
+            const altIdx = dropIdx === i ? i + 1 : i;
+            if (altIdx >= 0 && altIdx < cur.length && cur[altIdx].kind === "soft") {
+              cur.splice(altIdx, 1);
+              changed = true;
+              break;
+            }
+            // Both hard — accept the drop anyway to enforce min-length.
+          }
+          cur.splice(dropIdx, 1);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // Cap at MAX_SECTIONS. Drop weakest soft boundaries first.
+  while (cur.length + 1 > MAX_SECTIONS) {
+    // Find the weakest soft candidate (fewest signals). If none soft, drop the one
+    // creating the shortest adjacent section.
+    let weakestIdx = -1;
+    let weakestRank = Infinity;
+    for (let i = 0; i < cur.length; i += 1) {
+      if (cur[i].kind !== "soft") continue;
+      const rank = cur[i].signals.length;
+      if (rank < weakestRank) {
+        weakestRank = rank;
+        weakestIdx = i;
+      }
+    }
+    if (weakestIdx === -1) {
+      // Only hard candidates remain but still over cap. Drop the one bordering
+      // the shortest section.
+      const starts = [0, ...cur.map((c) => c.measureIndex), measures.length];
+      let bestIdx = 0;
+      let bestSpan = Infinity;
+      for (let i = 0; i < cur.length; i += 1) {
+        const adjSpan = Math.min(starts[i + 1] - starts[i], starts[i + 2] - starts[i + 1]);
+        if (adjSpan < bestSpan) {
+          bestSpan = adjSpan;
+          bestIdx = i;
+        }
+      }
+      cur.splice(bestIdx, 1);
+    } else {
+      cur.splice(weakestIdx, 1);
+    }
+  }
+  return cur;
+}
+
 /**
  * Pure: given a Score, produce an initial SectionState.
  * Runs in four passes — see spec docs/superpowers/specs/2026-05-23-midi-section-navigator-design.md.
@@ -253,18 +338,13 @@ export function autoDetect(score: Score): SectionState {
 
   // Pass 2
   const softCands = pass2SoftBoundaries(score, hardIndices);
-  const allCands = [...hardCands, ...softCands].sort(
+  const merged = [...hardCands, ...softCands].sort(
     (a, b) => a.measureIndex - b.measureIndex,
   );
 
-  // Pass 3 / 4 added in later tasks.
-  let sections = candidatesToSections(allCands, duration, (score.midiMarkers?.length ?? 0) > 0, measureZeroName);
-
-  // Cap (Pass 3) — partial: hard boundaries can also be capped at MAX_SECTIONS,
-  // but markers are never dropped. (Later tasks refine this.)
-  if (sections.length > MAX_SECTIONS) {
-    sections = sections.slice(0, MAX_SECTIONS);
-  }
+  // Pass 3: smooth (merge tiny sections, cap at MAX_SECTIONS).
+  const smoothed = smoothCandidates(merged, score.measures);
+  let sections = candidatesToSections(smoothed, duration, (score.midiMarkers?.length ?? 0) > 0, measureZeroName);
 
   // Fallback if no boundaries: one "Whole piece" section.
   if (sections.length === 0) {
