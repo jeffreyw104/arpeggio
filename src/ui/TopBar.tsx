@@ -31,6 +31,9 @@ interface TopBarProps {
   midiStatus?: MidiStatus;
   /** MIDI tab: name of the connected device (when status is "connected"). */
   midiDeviceName?: string;
+  /** True when the loaded piece is a MIDI file. Hides the scrubber and
+   *  practice-layout controls (replaced by the SectionStrip). */
+  isMidiSource?: boolean;
 }
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
@@ -79,6 +82,7 @@ export function TopBar({
   onLaneThemeChange,
   midiStatus,
   midiDeviceName,
+  isMidiSource = false,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
@@ -160,21 +164,23 @@ export function TopBar({
       >
         {playing ? "⏸" : "▶"}
       </button>
-      <input
-        type="range"
-        className="hud-scrubber"
-        aria-label="Seek"
-        min={0}
-        max={duration}
-        step={0.01}
-        value={position}
-        onChange={(e) => clock.seek(Number(e.target.value))}
-        style={
-          {
-            "--pct": `${duration > 0 ? (position / duration) * 100 : 0}%`,
-          } as React.CSSProperties
-        }
-      />
+      {!isMidiSource && (
+        <input
+          type="range"
+          className="hud-scrubber"
+          aria-label="Seek"
+          min={0}
+          max={duration}
+          step={0.01}
+          value={position}
+          onChange={(e) => clock.seek(Number(e.target.value))}
+          style={
+            {
+              "--pct": `${duration > 0 ? (position / duration) * 100 : 0}%`,
+            } as React.CSSProperties
+          }
+        />
+      )}
       <span className="hud-time">
         {formatTime(position)} / {formatTime(duration)}
       </span>
@@ -200,48 +206,50 @@ export function TopBar({
           )}
         </span>
       )}
-      {/* View controls vary by tab mode */}
-      {mode === "play" ? (
-        <div className="top-bar-views">
-          {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
-            <button
-              key={viewModeOption}
-              type="button"
-              aria-pressed={viewMode === viewModeOption}
-              onClick={() => onViewModeChange(viewModeOption)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="top-bar-views">
-          <button
-            type="button"
-            aria-pressed={practiceLayout === "lane"}
-            onClick={() => onPracticeLayoutChange("lane")}
-          >
-            Reading lane
-          </button>
-          <button
-            type="button"
-            aria-pressed={practiceLayout === "split"}
-            onClick={() => onPracticeLayoutChange("split")}
-          >
-            Split
-          </button>
-          {practiceLayout === "lane" && (
+      {/* View controls vary by tab mode; hidden for MIDI source files */}
+      {!isMidiSource && (
+        mode === "play" ? (
+          <div className="top-bar-views">
+            {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
+              <button
+                key={viewModeOption}
+                type="button"
+                aria-pressed={viewMode === viewModeOption}
+                onClick={() => onViewModeChange(viewModeOption)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="top-bar-views">
             <button
               type="button"
-              aria-label="Lane theme"
-              onClick={() =>
-                onLaneThemeChange(laneTheme === "dark" ? "paper" : "dark")
-              }
+              aria-pressed={practiceLayout === "lane"}
+              onClick={() => onPracticeLayoutChange("lane")}
             >
-              {laneTheme === "dark" ? "Paper" : "Dark"}
+              Reading lane
             </button>
-          )}
-        </div>
+            <button
+              type="button"
+              aria-pressed={practiceLayout === "split"}
+              onClick={() => onPracticeLayoutChange("split")}
+            >
+              Split
+            </button>
+            {practiceLayout === "lane" && (
+              <button
+                type="button"
+                aria-label="Lane theme"
+                onClick={() =>
+                  onLaneThemeChange(laneTheme === "dark" ? "paper" : "dark")
+                }
+              >
+                {laneTheme === "dark" ? "Paper" : "Dark"}
+              </button>
+            )}
+          </div>
+        )
       )}
 
     </div>

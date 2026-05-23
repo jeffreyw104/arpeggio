@@ -42,6 +42,14 @@ import {
   switchTab,
   type TabSnapshot,
 } from "../transport/tabSnapshot";
+import { SectionStrip } from "../section-strip/SectionStrip";
+import { autoDetect } from "../section-strip/autoDetect";
+import { normalize, type SectionState } from "../model/sections";
+import {
+  loadStripPosition,
+  saveStripPosition,
+  type StripPosition,
+} from "../section-strip/stripPosition";
 
 interface PracticeViewProps {
   score: Score;
@@ -131,6 +139,13 @@ export function PracticeView({
   // inputs initialize from the restored values rather than stale defaults.
   const [practiceReady, setPracticeReady] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+
+  // True when the loaded piece is a MIDI file — affects layout and strip.
+  const isMidiSource = score.source === "midi";
+  const [sectionState, setSectionState] = useState<SectionState | null>(null);
+  const [stripPosition, setStripPosition] = useState<StripPosition>(() =>
+    loadStripPosition(),
+  );
 
   // Single mount effect: wires the frame loop, falldown, audio, and score view.
   useEffect(() => {
@@ -225,6 +240,14 @@ export function PracticeView({
           engineRef.current.metronome.subdivision = state.subdivision;
         }
       }
+      // Seed section state for MIDI sources.
+      if (score.source === "midi") {
+        if (state?.sectionState) {
+          setSectionState(normalize(state.sectionState, score.durationSeconds));
+        } else {
+          setSectionState(autoDetect(score));
+        }
+      }
       const initialMode: TabMode = state?.mode === "midi" ? "midi" : "play";
       const snapshots = seedTabSnapshots(transport, state ?? null);
       applyTab(snapshots[initialMode], transport);
@@ -233,46 +256,52 @@ export function PracticeView({
       setPracticeReady(true);
     })();
 
-    void (async () => {
-      try {
-        const { svgPages, timemap } = await renderScore(
-          transport.score.musicXml,
-        );
-        if (cancelled) return;
-        const container = scoreContainerRef.current;
-        if (!container) return;
-        const scoreView = new ScoreView(
-          container,
-          transport,
-          svgPages,
-          timemap,
-        );
-        // Start slightly zoomed out; the zoom buttons drive subsequent changes.
-        scoreView.setZoom(DEFAULT_SCORE_ZOOM);
-        scoreViewRef.current = scoreView;
-        loop.onFrame(() => scoreView.renderFrame());
-        setScoreReady(true);
-      } catch {
-        // Verovio failed; leave the score panel empty rather than crashing.
-      }
-    })();
+    if (score.source === "midi") {
+      // MIDI sources have no engraved score — mark ready immediately so the
+      // loading overlay never blocks the SectionStrip.
+      setScoreReady(true);
+    } else {
+      void (async () => {
+        try {
+          const { svgPages, timemap } = await renderScore(
+            transport.score.musicXml,
+          );
+          if (cancelled) return;
+          const container = scoreContainerRef.current;
+          if (!container) return;
+          const scoreView = new ScoreView(
+            container,
+            transport,
+            svgPages,
+            timemap,
+          );
+          // Start slightly zoomed out; the zoom buttons drive subsequent changes.
+          scoreView.setZoom(DEFAULT_SCORE_ZOOM);
+          scoreViewRef.current = scoreView;
+          loop.onFrame(() => scoreView.renderFrame());
+          setScoreReady(true);
+        } catch {
+          // Verovio failed; leave the score panel empty rather than crashing.
+        }
+      })();
 
-    // The reading lane is a second, separate engraving — systems stacked on
-    // one page (see renderReadingLane) — driven by the same clock as the split
-    // ScoreView, so the two views stay in sync across a layout switch.
-    void (async () => {
-      try {
-        const laneSvgs = await renderReadingLane(transport.score.musicXml);
-        if (cancelled) return;
-        const container = laneContainerRef.current;
-        if (!container) return;
-        const laneView = new ReadingLaneView(container, transport, laneSvgs);
-        laneViewRef.current = laneView;
-        loop.onFrame(() => laneView.renderFrame());
-      } catch {
-        // The reading lane is optional; ignore render failures.
-      }
-    })();
+      // The reading lane is a second, separate engraving — systems stacked on
+      // one page (see renderReadingLane) — driven by the same clock as the split
+      // ScoreView, so the two views stay in sync across a layout switch.
+      void (async () => {
+        try {
+          const laneSvgs = await renderReadingLane(transport.score.musicXml);
+          if (cancelled) return;
+          const container = laneContainerRef.current;
+          if (!container) return;
+          const laneView = new ReadingLaneView(container, transport, laneSvgs);
+          laneViewRef.current = laneView;
+          loop.onFrame(() => laneView.renderFrame());
+        } catch {
+          // The reading lane is optional; ignore render failures.
+        }
+      })();
+    }
 
     return () => {
       cancelled = true;
@@ -300,7 +329,7 @@ export function PracticeView({
         }),
       );
     };
-  }, [transport, handState, pieceId, midiSession]);
+  }, [transport, handState, pieceId, midiSession, score]);
 
   // Re-fit the falldown canvas whenever its panel resizes (view-mode switch,
   // divider drag, or window resize). The renderer holds onto a fixed pixel
@@ -370,6 +399,27 @@ export function PracticeView({
     midiSession.setWaitEnabled(waitEnabled);
     midiSession.setMonitorOn(monitorOn);
   }, [handsIPlay, waitEnabled, monitorOn, midiSession]);
+
+  // Persist sectionState whenever it changes (MIDI source only).
+  useEffect(() => {
+    if (!isMidiSource || !sectionState) return;
+    const renderer = falldownRef.current;
+    const beat = renderer
+      ? {
+          numerator: renderer.beatMeter.numerator,
+          denominator: renderer.beatMeter.denominator,
+          subdivision: engineRef.current?.metronome.subdivision ?? 1,
+        }
+      : undefined;
+    const snapshots = snapshotsRef.current;
+    void savePracticeState(
+      pieceId,
+      capturePracticeState(transport, handState, beat, {
+        mode: modeRef.current,
+        ...(snapshots && { tabs: snapshots }),
+      }, sectionState),
+    );
+  }, [isMidiSource, sectionState, pieceId, transport, handState]);
 
   // Arrow keys jump the playhead one measure back/forward, in both modes.
   // Spacebar toggles play/pause.
@@ -474,8 +524,23 @@ export function PracticeView({
   // its arrangement (play column / midi lane overlay / midi split panel).
   const scorePanelClass = "practice-score-panel";
 
+  function handleStripPositionChange(p: StripPosition): void {
+    saveStripPosition(p);
+    setStripPosition(p);
+  }
+
   return (
     <div className="practice-view">
+      {/* SectionStrip — top position, shown only for MIDI sources */}
+      {isMidiSource && sectionState && stripPosition === "top" && (
+        <SectionStrip
+          state={sectionState}
+          transport={transport}
+          position={stripPosition}
+          onChange={setSectionState}
+          onPositionChange={handleStripPositionChange}
+        />
+      )}
       {/*
        * ONE stable content area. The falldown <canvas> (position A) and the
        * score-container <div> (position B) are ALWAYS rendered here, never
@@ -487,6 +552,7 @@ export function PracticeView({
           "practice-content",
           `practice-content--${mode}`,
           isMidi ? `layout-${practiceLayout}` : "",
+          isMidiSource ? "practice-content--midi-source" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -541,6 +607,17 @@ export function PracticeView({
         </div>
       </div>
 
+      {/* SectionStrip — bottom position, shown only for MIDI sources */}
+      {isMidiSource && sectionState && stripPosition === "bottom" && (
+        <SectionStrip
+          state={sectionState}
+          transport={transport}
+          position={stripPosition}
+          onChange={setSectionState}
+          onPositionChange={handleStripPositionChange}
+        />
+      )}
+
       <TopBar
         pieceName={pieceName}
         viewMode={viewMode}
@@ -561,6 +638,7 @@ export function PracticeView({
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
+        isMidiSource={isMidiSource}
       />
       <ToolsPopover
         open={toolsOpen}
@@ -595,6 +673,8 @@ export function PracticeView({
             onWaitEnabledChange={setWaitEnabled}
             monitorOn={monitorOn}
             onMonitorOnChange={setMonitorOn}
+            stripPosition={stripPosition}
+            onStripPositionChange={handleStripPositionChange}
           />
         )}
       </ToolsPopover>

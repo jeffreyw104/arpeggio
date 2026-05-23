@@ -112,3 +112,18 @@
   margin-left: -3px;
   cursor: ew-resize;
 }
+
+/* --- SectionStrip layout integration --- */
+
+/* The practice-view is already position:relative; we also make it a flex
+   column so the strip can sit above or below the content area. The top-bar
+   and tools popover are absolutely positioned and unaffected. */
+.practice-view {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Strip at the top renders before the content (order:1 vs order:2). */
+.section-strip--top  { order: 1; }
+.practice-content    { order: 2; flex: 1; min-height: 0; }
+.section-strip--bottom { order: 3; }
