@@ -263,27 +263,26 @@ function smoothCandidates(
       const leftLen = b - a;
       const rightLen = c - b;
       if (leftLen < MIN_SECTION_MEASURES_AUTO || rightLen < MIN_SECTION_MEASURES_AUTO) {
-        // Drop the boundary causing the shorter section. The boundary is cur[i].
-        // If left is short and right is long, dropping cur[i] merges left into right.
-        // If right is short, dropping cur[i+1] (the next boundary) merges right into left.
-        // Whichever side is short, drop the boundary on the SHORT side.
-        const dropIdx = leftLen < rightLen ? i : i + 1;
-        if (dropIdx < cur.length) {
-          // But: never drop a hard boundary unless we have no choice.
-          if (cur[dropIdx].kind === "hard") {
-            // Try the other boundary if it's soft.
-            const altIdx = dropIdx === i ? i + 1 : i;
-            if (altIdx >= 0 && altIdx < cur.length && cur[altIdx].kind === "soft") {
-              cur.splice(altIdx, 1);
-              changed = true;
-              break;
-            }
-            // Both hard — accept the drop anyway to enforce min-length.
+        // Drop the boundary causing the shorter section.
+        // If left is short, drop cur[i] (merges the short left into the right).
+        // If right is short, drop cur[i+1] (merges the short right into the left).
+        // For the terminal boundary (no cur[i+1]), fall back to dropping cur[i],
+        // which merges the short terminal section into the preceding one.
+        let dropIdx = leftLen < rightLen ? i : i + 1;
+        if (dropIdx >= cur.length) dropIdx = i;
+        // Never drop a hard boundary unless we have no choice.
+        if (cur[dropIdx].kind === "hard") {
+          const altIdx = dropIdx === i ? i + 1 : i;
+          if (altIdx >= 0 && altIdx < cur.length && cur[altIdx].kind === "soft") {
+            cur.splice(altIdx, 1);
+            changed = true;
+            break;
           }
-          cur.splice(dropIdx, 1);
-          changed = true;
-          break;
+          // Both hard — accept the drop anyway to enforce min-length.
         }
+        cur.splice(dropIdx, 1);
+        changed = true;
+        break;
       }
     }
   }

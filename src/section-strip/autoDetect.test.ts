@@ -204,7 +204,7 @@ describe("autoDetect — Pass 3 smoothing", () => {
     }
   });
 
-  it("caps the total section count at 12, never dropping marker boundaries", () => {
+  it("caps the total section count at 12 (may drop hard boundaries if input exceeds cap)", () => {
     const measures = fourFourMeasures(30, 2); // 60 sec
     // 20 markers + 20 measures means we have 20 hard markers but smoothing
     // and the cap need to bring it down.
