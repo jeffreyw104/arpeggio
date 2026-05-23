@@ -108,6 +108,75 @@ describe("MidiSession", () => {
     session.dispose();
   });
 
+  it("forward measure click re-parks wait-mode at the next step ahead (right hand only)", () => {
+    // Exact end-user scenario: pick right hand, enable wait-mode, press play,
+    // click a measure 3 ahead. The clock must park at the next right-hand
+    // step at-or-after the clicked measure's start — NOT snap back to the
+    // step the controller was parked at before the click.
+    const score = makeScore([
+      note(60, 1, "right"), // step 0 — measure 0
+      note(48, 1.5, "left"), // not a step (left); decoy at same beat
+      note(62, 2, "right"), // step 1 — measure 0
+      note(64, 3, "right"), // step 2 — measure 0
+      note(65, 4, "right"), // step 3 — measure 1
+      note(67, 5, "right"), // step 4 — measure 1
+      note(69, 6, "right"), // step 5 — measure 1
+      note(71, 7, "right"), // step 6 — measure 1
+      note(72, 8, "right"), // step 7 — measure 2 (3 measures ahead from m.0 start)
+      note(74, 9, "right"), // step 8
+    ]);
+    const clock = new Clock(20);
+    const session = new MidiSession(clock, score, new HandState());
+    session.setHandsIPlay(new Set(["right"]));
+    session.setActive(true); // wait-mode on
+    clock.play();
+    clock.tick(1);
+    session.update();
+    expect(clock.holdAt).toBe(1); // parked at step 0
+
+    // The user clicks the measure that starts at t=8 (3 measures ahead).
+    clock.seek(8);
+    session.update();
+
+    // The first right-hand step at or after t=8 is step 7 (t=8). Parked there.
+    expect(clock.holdAt).toBe(8);
+    expect(clock.position).toBe(8);
+
+    // The clock can still play forward from here.
+    clock.tick(0.05);
+    expect(clock.position).toBeGreaterThanOrEqual(8);
+    expect(clock.position).toBeLessThanOrEqual(8.05);
+    session.dispose();
+  });
+
+  it("forward measure click between steps re-parks at the next step", () => {
+    // The clicked measure's start lands BETWEEN two right-hand steps. Wait-
+    // mode must arm at the next step ahead, not refuse to move.
+    const score = makeScore([
+      note(60, 1, "right"),
+      note(62, 2, "right"),
+      note(64, 3.75, "right"), // first step in a "later measure"
+      note(65, 4.5, "right"),
+    ]);
+    const clock = new Clock(10);
+    const session = new MidiSession(clock, score, new HandState());
+    session.setHandsIPlay(new Set(["right"]));
+    session.setActive(true);
+    clock.play();
+    clock.tick(1);
+    session.update(); // parked at step 0 (t=1)
+
+    // Click a measure whose start (t=3.5) is between step 1 (t=2) and step 2
+    // (t=3.75).
+    clock.seek(3.5);
+    session.update();
+
+    // Hold parks at next step ahead.
+    expect(clock.holdAt).toBe(3.75);
+    expect(clock.position).toBe(3.5);
+    session.dispose();
+  });
+
   it("does not advance the clock when the wrong key is pressed", () => {
     const score = makeScore([note(60, 1, "right"), note(62, 2, "right")]);
     const clock = new Clock(10);
