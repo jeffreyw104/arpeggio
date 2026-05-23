@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 import { SectionStrip } from "./SectionStrip";
@@ -10,7 +10,15 @@ function makeScore(): Score {
   return {
     source: "midi",
     notes: [],
-    measures: [{ index: 0, start: 0, end: 60, numerator: 4, denominator: 4 }],
+    // 15 measures × 4 sec = 60 sec. Multi-measure so bookmark snap-to-measure
+    // behavior is exercisable.
+    measures: Array.from({ length: 15 }, (_, i) => ({
+      index: i,
+      start: i * 4,
+      end: (i + 1) * 4,
+      numerator: 4,
+      denominator: 4,
+    })),
     pedalEvents: [],
     timeSignatures: [{ start: 0, numerator: 4, denominator: 4 }],
     tempoMap: [{ start: 0, bpm: 120 }],
@@ -41,7 +49,6 @@ describe("SectionStrip rendering", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     expect(screen.getByText("Intro")).toBeInTheDocument();
@@ -58,7 +65,6 @@ describe("SectionStrip rendering", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     expect(container.querySelector(".section-strip")?.className).toMatch(/section-strip--bottom/);
@@ -68,7 +74,6 @@ describe("SectionStrip rendering", () => {
         transport={transport}
         position="top"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     expect(container.querySelector(".section-strip")?.className).toMatch(/section-strip--top/);
@@ -85,7 +90,6 @@ describe("SectionStrip — click and key", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.click(screen.getByText("Verse"));
@@ -101,7 +105,6 @@ describe("SectionStrip — click and key", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.click(screen.getByText("tricky"));
@@ -119,7 +122,6 @@ describe("SectionStrip — click and key", () => {
         transport={transport}
         position="bottom"
         onChange={(s) => (captured = s)}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.keyDown(window, { key: "S" });
@@ -127,7 +129,7 @@ describe("SectionStrip — click and key", () => {
     expect(captured!.sections.some((s) => s.start === 10)).toBe(true);
   });
 
-  it("B key adds a bookmark at the current playhead", () => {
+  it("B key adds a bookmark snapped to the nearest measure", () => {
     const transport = new Transport(makeScore());
     transport.clock.seek(33);
     const state = makeState();
@@ -138,12 +140,13 @@ describe("SectionStrip — click and key", () => {
         transport={transport}
         position="bottom"
         onChange={(s) => (captured = s)}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.keyDown(window, { key: "B" });
     expect(captured).not.toBeNull();
-    expect(captured!.bookmarks.some((b) => b.time === 33)).toBe(true);
+    // measures: 0, 4, 8, …, 32, 36, … . Playhead at 33 snaps to measure 32.
+    expect(captured!.bookmarks.some((b) => b.time === 32)).toBe(true);
+    expect(captured!.bookmarks.some((b) => b.time === 33)).toBe(false);
   });
 
   it("S/B keys are ignored when an input is focused", () => {
@@ -157,7 +160,6 @@ describe("SectionStrip — click and key", () => {
           transport={transport}
           position="bottom"
           onChange={(s) => (captured = s)}
-          onPositionChange={() => {}}
         />
       </>,
     );
@@ -169,7 +171,7 @@ describe("SectionStrip — click and key", () => {
 });
 
 describe("SectionStrip — rename, menu, loop", () => {
-  it("double-clicking a block opens a rename input that commits on Enter", () => {
+  it("renaming a section via right-click menu commits on Enter", () => {
     const transport = new Transport(makeScore());
     const state = makeState();
     let captured: SectionState | null = null;
@@ -179,10 +181,10 @@ describe("SectionStrip — rename, menu, loop", () => {
         transport={transport}
         position="bottom"
         onChange={(s) => (captured = s)}
-        onPositionChange={() => {}}
       />,
     );
-    fireEvent.doubleClick(screen.getByText("Verse"));
+    fireEvent.contextMenu(screen.getByText("Verse"));
+    fireEvent.click(screen.getByText("Rename"));
     const input = screen.getByLabelText("Rename section") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "Chorus" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -190,7 +192,27 @@ describe("SectionStrip — rename, menu, loop", () => {
     expect(captured!.sections.find((s) => s.name === "Chorus")).toBeDefined();
   });
 
-  it("right-click opens a section menu with the expected items", () => {
+  it("double-clicking a section block creates a 📌 bookmark instead of renaming", () => {
+    const transport = new Transport(makeScore());
+    const state = makeState();
+    let captured: SectionState | null = null;
+    render(
+      <SectionStrip
+        state={state}
+        transport={transport}
+        position="bottom"
+        onChange={(s) => (captured = s)}
+      />,
+    );
+    const verseBlock = screen.getByText("Verse").closest(".section-strip__block");
+    expect(verseBlock).not.toBeNull();
+    fireEvent.doubleClick(verseBlock!);
+    expect(captured).not.toBeNull();
+    expect(captured!.bookmarks.length).toBe(state.bookmarks.length + 1);
+    expect(screen.queryByLabelText("Rename section")).not.toBeInTheDocument();
+  });
+
+  it("right-click on a section opens a Rename/Merge-right/Merge-left menu", () => {
     const transport = new Transport(makeScore());
     const state = makeState();
     render(
@@ -199,31 +221,14 @@ describe("SectionStrip — rename, menu, loop", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.contextMenu(screen.getByText("Verse"));
     expect(screen.getByText("Rename")).toBeInTheDocument();
-    expect(screen.getByText("Split here")).toBeInTheDocument();
     expect(screen.getByText("Merge with right")).toBeInTheDocument();
-    expect(screen.getByText("Loop section")).toBeInTheDocument();
-    expect(screen.getByText("Delete")).toBeInTheDocument();
-  });
-
-  it("'Loop section' sets the transport loop to the section range", () => {
-    const transport = new Transport(makeScore());
-    render(
-      <SectionStrip
-        state={makeState()}
-        transport={transport}
-        position="bottom"
-        onChange={() => {}}
-        onPositionChange={() => {}}
-      />,
-    );
-    fireEvent.contextMenu(screen.getByText("Verse"));
-    fireEvent.click(screen.getByText("Loop section"));
-    expect(transport.clock.loop).toEqual({ start: 20, end: 40 });
+    expect(screen.getByText("Merge with left")).toBeInTheDocument();
+    expect(screen.queryByText("Delete section")).not.toBeInTheDocument();
+    expect(screen.queryByText("Split here")).not.toBeInTheDocument();
   });
 
   it("'Loop to next mark' on a bookmark loops to the next mark's time", () => {
@@ -244,11 +249,43 @@ describe("SectionStrip — rename, menu, loop", () => {
         transport={transport}
         position="bottom"
         onChange={() => {}}
-        onPositionChange={() => {}}
       />,
     );
     fireEvent.contextMenu(screen.getByText("A"));
     fireEvent.click(screen.getByText("Loop to next mark"));
     expect(transport.clock.loop).toEqual({ start: 10, end: 30 });
+  });
+});
+
+describe("SectionStrip — undo", () => {
+  it("'Undo' button is disabled until there is history; click calls onUndo", () => {
+    const transport = new Transport(makeScore());
+    const onUndo = vi.fn();
+    const { rerender } = render(
+      <SectionStrip
+        state={makeState()}
+        transport={transport}
+        position="bottom"
+        onChange={() => {}}
+        canUndo={false}
+        onUndo={onUndo}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: /Undo last edit/i });
+    expect(btn).toBeDisabled();
+
+    rerender(
+      <SectionStrip
+        state={makeState()}
+        transport={transport}
+        position="bottom"
+        onChange={() => {}}
+        canUndo={true}
+        onUndo={onUndo}
+      />,
+    );
+    expect(btn).not.toBeDisabled();
+    fireEvent.click(btn);
+    expect(onUndo).toHaveBeenCalledTimes(1);
   });
 });

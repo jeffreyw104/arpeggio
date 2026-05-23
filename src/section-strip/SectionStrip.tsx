@@ -1,27 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { Section, Bookmark, SectionState } from "../model/sections";
 import type { StripPosition } from "./stripPosition";
+import { ContextMenu } from "./ContextMenu";
+import { usePlayheadIndicators } from "./usePlayheadIndicators";
 import {
   addBookmark,
   addSection,
   deleteBookmark,
-  deleteSection,
+  mergeLeft,
   mergeRight,
   renameBookmark,
   renameSection,
   resizeBoundary,
-  splitAt,
 } from "./edits";
+import { newBookmarkId, normalize } from "../model/sections";
 
 const PALETTE = ["#cba37a", "#7a9cca", "#c97d7d", "#7ec98a", "#b09bca"] as const;
+/** Within this fraction of duration of `autoEnd`, drag snaps back to it. */
+const SNAP_PCT = 0.015;
 
 interface SectionStripProps {
   state: SectionState;
   transport: Transport;
   position: StripPosition;
   onChange: (next: SectionState) => void;
-  onPositionChange: (p: StripPosition) => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
 }
 
 export function SectionStrip({
@@ -29,11 +34,17 @@ export function SectionStrip({
   transport,
   position,
   onChange,
-  onPositionChange,
+  canUndo = false,
+  onUndo,
 }: SectionStripProps): React.JSX.Element {
   const duration = transport.score.durationSeconds;
-  const playheadRef = useRef<HTMLDivElement>(null);
   const sectionsRef = useRef<HTMLDivElement>(null);
+  const measures = transport.score.measures;
+  const { playheadRef, playheadLabelRef, loopRef } = usePlayheadIndicators(
+    transport,
+    duration,
+    measures,
+  );
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingKind, setEditingKind] = useState<"section" | "bookmark" | null>(null);
@@ -43,6 +54,67 @@ export function SectionStrip({
     | null
   >(null);
   const [dragging, setDragging] = useState<null | { leftId: string }>(null);
+  const [showHint, setShowHint] = useState(false);
+  // Drill-down: after clicking a section it becomes "active". Hovering over
+  // an active section reveals a vertical line that snaps to the nearest
+  // measure start; a subsequent click seeks to that snapped point. Clicking
+  // outside the active section clears the active state.
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [hoverInfo, setHoverInfo] = useState<
+    { pct: number; measureNumber: number } | null
+  >(null);
+
+  // Find the nearest measure start time anywhere in the piece (used to snap
+  // a freshly-created bookmark onto a measure boundary).
+  const snapTimeToNearestMeasure = useCallback(
+    (time: number): number => {
+      if (measures.length === 0) return time;
+      let bestIdx = 0;
+      let bestDist = Math.abs(measures[0].start - time);
+      for (let i = 1; i < measures.length; i += 1) {
+        const d = Math.abs(measures[i].start - time);
+        if (d < bestDist) {
+          bestIdx = i;
+          bestDist = d;
+        }
+      }
+      return measures[bestIdx].start;
+    },
+    [measures],
+  );
+
+  function snapToMeasure(
+    s: Section,
+    pct: number,
+  ): { pct: number; measureNumber: number } {
+    const span = Math.max(1e-6, s.end - s.start);
+    const time = s.start + pct * span;
+    // Candidates: measures whose start lies within [s.start, s.end].
+    let best = measures[0];
+    let bestDist = Infinity;
+    for (const m of measures) {
+      if (m.start < s.start - 1e-6 || m.start > s.end + 1e-6) continue;
+      const d = Math.abs(m.start - time);
+      if (d < bestDist) {
+        best = m;
+        bestDist = d;
+      }
+    }
+    if (!best) return { pct, measureNumber: 1 };
+    const snappedPct = Math.max(0, Math.min(1, (best.start - s.start) / span));
+    return { pct: snappedPct, measureNumber: best.index + 1 };
+  }
+
+  function handleSectionClick(s: Section, clickPct: number): void {
+    if (activeSectionId === s.id) {
+      const snapped = snapToMeasure(s, clickPct);
+      transport.clock.seek(s.start + snapped.pct * (s.end - s.start));
+    } else {
+      transport.clock.seek(s.start);
+      setActiveSectionId(s.id);
+      setHoverInfo(null);
+    }
+  }
 
   function startRenameSection(id: string): void {
     setEditingKind("section");
@@ -68,37 +140,55 @@ export function SectionStrip({
     setMenu(null);
   }
 
-  // Drive the playhead from RAF.
-  useEffect(() => {
-    let raf = 0;
-    const update = (): void => {
-      const el = playheadRef.current;
-      if (el && duration > 0) {
-        const pct = (transport.clock.position / duration) * 100;
-        el.style.left = `${Math.max(0, Math.min(100, pct))}%`;
-      }
-      raf = requestAnimationFrame(update);
-    };
-    raf = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(raf);
-  }, [transport, duration]);
-
-  // Keyboard shortcuts: S = add section, B = add bookmark at playhead.
+  // Keyboard shortcuts: S = add section, B = add bookmark at playhead,
+  // Escape = exit drill-in mode / cancel rename / close menu.
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
-      if (e.key !== "s" && e.key !== "S" && e.key !== "b" && e.key !== "B") return;
       const t = e.target as HTMLElement | null;
-      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      const inForm = t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName);
+      if (e.key === "Escape") {
+        // The rename input handles Escape itself (reverts). Outside an input,
+        // Escape progressively dismisses transient UI: menu → drill-in.
+        if (inForm) return;
+        if (menu) {
+          e.preventDefault();
+          setMenu(null);
+          return;
+        }
+        if (activeSectionId) {
+          e.preventDefault();
+          setActiveSectionId(null);
+          setHoverInfo(null);
+        }
+        return;
+      }
+      if (e.key !== "s" && e.key !== "S" && e.key !== "b" && e.key !== "B") return;
+      if (inForm) return;
       e.preventDefault();
       if (e.key === "s" || e.key === "S") {
         onChange(addSection(state, transport.clock.position, duration));
       } else {
-        onChange(addBookmark(state, transport.clock.position, "Mark", duration));
+        onChange(
+          addBookmark(
+            state,
+            snapTimeToNearestMeasure(transport.clock.position),
+            "Mark",
+            duration,
+          ),
+        );
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state, transport, duration, onChange]);
+  }, [
+    state,
+    transport,
+    duration,
+    onChange,
+    menu,
+    activeSectionId,
+    snapTimeToNearestMeasure,
+  ]);
 
   // Close menu on outside click / any key.
   useEffect(() => {
@@ -112,14 +202,41 @@ export function SectionStrip({
     };
   }, [menu]);
 
-  // Drag-resize boundary.
+  // Drill-down mode persists ONLY while clicking inside a section block.
+  // Any click elsewhere — outside the strip, OR on the strip's chrome
+  // (toolbar, bookmark lane, gaps, ↕ button) — clears active. Section
+  // blocks call e.stopPropagation() in their onClick handlers so this
+  // listener never sees a real block click.
+  useEffect(() => {
+    if (!activeSectionId) return;
+    function onWindowClick(ev: MouseEvent): void {
+      const target = ev.target as HTMLElement | null;
+      if (target && target.closest(".section-strip__block")) return;
+      setActiveSectionId(null);
+      setHoverInfo(null);
+    }
+    window.addEventListener("click", onWindowClick);
+    return () => window.removeEventListener("click", onWindowClick);
+  }, [activeSectionId]);
+
+  // Drag-resize boundary. While dragging, if the cursor comes within SNAP_PCT
+  // of the boundary's original auto-detected position, snap back to it so the
+  // user can return to the default break point.
   useEffect(() => {
     if (!dragging) return;
+    const draggedSection = state.sections.find((s) => s.id === dragging.leftId);
+    const snapTarget = draggedSection?.autoEnd ?? null;
     function onMove(ev: MouseEvent): void {
       const el = sectionsRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const t = ((ev.clientX - rect.left) / rect.width) * duration;
+      let t = ((ev.clientX - rect.left) / rect.width) * duration;
+      if (
+        snapTarget !== null &&
+        Math.abs(t - snapTarget) <= SNAP_PCT * duration
+      ) {
+        t = snapTarget;
+      }
       onChange(resizeBoundary(state, dragging!.leftId, t, duration));
     }
     function onUp(): void {
@@ -145,11 +262,71 @@ export function SectionStrip({
       transport.clock.setLoop(null);
     }
     transport.clock.seek(Math.max(0, Math.min(duration, time)));
+    setActiveSectionId(null);
+    setHoverInfo(null);
+  }
+
+  // Both right-click and double-click on the strip create a bookmark at the
+  // cursor position and immediately open its name input. Bookmark pins handle
+  // their own context menus / dbl-clicks and stop propagation so they never
+  // trigger this. Section blocks now use right-click for the section menu, so
+  // we exclude them from right-click bookmark creation but allow double-click.
+  function createBookmarkAtClientX(clientX: number): void {
+    const sectionsEl = sectionsRef.current;
+    if (!sectionsEl || duration <= 0) return;
+    const rect = sectionsEl.getBoundingClientRect();
+    const rawTime = Math.max(
+      0,
+      Math.min(duration, ((clientX - rect.left) / rect.width) * duration),
+    );
+    // Bookmarks anchor on measure starts, not arbitrary click times.
+    const time = snapTimeToNearestMeasure(rawTime);
+    // Mint the id locally so we can flip into rename mode for the brand-new
+    // bookmark on the same render. `addBookmark` mints internally, so build
+    // the next state inline instead.
+    const id = newBookmarkId();
+    const next = normalize(
+      {
+        ...state,
+        bookmarks: [...state.bookmarks, { id, time, name: "Mark" }],
+      },
+      duration,
+    );
+    onChange(next);
+    setEditingKind("bookmark");
+    setEditingId(id);
+  }
+
+  function bookmarkOnRightClickAtEvent(e: React.MouseEvent<HTMLDivElement>): void {
+    const target = e.target as HTMLElement;
+    if (target.closest(".section-strip__bookmark")) return;
+    if (target.closest(".section-strip__boundary-handle")) return;
+    if (target.closest(".section-strip__block")) return;
+    e.preventDefault();
+    createBookmarkAtClientX(e.clientX);
+  }
+
+  function bookmarkOnDoubleClickAtEvent(e: React.MouseEvent<HTMLDivElement>): void {
+    const target = e.target as HTMLElement;
+    if (target.closest(".section-strip__bookmark")) return;
+    if (target.closest(".section-strip__boundary-handle")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    createBookmarkAtClientX(e.clientX);
   }
 
   return (
-    <div className={`section-strip section-strip--${position}`}>
-      <div className="section-strip__bookmarks">
+    <div
+      className={
+        `section-strip section-strip--${position}` +
+        (editingKind ? " section-strip--editing" : "")
+      }
+    >
+      <div
+        className="section-strip__bookmarks"
+        onContextMenu={bookmarkOnRightClickAtEvent}
+        onDoubleClick={bookmarkOnDoubleClickAtEvent}
+      >
         {state.bookmarks.map((b) => (
           <BookmarkPin
             key={b.id}
@@ -157,6 +334,7 @@ export function SectionStrip({
             duration={duration}
             isEditing={editingKind === "bookmark" && editingId === b.id}
             onSeek={(t) => transport.clock.seek(t)}
+            onStartRename={() => startRenameBookmark(b.id)}
             onRenameCommit={commitRename}
             onContextMenu={(e) =>
               setMenu({ kind: "bookmark", id: b.id, x: e.clientX, y: e.clientY })
@@ -167,8 +345,13 @@ export function SectionStrip({
 
       <div
         ref={sectionsRef}
-        className="section-strip__sections"
+        className={
+          "section-strip__sections" +
+          (activeSectionId ? " section-strip__sections--has-active" : "")
+        }
         onMouseDown={sectionsMouseDown}
+        onContextMenu={bookmarkOnRightClickAtEvent}
+        onDoubleClick={bookmarkOnDoubleClickAtEvent}
       >
         {state.sections.flatMap((s, i) => {
           const elements: React.ReactNode[] = [
@@ -178,8 +361,14 @@ export function SectionStrip({
               color={PALETTE[i % PALETTE.length]}
               duration={duration}
               isEditing={editingKind === "section" && editingId === s.id}
-              onSeek={(t) => transport.clock.seek(t)}
-              onStartRename={() => startRenameSection(s.id)}
+              isActive={activeSectionId === s.id}
+              onClickAt={(pct) => handleSectionClick(s, pct)}
+              onHoverMove={(pct) => {
+                if (activeSectionId === s.id) setHoverInfo(snapToMeasure(s, pct));
+              }}
+              onHoverLeave={() => {
+                if (activeSectionId === s.id) setHoverInfo(null);
+              }}
               onRenameCommit={commitRename}
               onContextMenu={(e) =>
                 setMenu({ kind: "section", id: s.id, x: e.clientX, y: e.clientY })
@@ -203,67 +392,133 @@ export function SectionStrip({
           }
           return elements;
         })}
-        <div ref={playheadRef} className="section-strip__playhead" aria-hidden />
+        {/* Dotted tether per bookmark — a faint vertical line from each pin
+            down through the section row, anchored at the bookmark's time. */}
+        {state.bookmarks.map((b) => (
+          <div
+            key={`tether-${b.id}`}
+            className="section-strip__bookmark-tether"
+            style={{ left: `${duration > 0 ? (b.time / duration) * 100 : 0}%` }}
+            aria-hidden
+          />
+        ))}
+        <div
+          ref={loopRef}
+          className="section-strip__loop-indicator"
+          aria-hidden
+          style={{ display: "none" }}
+        >
+          <span className="section-strip__loop-label">looping</span>
+        </div>
+        <div ref={playheadRef} className="section-strip__playhead" aria-hidden>
+          <span ref={playheadLabelRef} className="section-strip__playhead-label" />
+        </div>
+        {(() => {
+          if (!activeSectionId || !hoverInfo) return null;
+          const active = state.sections.find((s) => s.id === activeSectionId);
+          if (!active || duration <= 0) return null;
+          const time = active.start + hoverInfo.pct * (active.end - active.start);
+          const leftPct = (time / duration) * 100;
+          return (
+            <div
+              className="section-strip__hover-line"
+              style={{ left: `${leftPct}%` }}
+              aria-hidden
+            >
+              <span className="section-strip__hover-line-label">
+                m. {hoverInfo.measureNumber}
+              </span>
+            </div>
+          );
+        })()}
+        {(() => {
+          if (!dragging || duration <= 0) return null;
+          const left = state.sections.find((s) => s.id === dragging.leftId);
+          if (!left || left.autoEnd === undefined) return null;
+          const leftPct = (left.autoEnd / duration) * 100;
+          return (
+            <div
+              className="section-strip__snap-line"
+              style={{ left: `${leftPct}%` }}
+              aria-hidden
+            >
+              <span className="section-strip__snap-line-label">original</span>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="section-strip__toolbar">
-        <span className="section-strip__hint">
-          + Section · 📌 Bookmark · double-click rename · drag boundary · right-click for more
-        </span>
+        {showHint && (
+          <span className="section-strip__hint">
+            click a section to drill in · double-click to add a 📌 bookmark ·
+            drag boundary (snaps to original) · right-click for more
+          </span>
+        )}
         <button
           type="button"
-          className="section-strip__pos-toggle"
-          onClick={() => onPositionChange(position === "top" ? "bottom" : "top")}
-          aria-label="Move strip"
+          className="section-strip__help-toggle"
+          onClick={() => setShowHint((v) => !v)}
+          aria-pressed={showHint}
+          aria-label={showHint ? "Hide help" : "Show help"}
         >
-          ↕ {position === "top" ? "bottom" : "top"}
+          ?
+        </button>
+        <button
+          type="button"
+          className="section-strip__undo"
+          onClick={() => onUndo && onUndo()}
+          disabled={!canUndo || !onUndo}
+          title="Undo last edit (⌘Z / Ctrl+Z)"
+          aria-label="Undo last edit"
+        >
+          Undo
         </button>
       </div>
 
-      {menu && menu.kind === "section" && (
-        <ContextMenu
-          x={menu.x}
-          y={menu.y}
-          items={[
-            {
-              label: "Rename",
-              onClick: () => {
-                startRenameSection(menu.id);
-                closeMenu();
-              },
+      {menu && menu.kind === "section" && (() => {
+        const idx = state.sections.findIndex((s) => s.id === menu.id);
+        const hasRight = idx >= 0 && idx < state.sections.length - 1;
+        const hasLeft = idx > 0;
+        const items: Array<{ label: string; onClick: () => void }> = [
+          {
+            label: "Rename",
+            onClick: () => {
+              startRenameSection(menu.id);
+              closeMenu();
             },
-            {
-              label: "Split here",
-              onClick: () => {
-                onChange(splitAt(state, menu.id, transport.clock.position, duration));
-                closeMenu();
-              },
+          },
+        ];
+        if (hasRight) {
+          items.push({
+            label: "Merge with right",
+            onClick: () => {
+              onChange(mergeRight(state, menu.id, duration));
+              closeMenu();
             },
-            {
-              label: "Merge with right",
-              onClick: () => {
-                onChange(mergeRight(state, menu.id, duration));
-                closeMenu();
-              },
+          });
+        }
+        if (hasLeft) {
+          items.push({
+            label: "Merge with left",
+            onClick: () => {
+              onChange(mergeLeft(state, menu.id, duration));
+              closeMenu();
             },
-            {
-              label: "Loop section",
-              onClick: () => {
-                const s = state.sections.find((x) => x.id === menu.id);
-                if (s) transport.clock.setLoop({ start: s.start, end: s.end });
-                closeMenu();
-              },
+          });
+        }
+        if (transport.clock.loop) {
+          items.push({
+            label: "Clear loop",
+            onClick: () => {
+              transport.clock.setLoop(null);
+              closeMenu();
             },
-            {
-              label: "Delete",
-              onClick: () => {
-                onChange(deleteSection(state, menu.id, duration));
-                closeMenu();
-              },
-            },
-          ]}
-        />
-      )}
+          });
+        }
+        return <ContextMenu x={menu.x} y={menu.y} items={items} />;
+      })()}
+
       {menu && menu.kind === "bookmark" && (
         <ContextMenu
           x={menu.x}
@@ -310,8 +565,10 @@ interface SectionBlockProps {
   color: string;
   duration: number;
   isEditing: boolean;
-  onSeek: (time: number) => void;
-  onStartRename: () => void;
+  isActive: boolean;
+  onClickAt: (pct: number) => void;
+  onHoverMove: (pct: number) => void;
+  onHoverLeave: () => void;
   onRenameCommit: (name: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }
@@ -321,30 +578,41 @@ function SectionBlock({
   color,
   duration,
   isEditing,
-  onSeek,
-  onStartRename,
+  isActive,
+  onClickAt,
+  onHoverMove,
+  onHoverLeave,
   onRenameCommit,
   onContextMenu,
 }: SectionBlockProps): React.JSX.Element {
   const widthPct = duration > 0 ? ((section.end - section.start) / duration) * 100 : 0;
+  const className =
+    "section-strip__block" + (isActive ? " section-strip__block--active" : "");
   return (
     <div
-      className="section-strip__block"
+      className={className}
       style={{ flex: `${widthPct} 0 0`, background: color }}
       data-section-id={section.id}
       onClick={(e) => {
         if (isEditing) return;
         e.stopPropagation();
-        onSeek(section.start);
-      }}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        onStartRename();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        onClickAt(pct);
       }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onContextMenu(e);
+      }}
+      onMouseMove={(e) => {
+        if (!isActive || isEditing) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        onHoverMove(pct);
+      }}
+      onMouseLeave={() => {
+        if (isActive) onHoverLeave();
       }}
     >
       {isEditing ? (
@@ -372,6 +640,7 @@ interface BookmarkPinProps {
   duration: number;
   isEditing: boolean;
   onSeek: (time: number) => void;
+  onStartRename: () => void;
   onRenameCommit: (name: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }
@@ -381,6 +650,7 @@ function BookmarkPin({
   duration,
   isEditing,
   onSeek,
+  onStartRename,
   onRenameCommit,
   onContextMenu,
 }: BookmarkPinProps): React.JSX.Element {
@@ -395,13 +665,16 @@ function BookmarkPin({
         e.stopPropagation();
         onSeek(bookmark.time);
       }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onStartRename();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onContextMenu(e);
       }}
     >
-      <span aria-hidden>📌</span>
       {isEditing ? (
         <input
           aria-label="Rename bookmark"
@@ -418,30 +691,10 @@ function BookmarkPin({
       ) : (
         <span className="section-strip__bookmark-name">{bookmark.name}</span>
       )}
+      <span className="section-strip__bookmark-pin" aria-hidden>📌</span>
     </span>
   );
 }
 
-interface ContextMenuProps {
-  x: number;
-  y: number;
-  items: Array<{ label: string; onClick: () => void }>;
-}
-
-function ContextMenu({ x, y, items }: ContextMenuProps): React.JSX.Element {
-  return (
-    <ul
-      className="section-strip__menu"
-      style={{ left: x, top: y }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {items.map((it) => (
-        <li key={it.label}>
-          <button type="button" onClick={it.onClick}>
-            {it.label}
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
+// ContextMenu lifted to ./ContextMenu.tsx (also reused by PracticeView for
+// the sheet-music clear-loop floating menu).
