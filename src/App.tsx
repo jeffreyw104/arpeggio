@@ -40,9 +40,7 @@ export default function App() {
 
   return (
     <div className="landing">
-      <ImportView
-        onLoaded={(score, file) => void handleImported(score, file)}
-      />
+      <ImportView onLoaded={handleImported} />
       <LibraryBrowser onOpen={(id) => void handleOpen(id)} />
     </div>
   );

@@ -3,7 +3,9 @@ import type { Score } from "../model/score";
 import { importFile } from "../import/importFile";
 
 interface ImportViewProps {
-  onLoaded: (score: Score, file: File) => void;
+  /** Returning a Promise lets the importer surface a save-side error
+   *  (e.g., IndexedDB failure) back into this view's error state. */
+  onLoaded: (score: Score, file: File) => Promise<void> | void;
 }
 
 /** Landing screen: drop zone / file picker that imports a Score. */
@@ -16,7 +18,7 @@ export function ImportView({ onLoaded }: ImportViewProps) {
     setLoading(true);
     try {
       const score = await importFile(file);
-      onLoaded(score, file);
+      await onLoaded(score, file);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

@@ -60,11 +60,22 @@ function promisify<T>(req: IDBRequest<T>): Promise<T> {
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
-/** Open (once) the Arpeggio IndexedDB database, creating the stores. */
+/** Open (once) the Arpeggio IndexedDB database, creating the stores.
+ *  Errors are logged loudly and the cached promise is cleared on failure
+ *  so callers can retry instead of being permanently stuck. */
 function openDb(): Promise<IDBDatabase> {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      let req: IDBOpenDBRequest;
+      try {
+        req = indexedDB.open(DB_NAME, DB_VERSION);
+      } catch (err) {
+        // Some browsers throw synchronously (e.g., private-mode Safari).
+        console.error("[arpeggio] indexedDB.open threw:", err);
+        dbPromise = null;
+        reject(err);
+        return;
+      }
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains(PIECES)) {
@@ -74,8 +85,35 @@ function openDb(): Promise<IDBDatabase> {
           db.createObjectStore(PRACTICE, { keyPath: "pieceId" });
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        // Confirm both stores landed (paranoia for partially-upgraded DBs).
+        const missing: string[] = [];
+        if (!db.objectStoreNames.contains(PIECES)) missing.push(PIECES);
+        if (!db.objectStoreNames.contains(PRACTICE)) missing.push(PRACTICE);
+        if (missing.length > 0) {
+          console.error(
+            `[arpeggio] IDB opened but expected stores missing: ${missing.join(", ")}. ` +
+              `DB version=${db.version}, stores=${Array.from(db.objectStoreNames).join(",")}`,
+          );
+        }
+        resolve(db);
+      };
+      req.onerror = () => {
+        console.error(
+          "[arpeggio] IDB open failed:",
+          req.error,
+          `(name=${req.error?.name}, message=${req.error?.message})`,
+        );
+        dbPromise = null;
+        reject(req.error);
+      };
+      req.onblocked = () => {
+        console.warn(
+          "[arpeggio] IDB open blocked — another Arpeggio tab has the DB open " +
+            "at an older version. Close other Arpeggio tabs and refresh.",
+        );
+      };
     });
   }
   return dbPromise;
