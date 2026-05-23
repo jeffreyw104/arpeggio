@@ -1,0 +1,182 @@
+import {
+  normalize,
+  newSectionId,
+  type Section,
+  type SectionState,
+} from "../model/sections";
+import type { Score } from "../model/score";
+
+// === Thresholds (named constants for easy tuning) ===
+const TEMPO_DELTA_THRESHOLD = 0.08;        // 8%
+// Soft-boundary thresholds added in Task 5.
+// Smart-label thresholds added in Task 7.
+const MAX_SECTIONS = 12;                   // Pass 3 cap; declared early.
+
+/** Candidate boundary in the auto-detect pipeline. */
+interface Candidate {
+  /** Measure index this boundary sits at the START of. */
+  measureIndex: number;
+  /** Section start time (seconds), == measures[measureIndex].start. */
+  time: number;
+  /** "hard" (always kept) or "soft" (kept only by signal cluster). */
+  kind: "hard" | "soft";
+  /** For "hard" via marker — the section's name; else undefined. */
+  name?: string;
+  /** Which signals fired here (for diagnostics + Pass 3 weakness ranking). */
+  signals: string[];
+}
+
+/** Return the measure index whose start is nearest to `time`. */
+function nearestMeasureIndex(measures: Score["measures"], time: number): number {
+  if (measures.length === 0) return 0;
+  let best = 0;
+  let bestDist = Math.abs(measures[0].start - time);
+  for (let i = 1; i < measures.length; i += 1) {
+    const d = Math.abs(measures[i].start - time);
+    if (d < bestDist) {
+      best = i;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+
+interface Pass1Result {
+  candidates: Candidate[];
+  /** Name from a marker that snapped to measure 0 (names the opening section). */
+  measureZeroName?: string;
+}
+
+function pass1HardBoundaries(score: Score): Pass1Result {
+  const candidates: Candidate[] = [];
+  const seen = new Set<number>();
+  let measureZeroName: string | undefined;
+
+  function add(measureIndex: number, signal: string, name?: string): void {
+    if (measureIndex < 0) return;
+    if (measureIndex >= score.measures.length) return;
+    // Measure 0 is the implicit start — capture its name but don't emit a boundary candidate.
+    if (measureIndex === 0) {
+      if (name && !measureZeroName) measureZeroName = name;
+      return;
+    }
+    if (seen.has(measureIndex)) {
+      const existing = candidates.find((c) => c.measureIndex === measureIndex)!;
+      existing.signals.push(signal);
+      if (name && !existing.name) existing.name = name;
+      return;
+    }
+    seen.add(measureIndex);
+    candidates.push({
+      measureIndex,
+      time: score.measures[measureIndex].start,
+      kind: "hard",
+      name,
+      signals: [signal],
+    });
+  }
+
+  // Markers.
+  for (const marker of score.midiMarkers ?? []) {
+    const idx = nearestMeasureIndex(score.measures, marker.time);
+    add(idx, "marker", marker.text);
+  }
+
+  // Tempo changes >= 8% delta.
+  for (let i = 1; i < score.tempoMap.length; i += 1) {
+    const prev = score.tempoMap[i - 1].bpm;
+    const cur = score.tempoMap[i].bpm;
+    if (Math.abs(cur - prev) / prev >= TEMPO_DELTA_THRESHOLD) {
+      const idx = nearestMeasureIndex(score.measures, score.tempoMap[i].start);
+      add(idx, "tempo");
+    }
+  }
+
+  // Time-signature change between adjacent measures.
+  for (let i = 1; i < score.measures.length; i += 1) {
+    const prev = score.measures[i - 1];
+    const cur = score.measures[i];
+    if (
+      prev.numerator !== cur.numerator ||
+      prev.denominator !== cur.denominator
+    ) {
+      add(i, "timesig");
+    }
+  }
+
+  return { candidates: candidates.sort((a, b) => a.measureIndex - b.measureIndex), measureZeroName };
+}
+
+function candidatesToSections(
+  candidates: Candidate[],
+  durationSeconds: number,
+  _hasMarkers: boolean,
+  measureZeroName?: string,
+): Section[] {
+  const sortedCands = [...candidates].sort((a, b) => a.time - b.time);
+  const starts: Array<{ time: number; name?: string }> = [{ time: 0, name: measureZeroName }];
+  for (const c of sortedCands) {
+    if (c.time > 0 && c.time < durationSeconds) {
+      starts.push({ time: c.time, name: c.name });
+    }
+  }
+
+  const sections: Section[] = [];
+  let labelN = 1;
+  for (let i = 0; i < starts.length; i += 1) {
+    const start = starts[i].time;
+    const end = i + 1 < starts.length ? starts[i + 1].time : durationSeconds;
+    if (end <= start) continue;
+    const explicit = starts[i].name;
+    sections.push({
+      id: newSectionId(),
+      start,
+      end,
+      name: explicit ?? `Section ${labelN}`,
+      isAuto: true,
+    });
+    if (!explicit) labelN += 1;
+  }
+  return sections;
+}
+
+/**
+ * Pure: given a Score, produce an initial SectionState.
+ * Runs in four passes — see spec docs/superpowers/specs/2026-05-23-midi-section-navigator-design.md.
+ *
+ * Current passes implemented: 1 (hard boundaries) + fallback.
+ */
+export function autoDetect(score: Score): SectionState {
+  const duration = Math.max(0, score.durationSeconds);
+  const hasMarkers = (score.midiMarkers?.length ?? 0) > 0;
+
+  // Pass 1
+  const { candidates: hardCands, measureZeroName } = pass1HardBoundaries(score);
+
+  // Pass 2 / 3 / 4 added in later tasks.
+  let sections = candidatesToSections(hardCands, duration, hasMarkers, measureZeroName);
+
+  // Cap (Pass 3) — partial: hard boundaries can also be capped at MAX_SECTIONS,
+  // but markers are never dropped. (Later tasks refine this.)
+  if (sections.length > MAX_SECTIONS) {
+    sections = sections.slice(0, MAX_SECTIONS);
+  }
+
+  // Fallback if no boundaries: one "Whole piece" section.
+  if (sections.length === 0) {
+    sections = [
+      {
+        id: newSectionId(),
+        start: 0,
+        end: duration,
+        name: "Whole piece",
+        isAuto: true,
+      },
+    ];
+  }
+
+  return normalize(
+    { sections, bookmarks: [], version: 1 },
+    duration,
+  );
+}
