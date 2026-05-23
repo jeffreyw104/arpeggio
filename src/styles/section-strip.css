@@ -71,3 +71,44 @@
   cursor: pointer;
   font-size: 10px;
 }
+
+.section-strip__rename-input {
+  background: rgba(255,255,255,0.92);
+  border: 0;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font: inherit;
+  width: 80%;
+  text-align: center;
+}
+.section-strip__menu {
+  position: fixed;
+  z-index: 50;
+  background: #fff;
+  border: 1px solid #c9c0a8;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  min-width: 160px;
+}
+.section-strip__menu li button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.section-strip__menu li button:hover { background: #f4efe0; }
+
+.section-strip__boundary-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  cursor: ew-resize;
+}
