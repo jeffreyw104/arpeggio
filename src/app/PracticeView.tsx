@@ -15,6 +15,8 @@ import { ScoreView } from "../score-view/scoreView";
 import { ReadingLaneView } from "../score-view/ReadingLaneView";
 import { Divider } from "../layout/Divider";
 import type { ViewMode } from "../layout/viewMode";
+import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
+import { useIsNarrowViewport } from "../responsive/useIsNarrowViewport";
 import { TopBar } from "../ui/TopBar";
 import { ToolsPopover } from "../ui/ToolsPopover";
 import { PlayTools } from "../ui/PlayTools";
@@ -130,6 +132,11 @@ export function PracticeView({
   const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
   const [practiceLayout, setPracticeLayout] = useState<PracticeLayout>("lane");
   const [laneTheme, setLaneTheme] = useState<LaneTheme>("paper");
+
+  const isTouchDevice = useIsTouchDevice();
+  const isNarrowViewport = useIsNarrowViewport(1024);
+  const layoutOrientation: "row" | "column" =
+    isTouchDevice && isNarrowViewport ? "column" : "row";
 
   // The falldown renderer and audio engine are built inside the mount effect;
   // exposing them as state lets the Tools popover render against them in JSX.
@@ -580,7 +587,9 @@ export function PracticeView({
     ? { flex: 1 }
     : isMidi
     ? practiceLayout === "split"
-      ? { flexBasis: `${split * 100}%`, flexGrow: 0, flexShrink: 0 }
+      ? layoutOrientation === "row"
+        ? { flexBasis: `${split * 100}%`, flexGrow: 0, flexShrink: 0 }
+        : undefined
       : undefined
     : viewMode === "both"
       ? {
@@ -671,6 +680,7 @@ export function PracticeView({
           `practice-content--${mode}`,
           isMidi ? `layout-${practiceLayout}` : "",
           isMidiSource ? "practice-content--midi-source" : "",
+          layoutOrientation === "column" ? "practice-content--column" : "",
         ]
           .filter(Boolean)
           .join(" ")}

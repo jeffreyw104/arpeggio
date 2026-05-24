@@ -1519,3 +1519,20 @@ textarea {
   height: 4px;
   cursor: row-resize;
 }
+
+/* iPad / touch tablet narrow-viewport stacking. Applies only when
+   .app--touch is present (touch device) AND .practice-content--column
+   is set (narrow viewport). Desktop browsers, even when resized narrow,
+   never get .app--touch and therefore never trigger this rule. */
+.app--touch .practice-content--midi.layout-split.practice-content--column {
+  flex-direction: column;
+}
+
+.app--touch .practice-content--midi.layout-split.practice-content--column
+  .practice-falldown-panel,
+.app--touch .practice-content--midi.layout-split.practice-content--column
+  .practice-score-panel {
+  flex-basis: auto;
+  min-height: 0;
+  height: 50%;
+}
