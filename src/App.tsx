@@ -5,6 +5,7 @@ import { PracticeView } from "./app/PracticeView";
 import { LibraryBrowser } from "./library/LibraryBrowser";
 import { savePiece, getPiece } from "./library/db";
 import { importFile } from "./import/importFile";
+import { useIsTouchDevice } from "./responsive/useIsTouchDevice";
 
 interface Session {
   score: Score;
@@ -14,6 +15,8 @@ interface Session {
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const isTouch = useIsTouchDevice();
+  const appClass = "app" + (isTouch ? " app--touch" : "");
 
   async function handleImported(score: Score, file: File) {
     const id = await savePiece(file.name, await file.arrayBuffer());
@@ -29,17 +32,19 @@ export default function App() {
 
   if (session) {
     return (
-      <PracticeView
-        score={session.score}
-        pieceId={session.pieceId}
-        pieceName={session.pieceName}
-        onExit={() => setSession(null)}
-      />
+      <div className={appClass}>
+        <PracticeView
+          score={session.score}
+          pieceId={session.pieceId}
+          pieceName={session.pieceName}
+          onExit={() => setSession(null)}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="landing">
+    <div className={`${appClass} landing`}>
       <ImportView onLoaded={handleImported} />
       <LibraryBrowser onOpen={(id) => void handleOpen(id)} />
     </div>
