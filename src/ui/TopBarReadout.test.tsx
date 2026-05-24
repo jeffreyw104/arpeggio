@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import { TopBarReadout } from "./TopBarReadout";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
+import type { Hand } from "../model/score";
 
 interface FakeTransport extends Transport {
   _listeners: Array<() => void>;
@@ -95,5 +96,109 @@ describe("TopBarReadout — read-only chips", () => {
       t._listeners.forEach((cb) => cb());
     });
     expect(screen.getByText(/m\. 3 \/ 4/)).toBeInTheDocument();
+  });
+});
+
+describe("TopBarReadout — wait pill", () => {
+  function commonProps(over: Partial<Parameters<typeof TopBarReadout>[0]> = {}) {
+    return {
+      mode: "midi" as const,
+      transport: makeTransport({}),
+      audioEngine: makeEngine(),
+      waitEnabled: false,
+      onWaitEnabledChange: vi.fn(),
+      handsIPlay: new Set<Hand>(),
+      onHandsIPlayChange: vi.fn(),
+      ...over,
+    };
+  }
+
+  it("does NOT render the wait pill in Play mode", () => {
+    render(<TopBarReadout {...commonProps({ mode: "play" })} />);
+    expect(screen.queryByRole("button", { name: /wait/i })).toBeNull();
+  });
+
+  it("renders the wait pill in MIDI Practice mode with `Turn on wait mode` when off", () => {
+    render(<TopBarReadout {...commonProps()} />);
+    expect(
+      screen.getByRole("button", { name: /turn on wait mode/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders `Wait L` when wait is on and hands = Left", () => {
+    const p = commonProps({
+      waitEnabled: true,
+      handsIPlay: new Set<Hand>(["left"]),
+    });
+    render(<TopBarReadout {...p} />);
+    expect(screen.getByRole("button", { name: /Wait L/ })).toBeInTheDocument();
+  });
+
+  it("renders `Wait L+R` when wait is on and hands = Both", () => {
+    const p = commonProps({
+      waitEnabled: true,
+      handsIPlay: new Set<Hand>(["left", "right"]),
+    });
+    render(<TopBarReadout {...p} />);
+    expect(screen.getByRole("button", { name: /Wait L\+R/ })).toBeInTheDocument();
+  });
+
+  it("renders `Wait R` when wait is on and hands = Right", () => {
+    const p = commonProps({
+      waitEnabled: true,
+      handsIPlay: new Set<Hand>(["right"]),
+    });
+    render(<TopBarReadout {...p} />);
+    expect(screen.getByRole("button", { name: /Wait R/ })).toBeInTheDocument();
+  });
+
+  it("opens a menu with Left / Both / Right when clicked from the OFF state", () => {
+    render(<TopBarReadout {...commonProps()} />);
+    fireEvent.click(screen.getByRole("button", { name: /turn on wait mode/i }));
+    expect(screen.getByText("Left hand")).toBeInTheDocument();
+    expect(screen.getByText("Both hands")).toBeInTheDocument();
+    expect(screen.getByText("Right hand")).toBeInTheDocument();
+    expect(screen.queryByText("Off")).toBeNull();
+  });
+
+  it("picks Left from OFF state → calls onWaitEnabledChange(true) AND onHandsIPlayChange({left})", () => {
+    const onWaitEnabledChange = vi.fn();
+    const onHandsIPlayChange = vi.fn();
+    render(
+      <TopBarReadout
+        {...commonProps({ onWaitEnabledChange, onHandsIPlayChange })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /turn on wait mode/i }));
+    fireEvent.click(screen.getByText("Left hand"));
+    expect(onWaitEnabledChange).toHaveBeenCalledWith(true);
+    expect(onHandsIPlayChange).toHaveBeenCalledWith(new Set(["left"]));
+  });
+
+  it("opens a menu with Off + hand options when clicked from ON state", () => {
+    const p = commonProps({
+      waitEnabled: true,
+      handsIPlay: new Set<Hand>(["left"]),
+    });
+    render(<TopBarReadout {...p} />);
+    fireEvent.click(screen.getByRole("button", { name: /Wait L/ }));
+    expect(screen.getByText("Off")).toBeInTheDocument();
+    expect(screen.getByText("Left hand")).toBeInTheDocument();
+  });
+
+  it("picks Off from ON state → calls onWaitEnabledChange(false), leaves handsIPlay alone", () => {
+    const onWaitEnabledChange = vi.fn();
+    const onHandsIPlayChange = vi.fn();
+    const p = commonProps({
+      waitEnabled: true,
+      handsIPlay: new Set<Hand>(["left"]),
+      onWaitEnabledChange,
+      onHandsIPlayChange,
+    });
+    render(<TopBarReadout {...p} />);
+    fireEvent.click(screen.getByRole("button", { name: /Wait L/ }));
+    fireEvent.click(screen.getByText("Off"));
+    expect(onWaitEnabledChange).toHaveBeenCalledWith(false);
+    expect(onHandsIPlayChange).not.toHaveBeenCalled();
   });
 });

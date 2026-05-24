@@ -1468,3 +1468,45 @@ textarea {
   background: rgba(217, 83, 79, 0.10);
   border-color: rgba(217, 83, 79, 0.45);
 }
+
+/* --- TopBarReadout wait pill --- */
+
+.top-bar-wait { position: relative; display: inline-flex; }
+
+.top-bar-wait-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1.5rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.top-bar-wait-pill--off {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+}
+.top-bar-wait-pill--off .top-bar-wait-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4a4a52;
+  display: inline-block;
+}
+
+.top-bar-wait-pill--on {
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  font-weight: 500;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.top-bar-wait-pill--on .top-bar-wait-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #d6ffe9;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  display: inline-block;
+}
