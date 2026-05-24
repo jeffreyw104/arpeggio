@@ -5,6 +5,33 @@ import { Layout } from "./Layout";
 const falldown = <div data-testid="falldown-panel">falldown</div>;
 const scorePanel = <div data-testid="score-panel">score</div>;
 
+test("orientation='column' applies layout--column class", () => {
+  const { container } = render(
+    <Layout
+      viewMode="both"
+      split={0.5}
+      onSplitChange={() => {}}
+      falldown={<div>F</div>}
+      score={<div>S</div>}
+      orientation="column"
+    />,
+  );
+  expect(container.querySelector(".layout")?.classList.contains("layout--column")).toBe(true);
+});
+
+test("orientation defaults to row (no class added)", () => {
+  const { container } = render(
+    <Layout
+      viewMode="both"
+      split={0.5}
+      onSplitChange={() => {}}
+      falldown={<div>F</div>}
+      score={<div>S</div>}
+    />,
+  );
+  expect(container.querySelector(".layout")?.classList.contains("layout--column")).toBe(false);
+});
+
 describe("Layout", () => {
   it("shows both panels and the divider in 'both' mode", () => {
     render(

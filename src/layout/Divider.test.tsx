@@ -2,6 +2,17 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Divider } from "./Divider";
 
+test("orientation='horizontal' updates fraction from clientY", () => {
+  const onChange = vi.fn();
+  Object.defineProperty(window, "innerHeight", { value: 1000, configurable: true });
+  const { container } = render(<Divider fraction={0.5} onChange={onChange} orientation="horizontal" />);
+  const separator = container.querySelector('[role="separator"]')!;
+  fireEvent.mouseDown(separator);
+  fireEvent.mouseMove(window, { clientY: 400 });
+  expect(onChange).toHaveBeenLastCalledWith(0.4);
+  fireEvent.mouseUp(window);
+});
+
 describe("Divider", () => {
   it("renders a separator with an accessible role", () => {
     render(<Divider fraction={0.65} onChange={() => {}} />);

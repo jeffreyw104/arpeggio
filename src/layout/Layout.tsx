@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ViewMode } from "./viewMode";
-import { Divider } from "./Divider";
+import { Divider, type DividerOrientation } from "./Divider";
 
 interface LayoutProps {
   viewMode: ViewMode;
@@ -8,6 +8,9 @@ interface LayoutProps {
   onSplitChange: (f: number) => void;
   falldown: ReactNode;
   score: ReactNode;
+  /** `"row"` (default) lays out panels left/right; `"column"` lays them
+   *  top/bottom (e.g. tablet portrait). */
+  orientation?: "row" | "column";
 }
 
 export function Layout({
@@ -16,9 +19,11 @@ export function Layout({
   onSplitChange,
   falldown,
   score,
+  orientation = "row",
 }: LayoutProps) {
   const showFalldown = viewMode !== "score";
   const showScore = viewMode !== "falldown";
+  const dividerAxis: DividerOrientation = orientation === "column" ? "horizontal" : "vertical";
 
   const falldownStyle =
     viewMode === "both"
@@ -30,13 +35,15 @@ export function Layout({
         }
       : { display: showFalldown ? undefined : "none", flex: 1 };
 
+  const className = "layout" + (orientation === "column" ? " layout--column" : "");
+
   return (
-    <div className="layout">
+    <div className={className}>
       <div className="layout-panel" style={falldownStyle}>
         {falldown}
       </div>
       {viewMode === "both" && (
-        <Divider fraction={split} onChange={onSplitChange} />
+        <Divider fraction={split} onChange={onSplitChange} orientation={dividerAxis} />
       )}
       <div
         className="layout-panel"

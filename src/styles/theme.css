@@ -1509,3 +1509,13 @@ textarea {
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
   display: inline-block;
 }
+
+/* ── iPad / tablet orientation variants ── */
+.layout--column { flex-direction: column; }
+.layout--column .layout-panel { flex-basis: auto; }
+
+.divider--horizontal {
+  width: 100%;
+  height: 4px;
+  cursor: row-resize;
+}
