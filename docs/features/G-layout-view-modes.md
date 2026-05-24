@@ -40,6 +40,12 @@ E (Falldown View), F (Score View).
   (Reading lane / Split) plus the conditional Paper/Dark theme toggle collapse
   into a single multi-section TopBarSelect pill — picking a Lane theme
   auto-switches to Reading lane.
+- 2026-05-24 — MIDI Practice tab Layout pill gains **Falldown only** and
+  **Score only** options (full parity with the Play tab View pill). The
+  `PracticeLayout` union widens to `"lane" | "split" | "falldown" | "score"`;
+  new CSS rule blocks `.practice-content--midi.layout-falldown` and
+  `.layout-score` drive the visibility. Lane theme picker behavior is
+  unchanged. `practiceLayout` remains in-memory state (not persisted).
 
 ## Keywords
 
