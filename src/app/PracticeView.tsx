@@ -593,14 +593,15 @@ export function PracticeView({
 
   // Score panel display style.
   const scorePanelStyle = isMidi
-    ? practiceLayout === "split"
+    ? practiceLayout === "split" || practiceLayout === "score"
       ? { flex: 1 }
       : undefined
     : { display: showScoreInPlay ? undefined : "none", flex: 1 };
 
-  // The score-container uses horizontal-pages only in play score-only view.
+  // The score-container uses horizontal-pages in play score-only view and
+  // in MIDI score-only layout.
   const scoreContainerClass =
-    !isMidi && viewMode === "score"
+    (!isMidi && viewMode === "score") || (isMidi && practiceLayout === "score")
       ? "score-container horizontal-pages"
       : "score-container";
 
@@ -698,7 +699,7 @@ export function PracticeView({
           <div ref={scoreContainerRef} className={scoreContainerClass} />
 
           {/* Score zoom buttons — wherever the paginated score is shown */}
-          {(!isMidi || practiceLayout === "split") && (
+          {(!isMidi || practiceLayout === "split" || practiceLayout === "score") && (
             <div className="score-zoom">
               <button type="button" aria-label="Zoom out" onClick={zoomOut}>
                 −
