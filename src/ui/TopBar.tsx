@@ -6,6 +6,8 @@ import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 import type { MidiStatus } from "../midi/MidiInput";
+import { TopBarReadout } from "./TopBarReadout";
+import type { Hand } from "../model/score";
 
 interface TopBarProps {
   pieceName: string;
@@ -31,6 +33,11 @@ interface TopBarProps {
   midiStatus?: MidiStatus;
   /** MIDI tab: name of the connected device (when status is "connected"). */
   midiDeviceName?: string;
+  /** MIDI tab: wait-mode state, exposed via the top-bar wait pill. */
+  waitEnabled?: boolean;
+  onWaitEnabledChange?: (on: boolean) => void;
+  handsIPlay?: ReadonlySet<Hand>;
+  onHandsIPlayChange?: (hands: Set<Hand>) => void;
   /** True when the loaded piece is a MIDI file. Hides the scrubber and
    *  practice-layout controls (replaced by the SectionStrip). */
   isMidiSource?: boolean;
@@ -82,6 +89,10 @@ export function TopBar({
   onLaneThemeChange,
   midiStatus,
   midiDeviceName,
+  waitEnabled,
+  onWaitEnabledChange,
+  handsIPlay,
+  onHandsIPlayChange,
   isMidiSource = false,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
@@ -199,6 +210,15 @@ export function TopBar({
         <span className="top-bar-piece-title">{displayName(pieceName)}</span>
       </div>
       <span className="top-bar-spacer" />
+      <TopBarReadout
+        mode={mode}
+        transport={transport}
+        audioEngine={audioEngine}
+        waitEnabled={waitEnabled}
+        onWaitEnabledChange={onWaitEnabledChange}
+        handsIPlay={handsIPlay}
+        onHandsIPlayChange={onHandsIPlayChange}
+      />
       {mode === "midi" && midiStatus !== undefined && (
         <span
           className="midi-status-chip"

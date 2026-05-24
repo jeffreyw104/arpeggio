@@ -159,6 +159,12 @@ describe("TopBar", () => {
     });
   });
 
+  it("renders the TopBarReadout chip group in the slack region", () => {
+    renderBar();
+    // Tempo chip is always present once the readout renders
+    expect(screen.getByText(/♩ =/)).toBeInTheDocument();
+  });
+
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {
