@@ -1564,14 +1564,47 @@ textarea {
 }
 
 /* iPad / touch tablet — respect safe-area insets in installed-PWA fullscreen
-   mode (apple-mobile-web-app-capable). The .app--touch class is only set on
-   touch devices, so desktop browsers never trigger these rules. */
+   mode (apple-mobile-web-app-capable) AND enforce the single-row TopBar
+   invariant. Both blocks gated by .app--touch so desktop is untouched. */
 .app--touch .top-bar {
   padding-left: max(12px, env(safe-area-inset-left));
   padding-right: max(12px, env(safe-area-inset-right));
   padding-top: max(0px, env(safe-area-inset-top));
+  flex-wrap: nowrap;
 }
 
 .app--touch .practice-content {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Every TopBar control is fixed-width; the piece-name container is the
+   only flex-shrinkable item, so the title ellipsizes when space is tight
+   but the bar never wraps or clips. */
+.app--touch .top-bar > * {
+  flex-shrink: 0;
+}
+
+.app--touch .top-bar .top-bar-piece {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app--touch .top-bar .top-bar-piece-label {
+  display: none;
+}
+
+.app--touch .top-bar .top-bar-piece-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 24ch;
+}
+
+/* Hit-target floor: every interactive element in the TopBar gets a 44pt
+   minimum on touch devices (Apple HIG). */
+.app--touch .top-bar button,
+.app--touch .top-bar input[type="range"],
+.app--touch .top-bar .midi-status-chip {
+  min-height: 44px;
 }
