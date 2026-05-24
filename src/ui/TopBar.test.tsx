@@ -198,6 +198,34 @@ describe("TopBar", () => {
     expect(onPracticeLayoutChange).toHaveBeenCalledWith("lane");
   });
 
+  test("MIDI Practice tab Layout pill exposes Falldown only and Score only", () => {
+    const onPracticeLayoutChange = vi.fn();
+    renderBar({
+      mode: "midi",
+      practiceLayout: "split",
+      laneTheme: "dark",
+      onPracticeLayoutChange,
+    });
+
+    // Open the Layout pill.
+    fireEvent.click(screen.getByRole("button", { name: /Layout: Split/ }));
+
+    // All four options are listed.
+    expect(screen.getByRole("menuitem", { name: /Reading lane/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Split/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Falldown only/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Score only/ })).toBeInTheDocument();
+
+    // Selecting "Falldown only" fires the callback with "falldown".
+    fireEvent.click(screen.getByRole("menuitem", { name: /Falldown only/ }));
+    expect(onPracticeLayoutChange).toHaveBeenCalledWith("falldown");
+
+    // Re-open and select "Score only".
+    fireEvent.click(screen.getByRole("button", { name: /Layout:/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Score only/ }));
+    expect(onPracticeLayoutChange).toHaveBeenCalledWith("score");
+  });
+
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {

@@ -260,6 +260,8 @@ export function TopBar({
                 items: [
                   { value: "lane", label: "Reading lane" },
                   { value: "split", label: "Split" },
+                  { value: "falldown", label: "Falldown only" },
+                  { value: "score", label: "Score only" },
                 ],
               },
               {
