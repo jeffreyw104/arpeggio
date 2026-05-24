@@ -209,4 +209,99 @@ describe("Metronome", () => {
     m.updateFree(120, 1000);
     expect(click).not.toHaveBeenCalled();
   });
+
+  it("follows mid-piece time-signature changes when clicking", () => {
+    // Four 2-second measures: 4/4 for measures 0-1, 6/4 starting at t=4.
+    const multiSig = {
+      ...score,
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 4, denominator: 4 },
+        { index: 2, start: 4, end: 6, numerator: 6, denominator: 4 },
+        { index: 3, start: 6, end: 8, numerator: 6, denominator: 4 },
+      ],
+      timeSignatures: [
+        { start: 0, numerator: 4, denominator: 4 },
+        { start: 4, numerator: 6, denominator: 4 },
+      ],
+      durationSeconds: 8,
+    } satisfies Score;
+    const m = new Metronome(multiSig);
+    m.enabled = true;
+    const times: number[] = [];
+    m.onClick((time) => times.push(time));
+    m.update(-0.01, 8);
+    // First two measures (4/4): 8 beats every 0.5 s -> 0..3.5.
+    // Last two measures (6/4): 12 beats every 2/6 ≈ 0.333 s over [4,8].
+    expect(times.length).toBe(8 + 12);
+    expect(times.slice(0, 8)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);
+    expect(times[8]).toBeCloseTo(4, 6);
+    expect(times[9]).toBeCloseTo(4 + 2 / 6, 6);
+  });
+
+  it("timeSignature getter is position-aware", () => {
+    const multiSig = {
+      ...score,
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 6, denominator: 4 },
+      ],
+      timeSignatures: [
+        { start: 0, numerator: 4, denominator: 4 },
+        { start: 2, numerator: 6, denominator: 4 },
+      ],
+      durationSeconds: 4,
+    } satisfies Score;
+    const m = new Metronome(multiSig);
+    m.update(0, 0); // position = 0
+    expect(m.timeSignature).toEqual({ numerator: 4, denominator: 4 });
+    m.update(0, 3); // position = 3, inside the 6/4 segment
+    expect(m.timeSignature).toEqual({ numerator: 6, denominator: 4 });
+  });
+
+  it("setTimeSignature collapses a multi-segment score to a single segment", () => {
+    const multiSig = {
+      ...score,
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 6, denominator: 4 },
+      ],
+      timeSignatures: [
+        { start: 0, numerator: 4, denominator: 4 },
+        { start: 2, numerator: 6, denominator: 4 },
+      ],
+      durationSeconds: 4,
+    } satisfies Score;
+    const m = new Metronome(multiSig);
+    m.setTimeSignature(3, 4);
+    // The previously-6/4 segment now reports 3/4 (single sig everywhere).
+    m.update(0, 3);
+    expect(m.timeSignature).toEqual({ numerator: 3, denominator: 4 });
+    m.update(0, 0);
+    expect(m.timeSignature).toEqual({ numerator: 3, denominator: 4 });
+  });
+
+  it("setScore preserves a manual override", () => {
+    const m = new Metronome(score); // score is 4/4 throughout
+    m.setTimeSignature(3, 4); // manual override active
+    const swapped = {
+      ...score,
+      timeSignatures: [{ start: 0, numerator: 6, denominator: 8 }],
+    } satisfies Score;
+    m.setScore(swapped);
+    // The 6/8 from the new score is ignored — manual override wins.
+    m.update(0, 0);
+    expect(m.timeSignature).toEqual({ numerator: 3, denominator: 4 });
+  });
+
+  it("setScore without an active override adopts the new score's segments", () => {
+    const m = new Metronome(score); // 4/4 throughout, no override
+    const swapped = {
+      ...score,
+      timeSignatures: [{ start: 0, numerator: 6, denominator: 8 }],
+    } satisfies Score;
+    m.setScore(swapped);
+    m.update(0, 0);
+    expect(m.timeSignature).toEqual({ numerator: 6, denominator: 8 });
+  });
 });

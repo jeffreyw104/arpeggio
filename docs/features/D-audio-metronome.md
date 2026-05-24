@@ -28,6 +28,11 @@ B (Import & Score Model), C (Transport & Playback).
   instead of guessing seeks by jump size. Fixes the metronome going silent on
   loop pass 2 and notes bursting on a short seek. (Touches `src/transport/
 clock.ts` — a Feature C file — additively.)
+- 2026-05-24 — Mid-piece time-signature support: `Metronome` now stores
+  `segments: TimeSignature[]` instead of a single `beatsPerBar`; the
+  `timeSignature` getter is position-aware via `timeSignatureAt`; `setTimeSignature`
+  collapses segments to one and sets `manualOverride = true`; `setScore` preserves
+  the override or adopts the new score's segments. (Task 4 of feat/mid-piece-time-sigs.)
 
 ## Keywords
 

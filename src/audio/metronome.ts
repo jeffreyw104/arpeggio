@@ -1,11 +1,18 @@
 import { metronomeBeats, type MetronomeBeat } from "./beats";
-import type { Measure, Score } from "../model/score";
+import { timeSignatureAt } from "./timeSignatureAt";
+import type { Measure, Score, TimeSignature } from "../model/score";
 
 /** A metronome click listener: receives the beat time and whether it's accented. */
 export type ClickListener = (time: number, accent: boolean) => void;
 
 /** Linear pulse decay time (seconds) after a beat. */
 const PULSE_DECAY = 0.15;
+
+const DEFAULT_SIG: TimeSignature = {
+  start: 0,
+  numerator: 4,
+  denominator: 4,
+};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -14,8 +21,9 @@ function clamp(value: number, min: number, max: number): number {
 /**
  * Tracks which metronome beats have been crossed as the clock advances. Drives
  * clicks via registered listeners and exposes a 0-1 `pulse` for a visual cue.
- * The beat grid is phase-locked to `score.measures`: each measure's span is
- * split into `beatsPerBar` beats, so downbeats land exactly on the barlines.
+ * The beat grid is phase-locked to `score.measures`; each measure uses the
+ * time signature active at its start (via `score.timeSignatures`), so mid-piece
+ * time-signature changes shift the click pattern at the right barline.
  * Pure logic — the actual click sound is wired by the AudioEngine.
  */
 export class Metronome {
@@ -28,20 +36,17 @@ export class Metronome {
    */
   accentDownbeat = false;
 
-  /**
-   * Free-run mode: clicks fire at a constant BPM from wall-clock time
-   * instead of the score's beat grid. Useful while wait-mode parks the
-   * clock at a step — the user can keep practising on beat. Driven by
-   * `updateFree(bpm, nowMs)`; the regular `update(prev, cur)` is a no-op
-   * while this is on.
-   */
+  /** Free-run mode — see updateFree. */
   freeRun = false;
 
   private measures: Measure[];
-  private beatsPerBar: number;
+  /** The active time-signature segments. When `manualOverride` is true, this
+   *  is a single-entry array of the user's chosen signature. */
+  private segments: TimeSignature[];
+  /** True once the user has called `setTimeSignature`; `setScore` then keeps
+   *  the override instead of adopting the new score's segments. */
+  private manualOverride = false;
   private subdivisionValue: number;
-  /** Kept only so the `timeSignature` getter can report it; not used for timing. */
-  private denominator: number;
   private beats: MetronomeBeat[] = [];
   private readonly listeners = new Set<ClickListener>();
   private curPosition = 0;
@@ -52,10 +57,10 @@ export class Metronome {
   private nextFreeBeatMs = -1;
 
   constructor(score: Score) {
-    const ts = score.timeSignatures[0];
     this.measures = score.measures;
-    this.beatsPerBar = ts?.numerator ?? 4;
-    this.denominator = ts?.denominator ?? 4;
+    this.segments = score.timeSignatures.length > 0
+      ? score.timeSignatures
+      : [DEFAULT_SIG];
     this.subdivisionValue = 1;
     this.recompute();
   }
@@ -70,15 +75,20 @@ export class Metronome {
     this.recompute();
   }
 
-  /** The current time signature (counted beats per bar). */
+  /** The time signature at the current clock position. */
   get timeSignature(): { numerator: number; denominator: number } {
-    return { numerator: this.beatsPerBar, denominator: this.denominator };
+    const sig = timeSignatureAt(this.segments, this.curPosition);
+    return { numerator: sig.numerator, denominator: sig.denominator };
   }
 
-  /** Set the time signature, recompute the grid, and re-align immediately. */
+  /**
+   * Override the score's time signatures with a single user-chosen value for
+   * the whole piece. Survives `setScore` (e.g. tempo-mode toggle) until a
+   * fresh `Metronome` is constructed for a different piece.
+   */
   setTimeSignature(numerator: number, denominator: number): void {
-    this.beatsPerBar = numerator;
-    this.denominator = denominator;
+    this.segments = [{ start: 0, numerator, denominator }];
+    this.manualOverride = true;
     this.recompute();
     this.resync();
   }
@@ -87,10 +97,16 @@ export class Metronome {
    * Swap to a new score and re-grid. A tempo-mode toggle replaces the
    * transport's score with one whose measures sit at different second-times;
    * without this the metronome would keep clicking at the old measure times.
-   * The current beats-per-bar and subdivision are kept.
+   * Adopts the new score's `timeSignatures` unless the user has set a manual
+   * override, in which case the override is preserved.
    */
   setScore(score: Score): void {
     this.measures = score.measures;
+    if (!this.manualOverride) {
+      this.segments = score.timeSignatures.length > 0
+        ? score.timeSignatures
+        : [DEFAULT_SIG];
+    }
     this.recompute();
   }
 
@@ -98,7 +114,7 @@ export class Metronome {
   private recompute(): void {
     this.beats = metronomeBeats(
       this.measures,
-      this.beatsPerBar,
+      this.segments,
       this.subdivisionValue,
     );
   }
@@ -112,9 +128,6 @@ export class Metronome {
   update(prevPosition: number, curPosition: number): void {
     if (this.freeRun) return;
     if (this.enabled && curPosition >= prevPosition) {
-      // Beats in [prevPosition, curPosition] not already fired. A closed lower
-      // bound catches a beat sitting exactly on prevPosition; lastFiredTime
-      // guards against firing the same beat twice across consecutive calls.
       const crossed = this.beats
         .filter(
           (b) =>
@@ -161,18 +174,12 @@ export class Metronome {
 
   /**
    * Free-run tick: fire one click per `60000/bpm` ms of wall-clock time, no
-   * matter where the score's clock is parked. Call once per frame from the
-   * audio engine when `freeRun` is on. The first call arms the grid at
-   * `nowMs`; subsequent calls fire any beats whose due-time has passed and
-   * advance the next-beat marker forward. A bpm change just re-bases the
-   * interval on the next call — no resync needed.
+   * matter where the score's clock is parked. See file header for usage.
    */
   updateFree(bpm: number, nowMs: number): void {
     if (!this.enabled || !this.freeRun) return;
     const interval = 60000 / Math.max(1, bpm);
     if (this.nextFreeBeatMs < 0) {
-      // First tick in this free-run session — click immediately, then schedule
-      // the next one one interval out.
       this.fireFreeBeat(nowMs);
       this.nextFreeBeatMs = nowMs + interval;
       return;
@@ -181,7 +188,6 @@ export class Metronome {
       this.fireFreeBeat(this.nextFreeBeatMs);
       this.nextFreeBeatMs += interval;
     }
-    // Keep the pulse decaying smoothly between beats.
     this.curPosition = nowMs / 1000;
   }
 
