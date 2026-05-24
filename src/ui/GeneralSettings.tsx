@@ -6,6 +6,9 @@ import { CollapsibleSection } from "./CollapsibleSection";
 interface GeneralSettingsProps {
   falldown: FalldownRenderer | null;
   audioEngine: AudioEngine | null;
+  /** MIDI Practice only — when present, renders the Input sound checkbox. */
+  monitorOn?: boolean;
+  onMonitorOnChange?: (on: boolean) => void;
 }
 
 /**
@@ -18,6 +21,8 @@ interface GeneralSettingsProps {
 export function GeneralSettings({
   falldown,
   audioEngine,
+  monitorOn,
+  onMonitorOnChange,
 }: GeneralSettingsProps): React.JSX.Element {
   const [open, setOpen] = useState(true);
 
@@ -89,6 +94,16 @@ export function GeneralSettings({
           />{" "}
           Full 88 keys
         </label>
+        {onMonitorOnChange !== undefined && (
+          <label>
+            <input
+              type="checkbox"
+              checked={monitorOn ?? false}
+              onChange={(e) => onMonitorOnChange(e.target.checked)}
+            />{" "}
+            Input sound
+          </label>
+        )}
         <label className="hud-mini">
           <span className="hud-mini-label">Volume</span>
           <input

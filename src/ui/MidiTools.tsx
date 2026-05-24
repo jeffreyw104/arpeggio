@@ -112,21 +112,14 @@ export function MidiTools({
         </p>
       </div>
 
-      <label className="midi-tools-check">
-        <input
-          type="checkbox"
-          checked={monitorOn}
-          onChange={(e) => onMonitorOnChange(e.target.checked)}
-        />
-        <span>Input sound</span>
-      </label>
-
       <CommonTools
         transport={transport}
         audioEngine={audioEngine}
         falldown={falldown}
         countInBars={countInBars}
         onCountInBarsChange={onCountInBarsChange}
+        monitorOn={monitorOn}
+        onMonitorOnChange={onMonitorOnChange}
       />
     </div>
   );

@@ -13,6 +13,8 @@ interface CommonToolsProps {
   falldown: FalldownRenderer | null;
   countInBars: number;
   onCountInBarsChange: (bars: number) => void;
+  monitorOn?: boolean;
+  onMonitorOnChange?: (on: boolean) => void;
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -31,6 +33,8 @@ export function CommonTools({
   falldown,
   countInBars,
   onCountInBarsChange,
+  monitorOn,
+  onMonitorOnChange,
 }: CommonToolsProps): React.JSX.Element {
   // Per-section open state — all start open so every control is laid out;
   // the user can still collapse any section they do not need.
@@ -309,7 +313,12 @@ export function CommonTools({
         />
       </CollapsibleSection>
 
-      <GeneralSettings falldown={falldown} audioEngine={audioEngine} />
+      <GeneralSettings
+        falldown={falldown}
+        audioEngine={audioEngine}
+        monitorOn={monitorOn}
+        onMonitorOnChange={onMonitorOnChange}
+      />
     </>
   );
 }
