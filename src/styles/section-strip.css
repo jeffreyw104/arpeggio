@@ -9,12 +9,16 @@
  *  50  context menu (.section-strip__menu)
  * ================================================================ */
 .section-strip {
-  background: #ebe5d4;
-  border-top: 1px solid #d3cab3;
+  background: linear-gradient(rgba(20,20,25,0.78), rgba(12,12,16,0.88));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
   padding: 6px 12px 8px;
   user-select: none;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 /* Default child order: bookmarks (top of strip), sections, toolbar (bottom of strip). */
 .section-strip__bookmarks { order: 1; }
@@ -30,7 +34,7 @@
    inside the beige in both orientations. */
 .section-strip--top {
   border-top: 0;
-  border-bottom: 1px solid #d3cab3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding: 8px 12px 6px;
 }
 .section-strip--top .section-strip__toolbar   { order: 1; margin-top: 0; margin-bottom: 6px; }
@@ -142,8 +146,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #1a1a1a;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   /* Above bookmark pins (no z-index, default auto) and above the playhead
      (z:10) so the hover pill is never blocked when drilling near the
@@ -229,8 +233,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #1a1a1a;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   z-index: 10;
 }
@@ -330,7 +334,7 @@
   /* Fixed height so toggling the hint visibility on/off does NOT change the
      strip's overall size — the hint just slides in/out to the left of "?". */
   height: 14px;
-  color: #6a5e3e;
+  color: rgba(230, 230, 234, 0.55);
 }
 .section-strip__hint {
   white-space: nowrap;
@@ -348,7 +352,7 @@
   font: inherit;
   font-size: 10px;
   cursor: pointer;
-  color: #6a5e3e;
+  color: rgba(230, 230, 234, 0.55);
   text-decoration: underline;
   text-underline-offset: 2px;
   flex-shrink: 0;
@@ -360,10 +364,10 @@
 }
 .section-strip__undo:not(:disabled):hover,
 .section-strip__help-toggle:hover {
-  color: #2e2810;
+  color: #e6e6ea;
 }
 .section-strip__help-toggle[aria-pressed="true"] {
-  color: #2e2810;
+  color: #e6e6ea;
   font-weight: 700;
 }
 

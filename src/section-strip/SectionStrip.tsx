@@ -16,7 +16,7 @@ import {
 } from "./edits";
 import { newBookmarkId, normalize } from "../model/sections";
 
-const PALETTE = ["#cba37a", "#7a9cca", "#c97d7d", "#7ec98a", "#b09bca"] as const;
+const PALETTE = ["#3a5a78", "#2f6e63", "#7a3a4a", "#7a5a2e", "#4a3a6a"] as const;
 /** Within this fraction of duration of `autoEnd`, drag snaps back to it. */
 const SNAP_PCT = 0.015;
 
