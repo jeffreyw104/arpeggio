@@ -44,6 +44,14 @@ C (Transport), D (Audio), E (Falldown View).
   settings row (still MIDI-only via conditional render). Mode toggle
   (Play / MIDI Practice) also became a TopBarSelect pill via the new
   TopBarSelect primitive.
+- 2026-05-25 — iPad / touch polish: `TopBarReadout` gains `data-testid="top-bar-readout"`.
+  On touch devices, `TopBar` hides the readout (conditional on `useIsTouchDevice`).
+  `PlayTools` and `MidiTools` each render a "Now playing" `<section>` with a
+  `TopBarReadout` at the top of the Tools popover when on touch, recovering the
+  top-bar width budget. `MidiTools` props extended with `waitEnabled`,
+  `onWaitEnabledChange`, `handsIPlay`, `onHandsIPlayChange` and threaded from
+  `PracticeView`. New TopBar tests verify readout is hidden on touch and shown
+  on desktop.
 
 ## Keywords
 

@@ -6,6 +6,8 @@ import type { FalldownRenderer } from "../falldown/renderer";
 import type { StripPosition } from "../section-strip/stripPosition";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { CommonTools } from "./CommonTools";
+import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
+import { TopBarReadout } from "./TopBarReadout";
 
 interface PlayToolsProps {
   transport: Transport;
@@ -36,6 +38,7 @@ export function PlayTools({
   stripPosition = "bottom",
   onStripPositionChange,
 }: PlayToolsProps): React.JSX.Element {
+  const isTouchDevice = useIsTouchDevice();
   const [handsOpen, setHandsOpen] = useState(true);
   const [leftVis, setLeftVis] = useState<HandVisibility>(() =>
     handState.visibility("left"),
@@ -48,6 +51,16 @@ export function PlayTools({
 
   return (
     <div className="play-tools">
+      {isTouchDevice && (
+        <section className="tools-readout-section">
+          <header className="tools-section-header">Now playing</header>
+          <TopBarReadout
+            mode="play"
+            transport={transport}
+            audioEngine={audioEngine}
+          />
+        </section>
+      )}
       {isMidiSource && onStripPositionChange && (
         <fieldset className="midi-tools-strip-position">
           <legend>Strip position</legend>

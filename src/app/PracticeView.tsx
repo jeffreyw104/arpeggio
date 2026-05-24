@@ -815,6 +815,10 @@ export function PracticeView({
             isMidiSource={isMidiSource}
             stripPosition={stripPosition}
             onStripPositionChange={handleStripPositionChange}
+            waitEnabled={waitEnabled}
+            onWaitEnabledChange={setWaitEnabled}
+            handsIPlay={handsIPlay}
+            onHandsIPlayChange={setHandsIPlay}
           />
         )}
       </ToolsPopover>

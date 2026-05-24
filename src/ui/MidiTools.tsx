@@ -4,6 +4,9 @@ import type { MidiDevice, MidiStatus } from "../midi/MidiInput";
 import { CommonTools } from "./CommonTools";
 import type { Transport } from "../transport/transport";
 import type { StripPosition } from "../section-strip/stripPosition";
+import type { Hand } from "../model/score";
+import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
+import { TopBarReadout } from "./TopBarReadout";
 
 interface MidiToolsProps {
   transport: Transport;
@@ -21,6 +24,11 @@ interface MidiToolsProps {
   isMidiSource?: boolean;
   stripPosition?: StripPosition;
   onStripPositionChange?: (p: StripPosition) => void;
+  /** Wait-mode state — forwarded to TopBarReadout on touch devices. */
+  waitEnabled?: boolean;
+  onWaitEnabledChange?: (on: boolean) => void;
+  handsIPlay?: ReadonlySet<Hand>;
+  onHandsIPlayChange?: (hands: Set<Hand>) => void;
 }
 
 /** Human-readable status line for each MIDI connection state. */
@@ -59,12 +67,31 @@ export function MidiTools({
   isMidiSource = false,
   stripPosition = "bottom",
   onStripPositionChange,
+  waitEnabled,
+  onWaitEnabledChange,
+  handsIPlay,
+  onHandsIPlayChange,
 }: MidiToolsProps): React.JSX.Element {
+  const isTouchDevice = useIsTouchDevice();
   const selectedName =
     devices.find((d) => d.id === selectedDeviceId)?.name ?? null;
 
   return (
     <div className="play-tools midi-tools">
+      {isTouchDevice && (
+        <section className="tools-readout-section">
+          <header className="tools-section-header">Now playing</header>
+          <TopBarReadout
+            mode="midi"
+            transport={transport}
+            audioEngine={audioEngine}
+            waitEnabled={waitEnabled}
+            onWaitEnabledChange={onWaitEnabledChange}
+            handsIPlay={handsIPlay}
+            onHandsIPlayChange={onHandsIPlayChange}
+          />
+        </section>
+      )}
       {isMidiSource && onStripPositionChange && (
         <fieldset className="midi-tools-strip-position">
           <legend>Strip position</legend>

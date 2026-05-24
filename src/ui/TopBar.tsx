@@ -238,15 +238,17 @@ export function TopBar({
         <span className="top-bar-piece-title">{displayName(pieceName)}</span>
       </div>
       <span className="top-bar-spacer" />
-      <TopBarReadout
-        mode={mode}
-        transport={transport}
-        audioEngine={audioEngine}
-        waitEnabled={waitEnabled}
-        onWaitEnabledChange={onWaitEnabledChange}
-        handsIPlay={handsIPlay}
-        onHandsIPlayChange={onHandsIPlayChange}
-      />
+      {!isTouchDevice && (
+        <TopBarReadout
+          mode={mode}
+          transport={transport}
+          audioEngine={audioEngine}
+          waitEnabled={waitEnabled}
+          onWaitEnabledChange={onWaitEnabledChange}
+          handsIPlay={handsIPlay}
+          onHandsIPlayChange={onHandsIPlayChange}
+        />
+      )}
       {mode === "midi" && midiStatus !== undefined && (
         <span
           className="midi-status-chip"

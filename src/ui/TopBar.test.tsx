@@ -246,6 +246,29 @@ describe("TopBar", () => {
     }
   });
 
+  describe("TopBarReadout visibility by device type", () => {
+    beforeEach(async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(false);
+    });
+
+    test("on touch device, TopBarReadout is NOT rendered in the bar", async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(true);
+
+      renderBar({ mode: "midi" });
+      expect(screen.queryByTestId("top-bar-readout")).not.toBeInTheDocument();
+    });
+
+    test("on desktop, TopBarReadout IS rendered in the bar", async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(false);
+
+      renderBar({ mode: "midi" });
+      expect(screen.getByTestId("top-bar-readout")).toBeInTheDocument();
+    });
+  });
+
   describe("MIDI status chip — touch-specific copy", () => {
     beforeEach(async () => {
       // Ensure we start each sub-test with a clean mock state.

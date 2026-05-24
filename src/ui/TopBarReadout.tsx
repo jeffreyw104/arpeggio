@@ -100,7 +100,7 @@ export function TopBarReadout({
   const currentHand = handsPreset(handsIPlay);
 
   return (
-    <div className="top-bar-readout">
+    <div className="top-bar-readout" data-testid="top-bar-readout">
       <span className="top-bar-readout-chip">♩ = {bpm}</span>
       {sig && (
         <span className="top-bar-readout-chip">
