@@ -97,6 +97,16 @@ Playwright (`tests/e2e/midi-section-navigator.spec.ts`):
 Automated status: `npm run lint`, `npm run typecheck`, `npm test` (449
 total), `npm run build`, `npm run e2e` (16 specs) all pass.
 
+## Changes log
+
+- 2026-05-23 — Feature built (see "What it ships" above).
+- 2026-05-24 — Studio Dark retheme. Section strip background swapped from cream
+  #ebe5d4 to dark translucent (linear-gradient + backdrop-filter blur+saturate).
+  Block palette swapped for moody saturated tones: slate-blue #3a5a78, deep
+  teal #2f6e63, plum #7a3a4a, burnt amber #7a5a2e, indigo #4a3a6a. Hover line
+  + playhead inverted (light line on dark, dark halo). Strip toolbar text color
+  updated for dark; toolbar links became hover-only underlined.
+
 ## Locked design decisions
 
 - Scope: **MIDI source only** (`score.source === "midi"`). MusicXML keeps the
