@@ -29,27 +29,27 @@ describe("SplitWarningToast", () => {
 
   test("renders when shouldShow becomes true and localStorage empty", () => {
     render(<SplitWarningToast shouldShow={true} />);
-    expect(screen.getByRole("status")).toHaveTextContent(/split.*tablet/i);
+    expect(screen.getByRole("button", { name: /split.*tablet/i })).toHaveTextContent(/split.*tablet/i);
   });
 
   test("does not render after dismissal persists", () => {
     const { rerender } = render(<SplitWarningToast shouldShow={true} />);
-    fireEvent.click(screen.getByRole("status"));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /split.*tablet/i }));
+    expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
     rerender(<SplitWarningToast shouldShow={true} />);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
     expect(localStorage.getItem(KEY)).toBe("1");
   });
 
   test("auto-dismisses after 6 seconds", () => {
     render(<SplitWarningToast shouldShow={true} />);
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /split.*tablet/i })).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(6000));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
   });
 
   test("does not render when shouldShow is false", () => {
     render(<SplitWarningToast shouldShow={false} />);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
   });
 });

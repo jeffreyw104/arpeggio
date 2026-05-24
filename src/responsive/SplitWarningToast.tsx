@@ -32,13 +32,14 @@ export function SplitWarningToast({ shouldShow }: SplitWarningToastProps) {
   if (!visible) return null;
 
   return (
-    <div
-      role="status"
+    <button
+      type="button"
       className="split-warning-toast"
       onClick={dismiss}
+      aria-live="polite"
     >
       Split view stacks vertically on tablets — pinch out / use Falldown only
       if the score panel feels cramped.
-    </div>
+    </button>
   );
 }

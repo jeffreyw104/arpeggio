@@ -1548,11 +1548,13 @@ textarea {
   padding: 12px 16px;
   background: var(--panel, #131316);
   color: var(--text, #e6e6ea);
-  border: 1px solid var(--border, #2a2a30);
+  border: none;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   font-size: 14px;
   line-height: 1.4;
   cursor: pointer;
+  font-family: inherit;
+  text-align: left;
 }
