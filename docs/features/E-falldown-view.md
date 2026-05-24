@@ -35,6 +35,7 @@ requestAnimationFrame, key highlight.
   (`clearRect` clears to transparent, so a `fillRect` was needed); hardened
   `keyLayout` against degenerate / black-key-bounded ranges; strengthened the
   note-rect render assertion and added a full-88 layout test.
+- **2026-05-24** — Visual beat grid and hit-line pulse follow mid-piece time-signature changes. `FalldownRenderer.timeSignatures: TimeSignature[]` replaces `beatMeter`; `beatGridLines` and `beatPulse` look up the active signature per measure. Saved per-piece overrides in `PracticeView` write a single-segment array (and are now only emitted when `metronome.manualOverride` is true, to avoid silently flattening multi-sig pieces).
 
 ## Testing
 

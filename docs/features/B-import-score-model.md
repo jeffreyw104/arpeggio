@@ -30,6 +30,7 @@ A (Scaffold & Deploy).
   and re-introduced marker meta-event extraction in `parseMidi` (sourced from
   the conductor track only per @tonejs/midi). Consumed by Feature J's
   auto-detect Pass 1 as hard boundaries.
+- **2026-05-24** — `midiToMusicXml` emits a slim `<attributes><time>…</time></attributes>` block at every measure whose active time signature differs from the previous one (was: first segment only).
 
 ## Keywords
 
