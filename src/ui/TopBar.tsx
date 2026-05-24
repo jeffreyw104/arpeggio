@@ -10,6 +10,7 @@ import type { MidiStatus } from "../midi/MidiInput";
 import { TopBarReadout } from "./TopBarReadout";
 import type { Hand } from "../model/score";
 import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
+import { useIsNarrowViewport } from "../responsive/useIsNarrowViewport";
 
 interface TopBarProps {
   pieceName: string;
@@ -72,8 +73,11 @@ function midiStatusLabel(
   status: MidiStatus | undefined,
   deviceName: string | undefined,
   isTouch: boolean,
+  isNarrow: boolean,
 ): React.ReactNode {
-  if (status === "connected") return <>&#9679; {deviceName ?? "MIDI"}</>;
+  if (status === "connected") {
+    return isNarrow ? <span aria-hidden>●</span> : <>&#9679; {deviceName ?? "MIDI"}</>;
+  }
   if (status === "unsupported" && isTouch) return "Update iPadOS to 17.4+ for MIDI";
   if (status === "denied" && isTouch) return "Allow MIDI in Safari Settings";
   return <>&#9675; Connect keyboard</>;
@@ -125,6 +129,7 @@ export function TopBar({
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
 
   const isTouchDevice = useIsTouchDevice();
+  const isNarrow = useIsNarrowViewport(900);
 
   const { clock } = transport;
   const { playing, position, duration } = clock;
@@ -182,7 +187,8 @@ export function TopBar({
         <span className="top-bar-logo-inner">
           <span className="top-bar-logo-word">arpeggio</span>
           <span className="top-bar-logo-word top-bar-logo-alt">
-            <span aria-hidden="true">←&nbsp;</span>library
+            <span aria-hidden="true">←&nbsp;</span>
+            <span className="top-bar-library-label">library</span>
           </span>
         </span>
       </button>
@@ -229,9 +235,11 @@ export function TopBar({
           }
         />
       )}
-      <span className="hud-time">
-        {formatTime(position)} / {formatTime(duration)}
-      </span>
+      {!isNarrow && (
+        <span className="hud-time">
+          {formatTime(position)} / {formatTime(duration)}
+        </span>
+      )}
       <ModeSwitch mode={mode} onModeChange={onModeChange} />
       <div className="top-bar-piece">
         <span className="top-bar-piece-label">now playing</span>
@@ -254,7 +262,7 @@ export function TopBar({
           className="midi-status-chip"
           aria-label={chipAriaLabel(midiStatus, midiDeviceName, isTouchDevice)}
         >
-          {midiStatusLabel(midiStatus, midiDeviceName, isTouchDevice)}
+          {midiStatusLabel(midiStatus, midiDeviceName, isTouchDevice, isNarrow)}
         </span>
       )}
       {/* View controls vary by tab mode; hidden for MIDI source files */}

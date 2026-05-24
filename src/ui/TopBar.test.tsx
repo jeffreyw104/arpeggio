@@ -9,6 +9,10 @@ vi.mock("../responsive/useIsTouchDevice", () => ({
   useIsTouchDevice: vi.fn(() => false), // default: desktop
 }));
 
+vi.mock("../responsive/useIsNarrowViewport", () => ({
+  useIsNarrowViewport: vi.fn(() => false), // default: wide
+}));
+
 const score = {
   source: "midi",
   notes: [],
@@ -304,6 +308,48 @@ describe("TopBar", () => {
       expect(chip?.textContent).not.toMatch(/iPadOS.*17\.4/i);
       // Should show the generic "Connect keyboard" text
       expect(chip?.textContent).toMatch(/Connect keyboard/);
+    });
+  });
+
+  describe("narrow viewport hiding", () => {
+    beforeEach(async () => {
+      const { useIsNarrowViewport } = await import("../responsive/useIsNarrowViewport");
+      vi.mocked(useIsNarrowViewport).mockReturnValue(false);
+    });
+
+    test("on narrow viewport, time text is hidden", async () => {
+      const { useIsNarrowViewport } = await import("../responsive/useIsNarrowViewport");
+      vi.mocked(useIsNarrowViewport).mockReturnValue(true);
+
+      renderBar({});
+      expect(screen.queryByText(/\d+:\d+ \/ \d+:\d+/)).not.toBeInTheDocument();
+    });
+
+    test("on wide viewport, time text is shown", async () => {
+      const { useIsNarrowViewport } = await import("../responsive/useIsNarrowViewport");
+      vi.mocked(useIsNarrowViewport).mockReturnValue(false);
+
+      renderBar({});
+      expect(screen.getByText(/\d+:\d+ \/ \d+:\d+/)).toBeInTheDocument();
+    });
+
+    test("on narrow viewport, connected MIDI chip shows only the dot", async () => {
+      const { useIsNarrowViewport } = await import("../responsive/useIsNarrowViewport");
+      vi.mocked(useIsNarrowViewport).mockReturnValue(true);
+
+      renderBar({ mode: "midi", midiStatus: "connected", midiDeviceName: "KeyboardX" });
+      expect(screen.queryByText("KeyboardX")).not.toBeInTheDocument();
+      // The chip itself should still be present
+      expect(document.querySelector(".midi-status-chip")).toBeInTheDocument();
+    });
+
+    test("on wide viewport, connected MIDI chip shows device name", async () => {
+      const { useIsNarrowViewport } = await import("../responsive/useIsNarrowViewport");
+      vi.mocked(useIsNarrowViewport).mockReturnValue(false);
+
+      renderBar({ mode: "midi", midiStatus: "connected", midiDeviceName: "KeyboardX" });
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip?.textContent).toMatch(/KeyboardX/);
     });
   });
 });

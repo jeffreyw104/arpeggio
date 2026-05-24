@@ -1608,3 +1608,7 @@ textarea {
 .app--touch .top-bar .midi-status-chip {
   min-height: 44px;
 }
+
+/* Hide the "library" text label on touch devices — the back-arrow alone
+   carries the affordance, freeing ~40px in the left region. */
+.app--touch .top-bar-library-label { display: none; }
