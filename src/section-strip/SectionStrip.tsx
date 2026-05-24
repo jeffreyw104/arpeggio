@@ -273,10 +273,10 @@ export function SectionStrip({
   // Touch: long-press in empty strip area → create bookmark. Mirrors the
   // existing right-click / double-click background handlers.
   const bgLongPress = useLongPress((e) => {
-    const target = e.target as HTMLElement;
-    if (target.closest(".section-strip__bookmark")) return;
-    if (target.closest(".section-strip__boundary-handle")) return;
-    if (target.closest(".section-strip__block")) return;
+    if (!(e.target instanceof Element)) return;
+    if (e.target.closest(".section-strip__bookmark")) return;
+    if (e.target.closest(".section-strip__boundary-handle")) return;
+    if (e.target.closest(".section-strip__block")) return;
     createBookmarkAtClientX(e.clientX);
   });
 
