@@ -5,7 +5,7 @@ import { beatGridLines } from "./beatGrid";
 import { beatPulse } from "../audio/beats";
 import { pointerHit } from "./pointerHit";
 import type { Transport } from "../transport/transport";
-import type { Note } from "../model/score";
+import type { Note, TimeSignature } from "../model/score";
 import { type HandFilter, NO_HAND_FILTER } from "../practice/hands";
 
 const RIGHT = "#4a90d9";
@@ -64,8 +64,8 @@ export class FalldownRenderer {
   zoom = 1;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
-  /** The time signature driving the beat grid; set from the Tools popover. */
-  beatMeter: { numerator: number; denominator: number };
+  /** The time-signature segments driving the beat grid; set from the Tools popover. */
+  timeSignatures: TimeSignature[];
   /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
   inputHighlights = new Map<number, "correct" | "wrong" | "held">();
   /** Whether the sustain pedal is currently depressed; shows a pedal indicator. */
@@ -82,11 +82,9 @@ export class FalldownRenderer {
     this.height = options.height;
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
-    const ts = transport.score.timeSignatures[0];
-    this.beatMeter = {
-      numerator: ts?.numerator ?? 4,
-      denominator: ts?.denominator ?? 4,
-    };
+    this.timeSignatures = transport.score.timeSignatures.length > 0
+      ? transport.score.timeSignatures
+      : [{ start: 0, numerator: 4, denominator: 4 }];
   }
 
   /** Re-size the renderer to a new canvas pixel size (after a layout change). */
@@ -156,7 +154,7 @@ export class FalldownRenderer {
       this.transport.clock.playing && this.showBeatPulse
         ? beatPulse(
             this.transport.score.measures,
-            this.beatMeter.numerator,
+            this.timeSignatures,
             t,
             BEAT_PULSE_DECAY,
           )
@@ -200,7 +198,7 @@ export class FalldownRenderer {
     const { ctx } = this;
     const lines = beatGridLines(
       this.transport.score.measures,
-      this.beatMeter.numerator,
+      this.timeSignatures,
       t,
       {
         hitLineY: this.hitLineY,

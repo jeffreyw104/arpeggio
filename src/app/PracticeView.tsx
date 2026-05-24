@@ -267,10 +267,13 @@ export function PracticeView({
         if (state.numerator && state.denominator) {
           const renderer = falldownRef.current;
           if (renderer) {
-            renderer.beatMeter = {
-              numerator: state.numerator,
-              denominator: state.denominator,
-            };
+            renderer.timeSignatures = [
+              {
+                start: 0,
+                numerator: state.numerator,
+                denominator: state.denominator,
+              },
+            ];
           }
           if (engineRef.current) {
             engineRef.current.metronome.setTimeSignature(
@@ -357,8 +360,8 @@ export function PracticeView({
       const renderer = falldownRef.current;
       const beat = renderer
         ? {
-            numerator: renderer.beatMeter.numerator,
-            denominator: renderer.beatMeter.denominator,
+            numerator: renderer.timeSignatures[0]?.numerator ?? 4,
+            denominator: renderer.timeSignatures[0]?.denominator ?? 4,
             subdivision: engineRef.current?.metronome.subdivision ?? 1,
           }
         : undefined;
@@ -449,8 +452,8 @@ export function PracticeView({
     const renderer = falldownRef.current;
     const beat = renderer
       ? {
-          numerator: renderer.beatMeter.numerator,
-          denominator: renderer.beatMeter.denominator,
+          numerator: renderer.timeSignatures[0]?.numerator ?? 4,
+          denominator: renderer.timeSignatures[0]?.denominator ?? 4,
           subdivision: engineRef.current?.metronome.subdivision ?? 1,
         }
       : undefined;

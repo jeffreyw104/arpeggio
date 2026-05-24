@@ -3,14 +3,25 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MetronomeSettings } from "./MetronomeSettings";
 import type { FalldownRenderer } from "../falldown/renderer";
 import type { AudioEngine } from "../audio/engine";
+import type { TimeSignature } from "../model/score";
 
-function fakes() {
+function fakes(initialSig: { numerator: number; denominator: number } = {
+  numerator: 4,
+  denominator: 4,
+}) {
   const falldown = {
-    beatMeter: { numerator: 4, denominator: 4 },
+    timeSignatures: [
+      { start: 0, ...initialSig },
+    ] as TimeSignature[],
   } as unknown as FalldownRenderer;
   const setTimeSignature = vi.fn();
   const audioEngine = {
-    metronome: { accentDownbeat: false, subdivision: 1, setTimeSignature },
+    metronome: {
+      accentDownbeat: false,
+      subdivision: 1,
+      setTimeSignature,
+      timeSignature: initialSig,
+    },
   } as unknown as AudioEngine;
   return { falldown, audioEngine, setTimeSignature };
 }
@@ -35,11 +46,8 @@ function renderMenu(
 }
 
 describe("MetronomeSettings", () => {
-  it("initialises the time signature from the renderer's beat meter", () => {
-    const { audioEngine } = fakes();
-    const falldown = {
-      beatMeter: { numerator: 3, denominator: 4 },
-    } as unknown as FalldownRenderer;
+  it("initialises the time signature from the metronome's active sig", () => {
+    const { falldown, audioEngine } = fakes({ numerator: 3, denominator: 4 });
     render(
       <MetronomeSettings
         falldown={falldown}
@@ -64,7 +72,9 @@ describe("MetronomeSettings", () => {
     fireEvent.change(screen.getByLabelText(/time signature/i), {
       target: { value: "6/8" },
     });
-    expect(falldown.beatMeter).toEqual({ numerator: 6, denominator: 8 });
+    expect(falldown.timeSignatures).toEqual([
+      { start: 0, numerator: 6, denominator: 8 },
+    ]);
     expect(setTimeSignature).toHaveBeenCalledWith(6, 8);
   });
 
@@ -81,7 +91,9 @@ describe("MetronomeSettings", () => {
     fireEvent.change(screen.getByLabelText(/time signature/i), {
       target: { value: "abc" },
     });
-    expect(falldown.beatMeter).toEqual({ numerator: 4, denominator: 4 });
+    expect(falldown.timeSignatures).toEqual([
+      { start: 0, numerator: 4, denominator: 4 },
+    ]);
     expect(setTimeSignature).not.toHaveBeenCalled();
   });
 

@@ -138,6 +138,27 @@ describe("FalldownRenderer", () => {
     caf.mockRestore();
   });
 
+  it("initialises timeSignatures from a multi-segment score", () => {
+    const multiSigScore: Score = {
+      ...score,
+      timeSignatures: [
+        { start: 0, numerator: 4, denominator: 4 },
+        { start: 8, numerator: 3, denominator: 4 },
+      ],
+    };
+    const transport = new Transport(multiSigScore);
+    const ctx = fakeCtx();
+    const renderer = new FalldownRenderer(
+      ctx as unknown as CanvasRenderingContext2D,
+      transport,
+      { width: 800, height: 600 },
+    );
+    expect(renderer.timeSignatures).toEqual([
+      { start: 0, numerator: 4, denominator: 4 },
+      { start: 8, numerator: 3, denominator: 4 },
+    ]);
+  });
+
   it("scales pixelsPerSecond by the zoom field", () => {
     const { renderer } = makeRenderer();
     const base = renderer.pixelsPerSecond;

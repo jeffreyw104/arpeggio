@@ -25,11 +25,10 @@ export function MetronomeSettings({
   countInBars,
   onCountInBarsChange,
 }: MetronomeSettingsProps): React.JSX.Element {
-  const [timeSignature, setTimeSignature] = useState(() =>
-    falldown
-      ? `${falldown.beatMeter.numerator}/${falldown.beatMeter.denominator}`
-      : "4/4",
-  );
+  const [timeSignature, setTimeSignature] = useState(() => {
+    const sig = audioEngine?.metronome.timeSignature;
+    return sig ? `${sig.numerator}/${sig.denominator}` : "4/4";
+  });
   const [accentDownbeat, setAccentDownbeat] = useState(
     () => audioEngine?.metronome.accentDownbeat ?? false,
   );
@@ -50,7 +49,9 @@ export function MetronomeSettings({
     if (numerator < 1 || denominator < 1) return;
     // The renderer and audio engine are imperative objects written through to.
     // eslint-disable-next-line react-hooks/immutability
-    if (falldown) falldown.beatMeter = { numerator, denominator };
+    if (falldown) {
+      falldown.timeSignatures = [{ start: 0, numerator, denominator }];
+    }
     if (audioEngine) {
       audioEngine.metronome.setTimeSignature(numerator, denominator);
     }
