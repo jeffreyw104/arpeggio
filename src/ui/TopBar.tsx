@@ -162,7 +162,16 @@ export function TopBar({
         disabled={countingIn}
         onClick={handlePlayToggle}
       >
-        {playing ? "⏸" : "▶"}
+        {playing ? (
+          <svg viewBox="0 0 10 10" width="0.75em" height="0.75em" fill="currentColor" aria-hidden="true">
+            <rect x="2.5" y="2" width="2" height="6" rx="0.5" />
+            <rect x="5.5" y="2" width="2" height="6" rx="0.5" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="currentColor" aria-hidden="true">
+            <path d="M2.5 1.5 L8.5 5 L2.5 8.5 Z" />
+          </svg>
+        )}
       </button>
       {!isMidiSource && (
         <input
