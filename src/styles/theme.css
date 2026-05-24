@@ -1438,3 +1438,33 @@ textarea {
   font-weight: 500;
   list-style: none;
 }
+
+/* --- TopBarReadout chips --- */
+
+.top-bar-readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.top-bar-readout-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 1.5rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.top-bar-readout-chip--loop {
+  color: #f0a8a4;
+  background: rgba(217, 83, 79, 0.10);
+  border-color: rgba(217, 83, 79, 0.45);
+}
