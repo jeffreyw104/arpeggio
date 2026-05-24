@@ -1,4 +1,5 @@
-import type { Measure, Note, Score } from "../../model/score";
+import type { Measure, Note, Score, TimeSignature } from "../../model/score";
+import { timeSignatureAt } from "../../audio/timeSignatureAt";
 
 /** Division grid: a quarter note is 4 divisions (sixteenth-note resolution). */
 const DIVISIONS = 4;
@@ -227,31 +228,40 @@ function buildMeasureXml(
  */
 export function midiToMusicXml(score: Score): string {
   const bpm = score.tempoMap[0]?.bpm ?? 120;
-  const timeSig = score.timeSignatures[0] ?? {
-    start: 0,
-    numerator: 4,
-    denominator: 4,
-  };
+  const firstSig = timeSignatureAt(score.timeSignatures, 0);
 
   const firstMeasureAttributes =
     `<attributes>` +
     `<divisions>${DIVISIONS}</divisions>` +
     `<key><fifths>0</fifths></key>` +
-    `<time><beats>${timeSig.numerator}</beats>` +
-    `<beat-type>${timeSig.denominator}</beat-type></time>` +
+    `<time><beats>${firstSig.numerator}</beats>` +
+    `<beat-type>${firstSig.denominator}</beat-type></time>` +
     `<staves>2</staves>` +
     `<clef number="1"><sign>G</sign><line>2</line></clef>` +
     `<clef number="2"><sign>F</sign><line>4</line></clef>` +
     `</attributes>`;
 
   let measuresXml = "";
+  let activeSig: TimeSignature = firstSig;
   score.measures.forEach((measure, i) => {
-    measuresXml += buildMeasureXml(
-      measure,
-      bpm,
-      score.notes,
-      i === 0 ? firstMeasureAttributes : "",
-    );
+    let attrs = "";
+    if (i === 0) {
+      attrs = firstMeasureAttributes;
+    } else {
+      const sig = timeSignatureAt(score.timeSignatures, measure.start);
+      if (
+        sig.numerator !== activeSig.numerator ||
+        sig.denominator !== activeSig.denominator
+      ) {
+        attrs =
+          `<attributes>` +
+          `<time><beats>${sig.numerator}</beats>` +
+          `<beat-type>${sig.denominator}</beat-type></time>` +
+          `</attributes>`;
+        activeSig = sig;
+      }
+    }
+    measuresXml += buildMeasureXml(measure, bpm, score.notes, attrs);
   });
 
   return (

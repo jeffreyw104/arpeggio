@@ -89,4 +89,39 @@ describe("midiToMusicXml", () => {
       }
     }
   });
+
+  it("emits a new <time> element at every time-signature change", () => {
+    // Build a small fixture Score directly (avoids needing a custom MIDI file).
+    const fixtureScore = {
+      source: "midi" as const,
+      notes: [],
+      measures: [
+        { index: 0, start: 0, end: 2, numerator: 4, denominator: 4 },
+        { index: 1, start: 2, end: 4, numerator: 4, denominator: 4 },
+        { index: 2, start: 4, end: 7, numerator: 6, denominator: 4 },
+        { index: 3, start: 7, end: 10, numerator: 6, denominator: 4 },
+      ],
+      pedalEvents: [],
+      timeSignatures: [
+        { start: 0, numerator: 4, denominator: 4 },
+        { start: 4, numerator: 6, denominator: 4 },
+      ],
+      tempoMap: [{ start: 0, bpm: 120 }],
+      durationSeconds: 10,
+      musicXml: "",
+      qualityWarning: null,
+    };
+    const xml = midiToMusicXml(fixtureScore);
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    const times = Array.from(doc.querySelectorAll("time"));
+    expect(times.length).toBe(2);
+    // First time element: 4/4 in measure 1.
+    expect(times[0].querySelector("beats")?.textContent).toBe("4");
+    expect(times[0].querySelector("beat-type")?.textContent).toBe("4");
+    // Second time element: 6/4, attached to measure 3 (the first 6/4 measure).
+    expect(times[1].querySelector("beats")?.textContent).toBe("6");
+    expect(times[1].querySelector("beat-type")?.textContent).toBe("4");
+    const measure3 = doc.querySelector('measure[number="3"]');
+    expect(measure3?.querySelector("time")).not.toBeNull();
+  });
 });
