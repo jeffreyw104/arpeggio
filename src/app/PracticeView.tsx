@@ -599,12 +599,14 @@ export function PracticeView({
         : undefined
       : undefined
     : viewMode === "both"
-      ? {
-          display: showFalldownInPlay ? undefined : "none",
-          flexBasis: `${split * 100}%`,
-          flexGrow: 0,
-          flexShrink: 0,
-        }
+      ? layoutOrientation === "row"
+        ? {
+            display: showFalldownInPlay ? undefined : "none",
+            flexBasis: `${split * 100}%`,
+            flexGrow: 0,
+            flexShrink: 0,
+          }
+        : { display: showFalldownInPlay ? undefined : "none" }
       : { display: showFalldownInPlay ? undefined : "none", flex: 1 };
 
   // Score panel display style.
@@ -701,7 +703,11 @@ export function PracticeView({
         {/* Divider — play "both", or the MIDI split layout */}
         {((!isMidi && viewMode === "both") ||
           (isMidi && practiceLayout === "split")) && (
-          <Divider fraction={split} onChange={setSplit} />
+          <Divider
+            fraction={split}
+            onChange={setSplit}
+            orientation={layoutOrientation === "column" ? "horizontal" : "vertical"}
+          />
         )}
 
         {/*

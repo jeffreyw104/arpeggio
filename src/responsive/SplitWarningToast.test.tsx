@@ -52,4 +52,11 @@ describe("SplitWarningToast", () => {
     render(<SplitWarningToast shouldShow={false} />);
     expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
   });
+
+  test("becomes visible when shouldShow transitions from false to true", () => {
+    const { rerender } = render(<SplitWarningToast shouldShow={false} />);
+    expect(screen.queryByRole("button", { name: /split.*tablet/i })).not.toBeInTheDocument();
+    rerender(<SplitWarningToast shouldShow={true} />);
+    expect(screen.getByRole("button", { name: /split.*tablet/i })).toBeInTheDocument();
+  });
 });

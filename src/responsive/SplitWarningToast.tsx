@@ -18,6 +18,15 @@ export function SplitWarningToast({ shouldShow }: SplitWarningToastProps) {
     return localStorage.getItem(STORAGE_KEY) !== "1";
   });
 
+  // React to shouldShow flipping true after mount (e.g., user toggles to
+  // Split layout for the first time after the toast was originally inert).
+  useEffect(() => {
+    if (!shouldShow) return;
+    if (localStorage.getItem(STORAGE_KEY) === "1") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisible(true);
+  }, [shouldShow]);
+
   useEffect(() => {
     if (!visible) return;
     const t = window.setTimeout(() => dismiss(), AUTO_DISMISS_MS);

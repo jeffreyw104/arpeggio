@@ -1541,6 +1541,23 @@ textarea {
   height: 50%;
 }
 
+/* iPad / touch tablet narrow-viewport stacking for the Play tab "Both" view.
+   Mirrors the MIDI split case: falldown panel stacks on top of the score
+   panel. Inline flexBasis on the falldown panel is suppressed in column
+   mode (handled in PracticeView). */
+.app--touch .practice-content--play.practice-content--column {
+  flex-direction: column;
+}
+
+.app--touch .practice-content--play.practice-content--column
+  .practice-falldown-panel,
+.app--touch .practice-content--play.practice-content--column
+  .practice-score-panel {
+  flex-basis: auto;
+  min-height: 0;
+  height: 50%;
+}
+
 /* --- Split warning toast --- */
 
 .split-warning-toast {
