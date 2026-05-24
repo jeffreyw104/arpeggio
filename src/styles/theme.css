@@ -872,6 +872,48 @@ textarea {
 .practice-content.practice-content--midi-source .practice-score-panel,
 .practice-content.practice-content--midi-source .practice-lane-panel { display: none; }
 
+/* ──── MIDI Practice — Falldown-only layout ────
+   The falldown takes the full content area; the engraved score panel and
+   reading-lane ribbon are hidden. No divider (gated in PracticeView). */
+.practice-content--midi.layout-falldown {
+  display: block;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.practice-content--midi.layout-falldown .practice-falldown-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.practice-content--midi.layout-falldown .practice-score-panel,
+.practice-content--midi.layout-falldown .practice-lane-panel {
+  display: none;
+}
+
+/* ──── MIDI Practice — Score-only layout ────
+   The engraved score panel takes the full content area; the falldown and
+   reading-lane ribbon are hidden. */
+.practice-content--midi.layout-score {
+  display: block;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.practice-content--midi.layout-score .practice-score-panel {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.practice-content--midi.layout-score .practice-falldown-panel,
+.practice-content--midi.layout-score .practice-lane-panel {
+  display: none;
+}
+
 /* --- MidiTools popover content --- */
 
 /* The disabled MIDI-input placeholder block. */
