@@ -1,3 +1,4 @@
+import { TopBarSelect } from "./TopBarSelect";
 import type { TabMode } from "../layout/practiceMode";
 
 interface ModeSwitchProps {
@@ -5,31 +6,24 @@ interface ModeSwitchProps {
   onModeChange: (m: TabMode) => void;
 }
 
+const OPTIONS = [
+  { value: "play", label: "Play" },
+  { value: "midi", label: "MIDI Practice" },
+] as const satisfies ReadonlyArray<{ value: TabMode; label: string }>;
+
 /**
- * The Play / MIDI Practice switch — two buttons. The active mode is
- * `aria-pressed` and styled as the accent pill. Purely presentational; the
- * mode state lives in PracticeView.
+ * The Play / MIDI Practice tab toggle. Rendered as a single pill that shows
+ * the current mode and opens a dropdown with both options.
  */
 export function ModeSwitch({
   mode,
   onModeChange,
 }: ModeSwitchProps): React.JSX.Element {
   return (
-    <div className="top-bar-modes">
-      <button
-        type="button"
-        aria-pressed={mode === "play"}
-        onClick={() => onModeChange("play")}
-      >
-        Play
-      </button>
-      <button
-        type="button"
-        aria-pressed={mode === "midi"}
-        onClick={() => onModeChange("midi")}
-      >
-        MIDI Practice
-      </button>
-    </div>
+    <TopBarSelect<TabMode>
+      value={mode}
+      options={[...OPTIONS]}
+      onChange={onModeChange}
+    />
   );
 }

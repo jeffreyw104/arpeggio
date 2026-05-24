@@ -44,6 +44,12 @@ const score = {
   qualityWarning: null,
 } satisfies Score;
 
+/** Get the ModeSwitch pill button (distinguishes from the hud-play-btn). */
+function getModeSwitchButton(): HTMLElement {
+  const allButtons = screen.getAllByRole("button", { name: /Play/ });
+  return allButtons.find((btn) => btn.hasAttribute("aria-haspopup"))!;
+}
+
 beforeEach(() => {
   // jsdom canvas has no 2D context; stub it so FalldownRenderer can construct.
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -128,7 +134,8 @@ describe("PracticeView", () => {
         onExit={() => {}}
       />,
     );
-    await screen.findByRole("button", { name: "MIDI Practice" });
+    const modeBtn = getModeSwitchButton();
+    expect(modeBtn).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "ArrowRight" });
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(document.querySelector(".practice-view")).toBeInTheDocument();
@@ -147,7 +154,8 @@ describe("PracticeView", () => {
       />,
     );
 
-    await screen.findByRole("button", { name: "MIDI Practice" });
+    const modeBtn = getModeSwitchButton();
+    expect(modeBtn).toBeInTheDocument();
 
     expect(toggleSpy).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { key: " " });
@@ -171,7 +179,8 @@ describe("PracticeView", () => {
       />,
     );
 
-    await screen.findByRole("button", { name: "MIDI Practice" });
+    const modeBtn = getModeSwitchButton();
+    expect(modeBtn).toBeInTheDocument();
 
     // Add a text input, append to body, and dispatch keydown on it so e.target
     // is the input when the event bubbles up to the window listener.
@@ -196,14 +205,15 @@ describe("PracticeView", () => {
       />,
     );
     // Switch to MIDI Practice tab.
-    const midiBtn = await screen.findByRole("button", { name: "MIDI Practice" });
-    fireEvent.click(midiBtn);
+    const modeBtn = getModeSwitchButton();
+    fireEvent.click(modeBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
 
     // The reading-lane element is rendered (score panel gets the reading-lane class).
     expect(screen.getByTestId("reading-lane")).toBeInTheDocument();
   });
 
-  it("TopBar layout buttons switch between reading-lane and split layouts (MusicXML only)", async () => {
+  it("TopBar layout pill switches between reading-lane and split layouts (MusicXML only)", async () => {
     // Layout toggle only applies to MusicXML sources; MIDI sources use the
     // SectionStrip instead and the layout buttons are hidden.
     const musicXmlScore = {
@@ -219,25 +229,25 @@ describe("PracticeView", () => {
       />,
     );
     // Switch to MIDI Practice tab.
-    const midiBtn = await screen.findByRole("button", { name: "MIDI Practice" });
-    fireEvent.click(midiBtn);
+    const modeBtn = getModeSwitchButton();
+    fireEvent.click(modeBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
 
-    // Default layout is "lane": Reading lane button aria-pressed=true, Split=false.
-    const laneBtn = screen.getByRole("button", { name: /reading lane/i });
-    const splitBtn = screen.getByRole("button", { name: /split/i });
-    expect(laneBtn).toHaveAttribute("aria-pressed", "true");
-    expect(splitBtn).toHaveAttribute("aria-pressed", "false");
+    // Default layout is "lane": the pill reads "Layout: Reading lane".
+    const layoutPill = screen.getByRole("button", { name: /Layout: Reading lane/i });
+    expect(layoutPill).toBeInTheDocument();
 
     // The content wrapper has layout-lane class.
     const contentWrapper = document.querySelector(".practice-content--midi");
     expect(contentWrapper).toHaveClass("layout-lane");
     expect(contentWrapper).not.toHaveClass("layout-split");
 
-    // Click Split to switch layout.
-    fireEvent.click(splitBtn);
+    // Open the menu and click Split to switch layout.
+    fireEvent.click(layoutPill);
+    fireEvent.click(screen.getByRole("menuitem", { name: /^Split$/i }));
 
-    expect(laneBtn).toHaveAttribute("aria-pressed", "false");
-    expect(splitBtn).toHaveAttribute("aria-pressed", "true");
+    // The pill now reads "Layout: Split".
+    expect(screen.getByRole("button", { name: /Layout: Split/i })).toBeInTheDocument();
     expect(contentWrapper).toHaveClass("layout-split");
     expect(contentWrapper).not.toHaveClass("layout-lane");
   });

@@ -21,6 +21,9 @@ B (Import & Score Model).
   loop-wrap/listeners); loop builders (`measureLoop`, `beatLoop`, `clampLoop`);
   `SpeedUp` gradual speed-up controller; `tempoMap` seconds↔beats conversion and
   preserve/flatten mode; `Transport` composing them into the public playback API.
+- 2026-05-24 — Play/pause glyph swapped from unicode ▶/⏸ to inline SVG (single
+  path for play, two rects for pause) drawn centered in the viewBox. The
+  .hud-play-btn outer styling is unchanged.
 
 ## Keywords
 

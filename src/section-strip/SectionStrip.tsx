@@ -16,7 +16,7 @@ import {
 } from "./edits";
 import { newBookmarkId, normalize } from "../model/sections";
 
-const PALETTE = ["#cba37a", "#7a9cca", "#c97d7d", "#7ec98a", "#b09bca"] as const;
+const PALETTE = ["#3a5a78", "#2f6e63", "#7a3a4a", "#7a5a2e", "#4a3a6a"] as const;
 /** Within this fraction of duration of `autoEnd`, drag snaps back to it. */
 const SNAP_PCT = 0.015;
 
@@ -451,7 +451,7 @@ export function SectionStrip({
       <div className="section-strip__toolbar">
         {showHint && (
           <span className="section-strip__hint">
-            click a section to drill in · double-click to add a 📌 bookmark ·
+            click a section to drill in · double-click to add a bookmark ·
             drag boundary (snaps to original) · right-click for more
           </span>
         )}
@@ -691,7 +691,8 @@ function BookmarkPin({
       ) : (
         <span className="section-strip__bookmark-name">{bookmark.name}</span>
       )}
-      <span className="section-strip__bookmark-pin" aria-hidden>📌</span>
+      <span className="section-strip__bookmark-pin" aria-hidden />
+
     </span>
   );
 }

@@ -59,3 +59,36 @@ describe("GeneralSettings", () => {
     });
   });
 });
+
+describe("GeneralSettings — Input sound conditional", () => {
+  it("does NOT render an Input sound checkbox when monitor props are absent", () => {
+    render(<GeneralSettings falldown={null} audioEngine={null} />);
+    expect(screen.queryByLabelText(/input sound/i)).toBeNull();
+  });
+
+  it("renders Input sound when monitor props are provided", () => {
+    render(
+      <GeneralSettings
+        falldown={null}
+        audioEngine={null}
+        monitorOn={false}
+        onMonitorOnChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText(/input sound/i)).toBeInTheDocument();
+  });
+
+  it("toggling the Input sound checkbox calls onMonitorOnChange", () => {
+    const onMonitorOnChange = vi.fn();
+    render(
+      <GeneralSettings
+        falldown={null}
+        audioEngine={null}
+        monitorOn={false}
+        onMonitorOnChange={onMonitorOnChange}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText(/input sound/i));
+    expect(onMonitorOnChange).toHaveBeenCalledWith(true);
+  });
+});

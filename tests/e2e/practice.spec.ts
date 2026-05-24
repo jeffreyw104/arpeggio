@@ -111,20 +111,27 @@ test("switching view modes keeps the panels rendering", async ({ page }) => {
     timeout: 15_000,
   });
 
+  // The View pill opens a dropdown; pick options via menuitem.
+  const viewPill = page.getByRole("button", { name: /^View:/ });
+
   // Score-only: the falldown canvas is hidden, the score panel stays visible.
-  await page.getByRole("button", { name: /score only/i }).click();
+  await viewPill.click();
+  await page.getByRole("menuitem", { name: "Score only" }).click();
   await expect(page.locator("canvas")).toBeHidden();
 
   // Back to Both: the same canvas must render again (it was never unmounted).
-  await page.getByRole("button", { name: /^both$/i }).click();
+  await viewPill.click();
+  await page.getByRole("menuitem", { name: "Both" }).click();
   await expect(page.locator("canvas")).toBeVisible();
 
   // Falldown-only: the canvas is still there and visible.
-  await page.getByRole("button", { name: /falldown only/i }).click();
+  await viewPill.click();
+  await page.getByRole("menuitem", { name: "Falldown only" }).click();
   await expect(page.locator("canvas")).toBeVisible();
 
   // And once more back to Both — no blank panels.
-  await page.getByRole("button", { name: /^both$/i }).click();
+  await viewPill.click();
+  await page.getByRole("menuitem", { name: "Both" }).click();
   await expect(page.locator("canvas")).toBeVisible();
 });
 
@@ -140,39 +147,35 @@ test("MIDI Practice tab: layout toggles between reading-lane and split", async (
   });
 
   // Switch to the MIDI Practice tab — the reading-lane layout is the default.
-  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  // Mode is now a pill+menu; the pill shows the current mode, opens a dropdown.
+  const modePill = page.locator("button[aria-haspopup='menu']").filter({ hasText: /^(Play|MIDI Practice)$/ });
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "MIDI Practice" }).click();
 
-  const laneBtn = page
-    .locator(".top-bar")
-    .getByRole("button", { name: "Reading lane" });
-  const splitBtn = page
-    .locator(".top-bar")
-    .getByRole("button", { name: "Split", exact: true });
-
-  await expect(laneBtn).toHaveAttribute("aria-pressed", "true");
-  await expect(splitBtn).toHaveAttribute("aria-pressed", "false");
+  // The Layout pill shows "Layout: Reading lane" by default.
+  const layoutPill = page.getByRole("button", { name: /^Layout:/ });
+  await expect(layoutPill).toContainText("Reading lane");
 
   // The score panel and the falldown canvas are both present in lane layout.
   await expect(page.locator("[data-testid='reading-lane']")).toBeVisible();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
-  // Switch to the split layout.
-  await splitBtn.click();
-  await expect(splitBtn).toHaveAttribute("aria-pressed", "true");
-  await expect(laneBtn).toHaveAttribute("aria-pressed", "false");
+  // Switch to the split layout via the Layout pill menu.
+  await layoutPill.click();
+  await page.getByRole("menuitem", { name: "Split" }).click();
+  await expect(layoutPill).toContainText("Split");
   // The canvas must still be the same element — never remounted.
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
   // Back to the reading-lane layout.
-  await laneBtn.click();
-  await expect(laneBtn).toHaveAttribute("aria-pressed", "true");
+  await layoutPill.click();
+  await page.getByRole("menuitem", { name: "Reading lane" }).click();
+  await expect(layoutPill).toContainText("Reading lane");
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 
   // Switching back to the Play tab keeps the canvas visible (not remounted).
-  await page
-    .locator(".top-bar-modes")
-    .getByRole("button", { name: "Play" })
-    .click();
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "Play" }).click();
   await expect(page.locator("canvas.falldown-canvas")).toBeVisible();
 });
 
@@ -185,8 +188,10 @@ test("MIDI Practice tab: Tools popover exposes MIDI controls and status chip sho
     timeout: 15_000,
   });
 
-  // Switch to the MIDI Practice tab.
-  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  // Switch to the MIDI Practice tab via the mode pill+menu.
+  const modePill = page.locator("button[aria-haspopup='menu']").filter({ hasText: /^(Play|MIDI Practice)$/ });
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "MIDI Practice" }).click();
 
   // The status chip must appear in the top bar.
   // Web MIDI is unavailable in Playwright → status is "unsupported" or "no-device"
@@ -205,18 +210,22 @@ test("MIDI Practice tab: Tools popover exposes MIDI controls and status chip sho
   const deviceSelect = page.getByRole("combobox", { name: /midi device/i });
   await expect(deviceSelect).toBeVisible();
 
-  // "Wait for me" and "Input sound" checkboxes are present.
+  // "Wait for me" checkbox and hand buttons have moved to the top-bar wait
+  // pill (Tasks 11–12). Verify they are NOT in the Tools popover.
   await expect(
     page.getByRole("checkbox", { name: /wait for me/i }),
-  ).toBeVisible();
+  ).toBeHidden();
+  await expect(page.getByRole("button", { name: /^left$/i })).toBeHidden();
+  await expect(page.getByRole("button", { name: /^right$/i })).toBeHidden();
+
+  // The wait pill is in the top bar instead.
+  const waitPill = page.locator(".top-bar-wait-pill");
+  await expect(waitPill).toBeVisible();
+
+  // "Input sound" is now inside the General settings accordion section.
   await expect(
     page.getByRole("checkbox", { name: /input sound/i }),
   ).toBeVisible();
-
-  // Left / Right / Both hand buttons are present.
-  await expect(page.getByRole("button", { name: /^left$/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^right$/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^both$/i })).toBeVisible();
 
   // The MIDI status line shows the computer-keyboard fallback message
   // (Web MIDI unavailable in Playwright).
@@ -248,14 +257,15 @@ test("playback does not carry over between the Play and Practice tabs", async ({
   const playTabTime = await time.textContent();
 
   // Switch to MIDI Practice — its playhead is independent of the Play tab.
-  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  // Mode is now a pill+menu; the pill label shows the current mode.
+  const modePill = page.locator("button[aria-haspopup='menu']").filter({ hasText: /^(Play|MIDI Practice)$/ });
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "MIDI Practice" }).click();
   await expect(time).not.toHaveText(playTabTime ?? "");
 
   // Switch back to Play — its playhead is restored where it was left.
-  await page
-    .locator(".top-bar-modes")
-    .getByRole("button", { name: "Play" })
-    .click();
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "Play" }).click();
   await expect(time).toHaveText(playTabTime ?? "");
 });
 
@@ -269,19 +279,23 @@ test("MIDI Practice tab: Tools popover includes the shared Loop, Tempo, and Metr
   });
 
   // Switch to the MIDI Practice tab and open the Tools popover.
-  await page.getByRole("button", { name: "MIDI Practice" }).click();
+  // Mode is now a pill+menu.
+  const modePill = page.locator("button[aria-haspopup='menu']").filter({ hasText: /^(Play|MIDI Practice)$/ });
+  await modePill.click();
+  await page.getByRole("menuitem", { name: "MIDI Practice" }).click();
   await page
     .locator(".top-bar")
     .getByRole("button", { name: "Tools" })
     .click();
   await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
 
-  // The Practice popover still has its MIDI controls...
+  // "Wait for me" has moved to the top-bar wait pill (Task 11).
+  // The MIDI device select confirms we're in the MIDI section.
   await expect(
-    page.getByRole("checkbox", { name: /wait for me/i }),
+    page.getByRole("combobox", { name: /midi device/i }),
   ).toBeVisible();
 
-  // ...and now also the sections shared with the Play tab.
+  // The Practice popover still has the sections shared with the Play tab.
   await expect(
     page.getByRole("button", { name: "Loop", exact: true }),
   ).toBeVisible();

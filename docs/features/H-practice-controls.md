@@ -34,6 +34,15 @@ C (Transport), D (Audio), E (Falldown View).
   Tools popover gained a `below-strip` placement variant used when the
   strip is top-docked. Escape now closes the Tools popover (in addition to
   exiting Feature J's drill-in mode and dismissing context menus).
+- 2026-05-24 — Studio Dark refresh, wait-mode + hands consolidation.
+  Introduced a top-bar wait pill that doubles as indicator (gray-off /
+  green-on with glowing dot) and control (menu: Off / Left hand / Both hands /
+  Right hand). Hand selection now mutates handsIPlay AND waitEnabled in one
+  click. Removed the now-redundant Hands I play preset row and Wait for me
+  checkbox from the Tools popover. Input sound checkbox moved into the General
+  settings row (still MIDI-only via conditional render). Mode toggle
+  (Play / MIDI Practice) also became a TopBarSelect pill via the new
+  TopBarSelect primitive.
 
 ## Keywords
 

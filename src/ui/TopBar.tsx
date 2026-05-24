@@ -1,11 +1,14 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ViewMode } from "../layout/viewMode";
 import { ModeSwitch } from "./ModeSwitch";
+import { TopBarSelect } from "./TopBarSelect";
 import type { TabMode, PracticeLayout, LaneTheme } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import { startCountIn, type CountInHandle } from "../practice/countIn";
 import type { MidiStatus } from "../midi/MidiInput";
+import { TopBarReadout } from "./TopBarReadout";
+import type { Hand } from "../model/score";
 
 interface TopBarProps {
   pieceName: string;
@@ -31,16 +34,21 @@ interface TopBarProps {
   midiStatus?: MidiStatus;
   /** MIDI tab: name of the connected device (when status is "connected"). */
   midiDeviceName?: string;
+  /** MIDI tab: wait-mode state, exposed via the top-bar wait pill. */
+  waitEnabled?: boolean;
+  onWaitEnabledChange?: (on: boolean) => void;
+  handsIPlay?: ReadonlySet<Hand>;
+  onHandsIPlayChange?: (hands: Set<Hand>) => void;
   /** True when the loaded piece is a MIDI file. Hides the scrubber and
    *  practice-layout controls (replaced by the SectionStrip). */
   isMidiSource?: boolean;
 }
 
-const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
-  { mode: "both", label: "Both" },
-  { mode: "falldown", label: "Falldown only" },
-  { mode: "score", label: "Score only" },
-];
+type LayoutMenuValue = PracticeLayout | `theme:${LaneTheme}`;
+
+function isThemeValue(v: LayoutMenuValue): v is `theme:${LaneTheme}` {
+  return v.startsWith("theme:");
+}
 
 /** Strips a known trailing file extension for display ("song.mid" -> "song").
  * Only matches the formats the app handles, so titles like "Ballade No.1"
@@ -82,6 +90,10 @@ export function TopBar({
   onLaneThemeChange,
   midiStatus,
   midiDeviceName,
+  waitEnabled,
+  onWaitEnabledChange,
+  handsIPlay,
+  onHandsIPlayChange,
   isMidiSource = false,
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
@@ -162,7 +174,16 @@ export function TopBar({
         disabled={countingIn}
         onClick={handlePlayToggle}
       >
-        {playing ? "⏸" : "▶"}
+        {playing ? (
+          <svg viewBox="0 0 10 10" width="0.75em" height="0.75em" fill="currentColor" aria-hidden="true">
+            <rect x="2.5" y="2" width="2" height="6" rx="0.5" />
+            <rect x="5.5" y="2" width="2" height="6" rx="0.5" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="currentColor" aria-hidden="true">
+            <path d="M2.5 1.5 L8.5 5 L2.5 8.5 Z" />
+          </svg>
+        )}
       </button>
       {!isMidiSource && (
         <input
@@ -190,6 +211,15 @@ export function TopBar({
         <span className="top-bar-piece-title">{displayName(pieceName)}</span>
       </div>
       <span className="top-bar-spacer" />
+      <TopBarReadout
+        mode={mode}
+        transport={transport}
+        audioEngine={audioEngine}
+        waitEnabled={waitEnabled}
+        onWaitEnabledChange={onWaitEnabledChange}
+        handsIPlay={handsIPlay}
+        onHandsIPlayChange={onHandsIPlayChange}
+      />
       {mode === "midi" && midiStatus !== undefined && (
         <span
           className="midi-status-chip"
@@ -209,46 +239,47 @@ export function TopBar({
       {/* View controls vary by tab mode; hidden for MIDI source files */}
       {!isMidiSource && (
         mode === "play" ? (
-          <div className="top-bar-views">
-            {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
-              <button
-                key={viewModeOption}
-                type="button"
-                aria-pressed={viewMode === viewModeOption}
-                onClick={() => onViewModeChange(viewModeOption)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <TopBarSelect<ViewMode>
+            label="View:"
+            value={viewMode}
+            options={[
+              { value: "both", label: "Both" },
+              { value: "falldown", label: "Falldown only" },
+              { value: "score", label: "Score only" },
+            ]}
+            onChange={onViewModeChange}
+          />
         ) : (
-          <div className="top-bar-views">
-            <button
-              type="button"
-              aria-pressed={practiceLayout === "lane"}
-              onClick={() => onPracticeLayoutChange("lane")}
-            >
-              Reading lane
-            </button>
-            <button
-              type="button"
-              aria-pressed={practiceLayout === "split"}
-              onClick={() => onPracticeLayoutChange("split")}
-            >
-              Split
-            </button>
-            {practiceLayout === "lane" && (
-              <button
-                type="button"
-                aria-label="Lane theme"
-                onClick={() =>
-                  onLaneThemeChange(laneTheme === "dark" ? "paper" : "dark")
-                }
-              >
-                {laneTheme === "dark" ? "Paper" : "Dark"}
-              </button>
-            )}
-          </div>
+          <TopBarSelect<LayoutMenuValue>
+            label="Layout:"
+            value={practiceLayout}
+            extraActive={new Set<LayoutMenuValue>([`theme:${laneTheme}`])}
+            sections={[
+              {
+                section: "Layout",
+                items: [
+                  { value: "lane", label: "Reading lane" },
+                  { value: "split", label: "Split" },
+                ],
+              },
+              {
+                section: "Lane theme",
+                items: [
+                  { value: "theme:paper", label: "Light" },
+                  { value: "theme:dark", label: "Dark" },
+                ],
+              },
+            ]}
+            onChange={(v) => {
+              if (isThemeValue(v)) {
+                const theme = v.slice("theme:".length) as LaneTheme;
+                onLaneThemeChange(theme);
+                if (practiceLayout !== "lane") onPracticeLayoutChange("lane");
+              } else {
+                onPracticeLayoutChange(v);
+              }
+            }}
+          />
         )
       )}
 

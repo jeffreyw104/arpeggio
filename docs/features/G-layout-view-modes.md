@@ -34,6 +34,12 @@ E (Falldown View), F (Score View).
   below it when the strip is top-docked. CSS flex-order on the wrapper
   swaps strip top↔bottom without unmounting (preserves strip internal state
   across toggle).
+- 2026-05-24 — Studio Dark refresh, view selectors consolidated. The Play-tab
+  View buttons (Both / Falldown only / Score only) collapse into a single
+  TopBarSelect pill ("View: Both" / etc.). The MIDI Practice Layout buttons
+  (Reading lane / Split) plus the conditional Paper/Dark theme toggle collapse
+  into a single multi-section TopBarSelect pill — picking a Lane theme
+  auto-switches to Reading lane.
 
 ## Keywords
 

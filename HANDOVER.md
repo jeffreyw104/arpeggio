@@ -369,3 +369,30 @@ the canonical "what's on the branch and why").
   or step the tempo up).
 - QWERTY octave shifting (the FL Studio map gives two octaves; shift is
   backlog).
+- **Mid-piece time-signature changes not followed at runtime.** Both parsers
+  (MusicXML and MIDI) correctly capture every `<time>` / time-sig meta event
+  into `score.timeSignatures: TimeSignature[]` with `start` times, so the data
+  is there. But the metronome (`src/audio/metronome.ts`) reads only
+  `score.timeSignatures[0]` and precomputes the beat grid with a single
+  `beatsPerBar` for the whole piece — clicks keep firing at the opening time
+  signature even after the score has shifted. The TopBarReadout's time-sig
+  chip and the MIDI→MusicXML conversion (`midiToMusicXml.ts:230`) have the
+  same first-only limitation. Example: Chopin's Ballade in G minor (4/4 → 6/4
+  partway through) clicks at 4/4 throughout. Fix is its own feature (compute
+  the grid per time-sig segment + position-driven chip + emit all `<time>`
+  elements at MIDI→MusicXML; needs a UX call on what manual time-sig edits
+  mean in pieces with multiple sigs).
+
+## Studio Dark UI refresh (2026-05-24)
+
+The top bar now hosts a chip-group readout (tempo · time-sig · measure · loop)
+and, in MIDI Practice mode, a wait pill that doubles as both the on/off
+indicator and the hand selector — one click opens a menu (Off / Left hand /
+Both hands / Right hand) that sets handsIPlay and waitEnabled simultaneously.
+All multi-option top-bar selectors (Mode, View, Layout+Theme) flow through a
+shared `TopBarSelect` pill-with-dropdown primitive so the bar is visually
+consistent. The section strip was rethemed to a dark translucent panel matching
+the top-bar chrome, and the block palette is a moody saturated 5-color set
+(slate-blue, deep teal, plum, burnt amber, indigo). The Tools popover dropped
+the now-redundant Hands + Wait rows; Input sound moved into the General settings
+row (still MIDI-only via conditional render).

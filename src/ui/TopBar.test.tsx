@@ -65,24 +65,32 @@ describe("TopBar", () => {
 
   it("calls onViewModeChange when a view-mode button is clicked", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("button", { name: /score only/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view:/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /score only/i }));
     expect(props.onViewModeChange).toHaveBeenCalledWith("score");
   });
 
-  it("marks the active view mode with aria-pressed", () => {
+  it("marks the active view mode with aria-current when menu is open", () => {
     renderBar({ viewMode: "falldown" });
+    // Open the menu
+    fireEvent.click(screen.getByRole("button", { name: /view:/i }));
+    // The active item should have aria-current="true"
     expect(
-      screen.getByRole("button", { name: /falldown only/i }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /^both$/i })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+      screen.getByRole("menuitem", { name: /falldown only/i }),
+    ).toHaveAttribute("aria-current", "true");
+    // Inactive items should not have aria-current
+    expect(
+      screen.getByRole("menuitem", { name: /^both$/i }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("renders the Play/MIDI Practice switch", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("button", { name: "MIDI Practice" }));
+    const allPlayBtns = screen.getAllByRole("button", { name: /Play/ });
+    const modeBtn = allPlayBtns.find((btn) => btn.hasAttribute("aria-haspopup"));
+    expect(modeBtn).toBeInTheDocument();
+    fireEvent.click(modeBtn!);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
     expect(props.onModeChange).toHaveBeenCalledWith("midi");
   });
 
@@ -157,6 +165,37 @@ describe("TopBar", () => {
       renderBar({ mode: "play" });
       expect(document.querySelector(".midi-status-chip")).toBeNull();
     });
+  });
+
+  it("renders the TopBarReadout chip group in the slack region", () => {
+    renderBar();
+    // Tempo chip is always present once the readout renders
+    expect(screen.getByText(/♩ =/)).toBeInTheDocument();
+  });
+
+  it("MIDI Practice mode: layout pill opens menu with both sections", () => {
+    renderBar({ mode: "midi", practiceLayout: "lane", laneTheme: "dark" });
+    fireEvent.click(screen.getByRole("button", { name: /Layout: Reading lane/ }));
+    expect(screen.getByRole("menuitem", { name: /Reading lane/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Split/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Dark/ })).toBeInTheDocument();
+  });
+
+  it("picking a Lane theme from Split auto-switches to Reading lane", () => {
+    const onPracticeLayoutChange = vi.fn();
+    const onLaneThemeChange = vi.fn();
+    renderBar({
+      mode: "midi",
+      practiceLayout: "split",
+      laneTheme: "dark",
+      onPracticeLayoutChange,
+      onLaneThemeChange,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Layout: Split/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Light/ }));
+    expect(onLaneThemeChange).toHaveBeenCalledWith("paper");
+    expect(onPracticeLayoutChange).toHaveBeenCalledWith("lane");
   });
 
   it("count-in: play button disabled during count-in then clock plays after", () => {

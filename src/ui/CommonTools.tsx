@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
 import type { FalldownRenderer } from "../falldown/renderer";
+import { measureAt, loopMeasureRange } from "../transport/measureMap";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { MetronomeSettings } from "./MetronomeSettings";
 import { GeneralSettings } from "./GeneralSettings";
@@ -12,37 +13,12 @@ interface CommonToolsProps {
   falldown: FalldownRenderer | null;
   countInBars: number;
   onCountInBarsChange: (bars: number) => void;
+  monitorOn?: boolean;
+  onMonitorOnChange?: (on: boolean) => void;
 }
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
-}
-
-/** Index of the measure containing `position`, or 0 if none matches. */
-function measureAt(transport: Transport, position: number): number {
-  const i = transport.score.measures.findIndex(
-    (m) => position >= m.start && position < m.end,
-  );
-  return i === -1 ? 0 : i;
-}
-
-/** Measure indices [first,last] of an active loop, or null. 0-based. */
-function loopMeasures(
-  transport: Transport,
-): { first: number; last: number } | null {
-  const loop = transport.clock.loop;
-  if (!loop) return null;
-  const measures = transport.score.measures;
-  const first = measures.findIndex(
-    (m) => loop.start >= m.start && loop.start < m.end,
-  );
-  const last = measures.findIndex(
-    (m) => loop.end > m.start && loop.end <= m.end,
-  );
-  return {
-    first: first === -1 ? 0 : first,
-    last: last === -1 ? (first === -1 ? 0 : first) : last,
-  };
 }
 
 /**
@@ -57,6 +33,8 @@ export function CommonTools({
   falldown,
   countInBars,
   onCountInBarsChange,
+  monitorOn,
+  onMonitorOnChange,
 }: CommonToolsProps): React.JSX.Element {
   // Per-section open state — all start open so every control is laid out;
   // the user can still collapse any section they do not need.
@@ -65,14 +43,14 @@ export function CommonTools({
   const [metronomeOpen, setMetronomeOpen] = useState(true);
 
   // --- Loop state ---
-  const [loopRange, setLoopRange] = useState(() => loopMeasures(transport));
+  const [loopRange, setLoopRange] = useState(() => loopMeasureRange(transport));
   const [pendingStart, setPendingStart] = useState<number | null>(null);
 
   // Mirror the transport's loop into the popover state. The score view's
   // drag-to-loop and any other external setter funnels through clock.onChange,
   // so this is the single source of truth for "is there a loop, and where?".
   useEffect(() => {
-    const sync = (): void => setLoopRange(loopMeasures(transport));
+    const sync = (): void => setLoopRange(loopMeasureRange(transport));
     sync();
     return transport.clock.onChange(sync);
   }, [transport]);
@@ -335,7 +313,12 @@ export function CommonTools({
         />
       </CollapsibleSection>
 
-      <GeneralSettings falldown={falldown} audioEngine={audioEngine} />
+      <GeneralSettings
+        falldown={falldown}
+        audioEngine={audioEngine}
+        monitorOn={monitorOn}
+        onMonitorOnChange={onMonitorOnChange}
+      />
     </>
   );
 }

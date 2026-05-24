@@ -736,6 +736,10 @@ export function PracticeView({
         midiDeviceName={
           midiDevices.find((d) => d.id === midiSession.selectedDeviceId)?.name
         }
+        waitEnabled={waitEnabled}
+        onWaitEnabledChange={setWaitEnabled}
+        handsIPlay={handsIPlay}
+        onHandsIPlayChange={setHandsIPlay}
         isMidiSource={isMidiSource}
       />
       <ToolsPopover
@@ -779,10 +783,6 @@ export function PracticeView({
             devices={midiDevices}
             selectedDeviceId={midiSession.selectedDeviceId}
             onSelectDevice={(id) => midiSession.selectDevice(id)}
-            handsIPlay={handsIPlay}
-            onHandsIPlayChange={setHandsIPlay}
-            waitEnabled={waitEnabled}
-            onWaitEnabledChange={setWaitEnabled}
             monitorOn={monitorOn}
             onMonitorOnChange={setMonitorOn}
             isMidiSource={isMidiSource}

@@ -9,12 +9,19 @@
  *  50  context menu (.section-strip__menu)
  * ================================================================ */
 .section-strip {
-  background: #ebe5d4;
-  border-top: 1px solid #d3cab3;
+  /* Solid dark panel (no backdrop-filter). backdrop-filter creates a
+     containing block for fixed-position descendants, which breaks the
+     section-strip__menu's `position: fixed` — the context menu would
+     position relative to the strip instead of the viewport. The strip
+     doesn't overlap any content, so there's nothing meaningful to blur. */
+  background: linear-gradient(#181820, #0e0e12);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 6px 12px 8px;
   user-select: none;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 /* Default child order: bookmarks (top of strip), sections, toolbar (bottom of strip). */
 .section-strip__bookmarks { order: 1; }
@@ -30,7 +37,7 @@
    inside the beige in both orientations. */
 .section-strip--top {
   border-top: 0;
-  border-bottom: 1px solid #d3cab3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding: 8px 12px 6px;
 }
 .section-strip--top .section-strip__toolbar   { order: 1; margin-top: 0; margin-bottom: 6px; }
@@ -54,32 +61,53 @@
   position: absolute;
   /* Wrapper centered on the bookmark's time so name AND pin both sit on the
      time tick. Stacked vertically with the pin at the bottom (closest to the
-     section row) and the name above it. */
+     section row) and the name above it. `bottom: 4px` adds clearance between
+     the pin tip and the section row below — otherwise the triangle reads as
+     dipping into the row. */
   transform: translateX(-50%);
-  bottom: 0;
+  bottom: 4px;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   font-size: 10px;
-  color: #7a6a48;
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
   line-height: 1;
 }
 .section-strip__bookmark-name {
   /* Sits in its own band ABOVE the pin. */
-  margin-bottom: 1px;
+  margin-bottom: 4px;
   padding: 0 2px;
 }
 .section-strip__bookmark-pin {
+  /* CSS-drawn triangle via ::before. The host span is exactly 12×8 (the
+     triangle's footprint) with transparent horizontal padding for the hit
+     area. Zero vertical padding so the pin's visual bottom equals the
+     wrapper's bottom — combined with `.section-strip__bookmark`'s
+     `bottom: 4px`, the triangle tip ends a clean 4px above the lane edge.
+     Triangle direction flips with orientation (.section-strip--top below). */
+  position: relative;
   display: inline-block;
-  /* Visual width matches the pin glyph, but transparent padding extends
-     the hit area to ~24px wide so right-click/double-click are reliable
-     even if the user is a few pixels off the pin. */
-  width: 14px;
-  padding: 4px 5px;
-  margin: -4px -5px;
-  text-align: center;
-  line-height: 1;
+  width: 12px;
+  height: 8px;
+  padding: 0 6px;
+}
+.section-strip__bookmark-pin::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #fff;
+}
+.section-strip--top .section-strip__bookmark-pin::before {
+  /* Flip the arrow to point UP toward the section row above. */
+  border-top: 0;
+  border-bottom: 8px solid #fff;
 }
 
 /* Half-opaque dotted tether — extends from the bookmark pin (in the
@@ -142,8 +170,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #1a1a1a;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   /* Above bookmark pins (no z-index, default auto) and above the playhead
      (z:10) so the hover pill is never blocked when drilling near the
@@ -229,8 +257,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #1a1a1a;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   z-index: 10;
 }
@@ -293,12 +321,12 @@
    row above), name BELOW pin. */
 .section-strip--top .section-strip__bookmark {
   bottom: auto;
-  top: 0;
+  top: 4px;
   flex-direction: column-reverse;
 }
 .section-strip--top .section-strip__bookmark-name {
   margin-bottom: 0;
-  margin-top: 1px;
+  margin-top: 4px; /* mirror of bottom-orient name's margin-bottom */
 }
 .section-strip--top .section-strip__loop-indicator {
   /* Mirror: bracket hooks UP at the bottom (opens upward toward the section
@@ -330,7 +358,7 @@
   /* Fixed height so toggling the hint visibility on/off does NOT change the
      strip's overall size — the hint just slides in/out to the left of "?". */
   height: 14px;
-  color: #6a5e3e;
+  color: rgba(230, 230, 234, 0.55);
 }
 .section-strip__hint {
   white-space: nowrap;
@@ -348,8 +376,8 @@
   font: inherit;
   font-size: 10px;
   cursor: pointer;
-  color: #6a5e3e;
-  text-decoration: underline;
+  color: rgba(230, 230, 234, 0.55);
+  text-decoration: none;
   text-underline-offset: 2px;
   flex-shrink: 0;
 }
@@ -360,10 +388,11 @@
 }
 .section-strip__undo:not(:disabled):hover,
 .section-strip__help-toggle:hover {
-  color: #2e2810;
+  color: #e6e6ea;
+  text-decoration: underline;
 }
 .section-strip__help-toggle[aria-pressed="true"] {
-  color: #2e2810;
+  color: #e6e6ea;
   font-weight: 700;
 }
 

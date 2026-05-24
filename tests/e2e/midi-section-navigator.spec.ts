@@ -52,7 +52,10 @@ test.describe("MIDI section navigator", () => {
     await page.setInputFiles('input[type="file"]', MIDI_FIXTURE);
     const firstBlock = page.locator(".section-strip__block").first();
     await expect(firstBlock).toBeVisible({ timeout: 15_000 });
-    await firstBlock.dblclick();
+    // Renaming is triggered via the right-click context menu (dblclick on a
+    // section block now creates a bookmark instead).
+    await firstBlock.click({ button: "right" });
+    await page.getByRole("button", { name: "Rename" }).click();
     const input = page.getByLabel("Rename section");
     await input.fill("My Section");
     await input.press("Enter");
@@ -71,15 +74,22 @@ test.describe("MIDI section navigator", () => {
     ).toContainText("My Section", { timeout: 15_000 });
   });
 
-  test("toggling strip position via the ↕ button survives reload", async ({
+  test("toggling strip position via the Tools popover survives reload", async ({
     page,
   }) => {
     await page.setInputFiles('input[type="file"]', MIDI_FIXTURE);
     await expect(page.locator(".section-strip--bottom")).toBeVisible({
       timeout: 15_000,
     });
-    await page.locator(".section-strip__pos-toggle").click();
+    // Strip position is now controlled via the Tools popover radio buttons
+    // (the inline ↕ button was removed in the dark UI refresh).
+    const toolsBtn = page.locator(".top-bar").getByRole("button", { name: "Tools" });
+    await toolsBtn.click();
+    await expect(page.getByRole("dialog", { name: "Tools" })).toBeVisible();
+    await page.getByRole("radio", { name: "Top" }).click();
     await expect(page.locator(".section-strip--top")).toBeVisible();
+    // Close the Tools popover.
+    await toolsBtn.click();
 
     // Reload takes us back to the library screen; re-open the piece to verify
     // the strip position was persisted via localStorage.
