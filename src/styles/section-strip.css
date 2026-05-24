@@ -9,10 +9,13 @@
  *  50  context menu (.section-strip__menu)
  * ================================================================ */
 .section-strip {
-  background: linear-gradient(rgba(20,20,25,0.78), rgba(12,12,16,0.88));
+  /* Solid dark panel (no backdrop-filter). backdrop-filter creates a
+     containing block for fixed-position descendants, which breaks the
+     section-strip__menu's `position: fixed` — the context menu would
+     position relative to the strip instead of the viewport. The strip
+     doesn't overlap any content, so there's nothing meaningful to blur. */
+  background: linear-gradient(#181820, #0e0e12);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
   padding: 6px 12px 8px;
   user-select: none;
   display: flex;
@@ -58,32 +61,53 @@
   position: absolute;
   /* Wrapper centered on the bookmark's time so name AND pin both sit on the
      time tick. Stacked vertically with the pin at the bottom (closest to the
-     section row) and the name above it. */
+     section row) and the name above it. `bottom: 4px` adds clearance between
+     the pin tip and the section row below — otherwise the triangle reads as
+     dipping into the row. */
   transform: translateX(-50%);
-  bottom: 0;
+  bottom: 4px;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   font-size: 10px;
-  color: #7a6a48;
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
   line-height: 1;
 }
 .section-strip__bookmark-name {
   /* Sits in its own band ABOVE the pin. */
-  margin-bottom: 1px;
+  margin-bottom: 4px;
   padding: 0 2px;
 }
 .section-strip__bookmark-pin {
+  /* CSS-drawn triangle via ::before. The host span is exactly 12×8 (the
+     triangle's footprint) with transparent horizontal padding for the hit
+     area. Zero vertical padding so the pin's visual bottom equals the
+     wrapper's bottom — combined with `.section-strip__bookmark`'s
+     `bottom: 4px`, the triangle tip ends a clean 4px above the lane edge.
+     Triangle direction flips with orientation (.section-strip--top below). */
+  position: relative;
   display: inline-block;
-  /* Visual width matches the pin glyph, but transparent padding extends
-     the hit area to ~24px wide so right-click/double-click are reliable
-     even if the user is a few pixels off the pin. */
-  width: 14px;
-  padding: 4px 5px;
-  margin: -4px -5px;
-  text-align: center;
-  line-height: 1;
+  width: 12px;
+  height: 8px;
+  padding: 0 6px;
+}
+.section-strip__bookmark-pin::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #fff;
+}
+.section-strip--top .section-strip__bookmark-pin::before {
+  /* Flip the arrow to point UP toward the section row above. */
+  border-top: 0;
+  border-bottom: 8px solid #fff;
 }
 
 /* Half-opaque dotted tether — extends from the bookmark pin (in the
@@ -297,12 +321,12 @@
    row above), name BELOW pin. */
 .section-strip--top .section-strip__bookmark {
   bottom: auto;
-  top: 0;
+  top: 4px;
   flex-direction: column-reverse;
 }
 .section-strip--top .section-strip__bookmark-name {
   margin-bottom: 0;
-  margin-top: 1px;
+  margin-top: 4px; /* mirror of bottom-orient name's margin-bottom */
 }
 .section-strip--top .section-strip__loop-indicator {
   /* Mirror: bracket hooks UP at the bottom (opens upward toward the section

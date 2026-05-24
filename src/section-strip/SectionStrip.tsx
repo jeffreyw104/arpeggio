@@ -451,7 +451,7 @@ export function SectionStrip({
       <div className="section-strip__toolbar">
         {showHint && (
           <span className="section-strip__hint">
-            click a section to drill in · double-click to add a 📌 bookmark ·
+            click a section to drill in · double-click to add a bookmark ·
             drag boundary (snaps to original) · right-click for more
           </span>
         )}
@@ -691,7 +691,8 @@ function BookmarkPin({
       ) : (
         <span className="section-strip__bookmark-name">{bookmark.name}</span>
       )}
-      <span className="section-strip__bookmark-pin" aria-hidden>📌</span>
+      <span className="section-strip__bookmark-pin" aria-hidden />
+
     </span>
   );
 }
