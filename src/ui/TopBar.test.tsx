@@ -65,19 +65,23 @@ describe("TopBar", () => {
 
   it("calls onViewModeChange when a view-mode button is clicked", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("button", { name: /score only/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view:/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /score only/i }));
     expect(props.onViewModeChange).toHaveBeenCalledWith("score");
   });
 
-  it("marks the active view mode with aria-pressed", () => {
+  it("marks the active view mode with aria-current when menu is open", () => {
     renderBar({ viewMode: "falldown" });
+    // Open the menu
+    fireEvent.click(screen.getByRole("button", { name: /view:/i }));
+    // The active item should have aria-current="true"
     expect(
-      screen.getByRole("button", { name: /falldown only/i }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /^both$/i })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+      screen.getByRole("menuitem", { name: /falldown only/i }),
+    ).toHaveAttribute("aria-current", "true");
+    // Inactive items should not have aria-current
+    expect(
+      screen.getByRole("menuitem", { name: /^both$/i }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("renders the Play/MIDI Practice switch", () => {

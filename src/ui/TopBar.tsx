@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ViewMode } from "../layout/viewMode";
 import { ModeSwitch } from "./ModeSwitch";
+import { TopBarSelect } from "./TopBarSelect";
 import type { TabMode, PracticeLayout, LaneTheme } from "../layout/practiceMode";
 import type { Transport } from "../transport/transport";
 import type { AudioEngine } from "../audio/engine";
@@ -42,12 +43,6 @@ interface TopBarProps {
    *  practice-layout controls (replaced by the SectionStrip). */
   isMidiSource?: boolean;
 }
-
-const VIEW_MODE_OPTIONS: ReadonlyArray<{ mode: ViewMode; label: string }> = [
-  { mode: "both", label: "Both" },
-  { mode: "falldown", label: "Falldown only" },
-  { mode: "score", label: "Score only" },
-];
 
 /** Strips a known trailing file extension for display ("song.mid" -> "song").
  * Only matches the formats the app handles, so titles like "Ballade No.1"
@@ -238,18 +233,16 @@ export function TopBar({
       {/* View controls vary by tab mode; hidden for MIDI source files */}
       {!isMidiSource && (
         mode === "play" ? (
-          <div className="top-bar-views">
-            {VIEW_MODE_OPTIONS.map(({ mode: viewModeOption, label }) => (
-              <button
-                key={viewModeOption}
-                type="button"
-                aria-pressed={viewMode === viewModeOption}
-                onClick={() => onViewModeChange(viewModeOption)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <TopBarSelect<ViewMode>
+            label="View:"
+            value={viewMode}
+            options={[
+              { value: "both", label: "Both" },
+              { value: "falldown", label: "Falldown only" },
+              { value: "score", label: "Score only" },
+            ]}
+            onChange={onViewModeChange}
+          />
         ) : (
           <div className="top-bar-views">
             <button
