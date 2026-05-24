@@ -36,6 +36,7 @@ requestAnimationFrame, key highlight.
   `keyLayout` against degenerate / black-key-bounded ranges; strengthened the
   note-rect render assertion and added a full-88 layout test.
 - **2026-05-24** — Visual beat grid and hit-line pulse follow mid-piece time-signature changes. `FalldownRenderer.timeSignatures: TimeSignature[]` replaces `beatMeter`; `beatGridLines` and `beatPulse` look up the active signature per measure. Saved per-piece overrides in `PracticeView` write a single-segment array (and are now only emitted when `metronome.manualOverride` is true, to avoid silently flattening multi-sig pieces).
+- **2026-05-24** — Post-review fix: `FalldownRenderer` no longer caches `score.timeSignatures` at construction. It now reads live from `transport.score.timeSignatures` in `drawBeatGrid` / `beatPulse` (matching the existing live-read of `score.measures`). Writing to `renderer.timeSignatures` flips an internal `manualOverride` flag and stores the value, so Tools-popover overrides are preserved while tempo-mode swaps (which retime the score) are picked up automatically when no override is set.
 
 ## Testing
 

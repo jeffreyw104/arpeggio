@@ -243,7 +243,7 @@ export function PracticeView({
         midiSession.attachAudio(engine);
         loop.onFrame(() => engine.update());
         const loaded = loadedStateRef.current;
-        if (loaded && loaded.numerator && loaded.denominator) {
+        if (loaded && loaded.manualOverride && loaded.numerator && loaded.denominator) {
           engine.metronome.setTimeSignature(
             loaded.numerator,
             loaded.denominator,
@@ -264,7 +264,7 @@ export function PracticeView({
       if (state) {
         loadedStateRef.current = state;
         applyPracticeState(state, transport, handState);
-        if (state.numerator && state.denominator) {
+        if (state.manualOverride && state.numerator && state.denominator) {
           const renderer = falldownRef.current;
           if (renderer) {
             renderer.timeSignatures = [
@@ -365,6 +365,7 @@ export function PracticeView({
         ? {
             ...(override && { numerator: override.numerator, denominator: override.denominator }),
             subdivision: engine.metronome.subdivision,
+            manualOverride: engine.metronome.manualOverride,
           }
         : undefined;
       const snapshots = snapshotsRef.current;
@@ -459,6 +460,7 @@ export function PracticeView({
       ? {
           ...(override && { numerator: override.numerator, denominator: override.denominator }),
           subdivision: engine.metronome.subdivision,
+          manualOverride: engine.metronome.manualOverride,
         }
       : undefined;
     const snapshots = snapshotsRef.current;

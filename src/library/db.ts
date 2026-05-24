@@ -30,6 +30,10 @@ export interface StoredPracticeState {
   numerator?: number;
   denominator?: number;
   subdivision?: number;
+  /** True when the user has manually overridden the score's time signature.
+   *  Old records without this flag are treated as "no override" — the score's
+   *  segments win on load. (Added 2026-05-24 with mid-piece time-sig support.) */
+  manualOverride?: boolean;
   /** The last-used session mode (optional for records saved before this). */
   mode?: TabMode;
   /** Per-tab transport state (optional; pre-this records fall back to bpm/loop). */

@@ -64,8 +64,40 @@ export class FalldownRenderer {
   zoom = 1;
   /** Per-hand hide state; hidden hands' notes are skipped when drawing. */
   handState: HandFilter = NO_HAND_FILTER;
-  /** The time-signature segments driving the beat grid; set from the Tools popover. */
-  timeSignatures: TimeSignature[];
+
+  /** True once a caller has explicitly written to `timeSignatures`. While
+   *  false the renderer reads live from `transport.score.timeSignatures`. */
+  private manualOverride = false;
+  /** Backing store used only when `manualOverride` is true. */
+  private _timeSignatures: TimeSignature[] = [];
+
+  /**
+   * The time-signature segments driving the beat grid.
+   * - **Reading:** always returns the backing store (empty when no override is
+   *   set — callers that just want the active sigs should use `activeTimeSignatures`).
+   * - **Writing:** stores the value and flips `manualOverride = true` so the
+   *   renderer stops following the live score.  Used by the Tools popover and
+   *   the practice-state restore path.
+   */
+  get timeSignatures(): TimeSignature[] {
+    return this._timeSignatures;
+  }
+  set timeSignatures(value: TimeSignature[]) {
+    this._timeSignatures = value;
+    this.manualOverride = true;
+  }
+
+  /**
+   * The time signatures actually used when drawing.  Falls back to the
+   * score's live array unless a manual override has been set, matching the
+   * Metronome's `manualOverrideActive` pattern.
+   */
+  private get activeTimeSignatures(): TimeSignature[] {
+    if (this.manualOverride) return this._timeSignatures;
+    const live = this.transport.score.timeSignatures;
+    return live.length > 0 ? live : [{ start: 0, numerator: 4, denominator: 4 }];
+  }
+
   /** Live-input key highlights: midi -> correctness. Drawn over the keyboard. */
   inputHighlights = new Map<number, "correct" | "wrong" | "held">();
   /** Whether the sustain pedal is currently depressed; shows a pedal indicator. */
@@ -82,9 +114,7 @@ export class FalldownRenderer {
     this.height = options.height;
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
-    this.timeSignatures = transport.score.timeSignatures.length > 0
-      ? [...transport.score.timeSignatures]
-      : [{ start: 0, numerator: 4, denominator: 4 }];
+    this._timeSignatures = [];
   }
 
   /** Re-size the renderer to a new canvas pixel size (after a layout change). */
@@ -154,7 +184,7 @@ export class FalldownRenderer {
       this.transport.clock.playing && this.showBeatPulse
         ? beatPulse(
             this.transport.score.measures,
-            this.timeSignatures,
+            this.activeTimeSignatures,
             t,
             BEAT_PULSE_DECAY,
           )
@@ -198,7 +228,7 @@ export class FalldownRenderer {
     const { ctx } = this;
     const lines = beatGridLines(
       this.transport.score.measures,
-      this.timeSignatures,
+      this.activeTimeSignatures,
       t,
       {
         hitLineY: this.hitLineY,

@@ -24,6 +24,7 @@ B (Import & Score Model), H (Practice Controls).
   view and the library, importing saves the piece, opening a library entry
   re-parses its bytes and restores its practice state, and `PracticeView` saves
   practice state when the session ends. Added `fake-indexeddb` (dev) for tests.
+- **2026-05-24** — Post-review fix: `StoredPracticeState` gained an optional `manualOverride?: boolean` field (and `capturePracticeState` plumbs it through the `beat` parameter). Old records without the flag are treated as "no override" on load, preventing pre-branch saves from silently flattening multi-sig pieces when restored.
 - 2026-05-23 — `StoredPracticeState` gained an optional `sectionState`
   field used by Feature J (MIDI Section Navigator) — present only for MIDI
   source files; written on every section edit and read on piece open. Also

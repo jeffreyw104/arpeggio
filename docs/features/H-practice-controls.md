@@ -34,6 +34,7 @@ C (Transport), D (Audio), E (Falldown View).
   Tools popover gained a `below-strip` placement variant used when the
   strip is top-docked. Escape now closes the Tools popover (in addition to
   exiting Feature J's drill-in mode and dismissing context menus).
+- **2026-05-24** — Post-review fix: `PracticeView` restore path now gates the `setTimeSignature` / `renderer.timeSignatures` calls behind `state.manualOverride === true`. Old saved states (which lack the flag) load without setting an override, so multi-sig pieces see their full segment array rather than being collapsed to the first signature.
 - 2026-05-24 — Studio Dark refresh, wait-mode + hands consolidation.
   Introduced a top-bar wait pill that doubles as indicator (gray-off /
   green-on with glowing dot) and control (menu: Off / Left hand / Both hands /

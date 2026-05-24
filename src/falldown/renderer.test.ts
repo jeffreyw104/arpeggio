@@ -138,7 +138,10 @@ describe("FalldownRenderer", () => {
     caf.mockRestore();
   });
 
-  it("initialises timeSignatures from a multi-segment score", () => {
+  it("timeSignatures is empty at construction (renderer reads score live by default)", () => {
+    // The renderer no longer caches score.timeSignatures at construction;
+    // it reads transport.score.timeSignatures live so that tempo-mode swaps
+    // (which retime the score) are reflected automatically.
     const multiSigScore: Score = {
       ...score,
       timeSignatures: [
@@ -153,10 +156,37 @@ describe("FalldownRenderer", () => {
       transport,
       { width: 800, height: 600 },
     );
-    expect(renderer.timeSignatures).toEqual([
-      { start: 0, numerator: 4, denominator: 4 },
-      { start: 8, numerator: 3, denominator: 4 },
-    ]);
+    // Backing store is empty — no manual override has been set.
+    expect(renderer.timeSignatures).toEqual([]);
+    // Rendering must still work without throwing (live read from score).
+    expect(() => renderer.renderFrame()).not.toThrow();
+  });
+
+  it("an explicit timeSignatures write is preserved regardless of the score's sigs", () => {
+    // Construct the renderer with a 4/4 score and immediately assign a 3/4
+    // override. Verify the stored value is the override, not what the score
+    // would return if read live. This ensures the write-then-read contract is
+    // self-consistent (the live-read path is bypassed once manualOverride=true).
+    const transport = new Transport(score); // score has [{ start:0, 4/4 }]
+    const ctx = fakeCtx();
+    const renderer = new FalldownRenderer(
+      ctx as unknown as CanvasRenderingContext2D,
+      transport,
+      { width: 800, height: 600 },
+    );
+
+    // Before any write, the stored backing store is empty (live-read active).
+    expect(renderer.timeSignatures).toEqual([]);
+
+    // Assign a 3/4 override.
+    const override = [{ start: 0, numerator: 3, denominator: 4 }];
+    renderer.timeSignatures = override;
+
+    // The stored value is exactly what was written — not the score's 4/4.
+    expect(renderer.timeSignatures).toEqual(override);
+
+    // renderFrame must not throw with the override active.
+    expect(() => renderer.renderFrame()).not.toThrow();
   });
 
   it("scales pixelsPerSecond by the zoom field", () => {
