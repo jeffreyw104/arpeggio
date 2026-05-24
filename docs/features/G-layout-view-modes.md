@@ -50,9 +50,9 @@ E (Falldown View), F (Score View).
 ## Keywords
 
 src/layout/viewMode.ts, src/layout/Divider.tsx, src/layout/Layout.tsx,
-src/ui/TransportBar.tsx, src/ui/ImportView.tsx, src/app/frameLoop.ts,
-src/app/PracticeView.tsx, src/App.tsx, FrameLoop, PracticeView, resizable
-divider, view modes.
+src/layout/practiceMode.ts, src/ui/TransportBar.tsx, src/ui/ImportView.tsx,
+src/app/frameLoop.ts, src/app/PracticeView.tsx, src/App.tsx, FrameLoop,
+PracticeView, resizable divider, view modes.
 
 ## Testing
 
