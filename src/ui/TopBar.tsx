@@ -44,6 +44,12 @@ interface TopBarProps {
   isMidiSource?: boolean;
 }
 
+type LayoutMenuValue = PracticeLayout | `theme:${LaneTheme}`;
+
+function isThemeValue(v: LayoutMenuValue): v is `theme:${LaneTheme}` {
+  return v.startsWith("theme:");
+}
+
 /** Strips a known trailing file extension for display ("song.mid" -> "song").
  * Only matches the formats the app handles, so titles like "Ballade No.1"
  * keep their ".1" — the previous "anything after the last dot" rule was too
@@ -244,33 +250,36 @@ export function TopBar({
             onChange={onViewModeChange}
           />
         ) : (
-          <div className="top-bar-views">
-            <button
-              type="button"
-              aria-pressed={practiceLayout === "lane"}
-              onClick={() => onPracticeLayoutChange("lane")}
-            >
-              Reading lane
-            </button>
-            <button
-              type="button"
-              aria-pressed={practiceLayout === "split"}
-              onClick={() => onPracticeLayoutChange("split")}
-            >
-              Split
-            </button>
-            {practiceLayout === "lane" && (
-              <button
-                type="button"
-                aria-label="Lane theme"
-                onClick={() =>
-                  onLaneThemeChange(laneTheme === "dark" ? "paper" : "dark")
-                }
-              >
-                {laneTheme === "dark" ? "Paper" : "Dark"}
-              </button>
-            )}
-          </div>
+          <TopBarSelect<LayoutMenuValue>
+            label="Layout:"
+            value={practiceLayout}
+            extraActive={new Set<LayoutMenuValue>([`theme:${laneTheme}`])}
+            sections={[
+              {
+                section: "Layout",
+                items: [
+                  { value: "lane", label: "Reading lane" },
+                  { value: "split", label: "Split" },
+                ],
+              },
+              {
+                section: "Lane theme",
+                items: [
+                  { value: "theme:paper", label: "Light" },
+                  { value: "theme:dark", label: "Dark" },
+                ],
+              },
+            ]}
+            onChange={(v) => {
+              if (isThemeValue(v)) {
+                const theme = v.slice("theme:".length) as LaneTheme;
+                onLaneThemeChange(theme);
+                if (practiceLayout !== "lane") onPracticeLayoutChange("lane");
+              } else {
+                onPracticeLayoutChange(v);
+              }
+            }}
+          />
         )
       )}
 

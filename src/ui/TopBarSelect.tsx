@@ -22,6 +22,9 @@ interface TopBarSelectProps<T extends string> {
   label?: string;
   /** aria-label override; defaults to the current option's label. */
   ariaLabel?: string;
+  /** Additional option values that should render with an active highlight,
+   *  beyond the one that matches `value`. */
+  extraActive?: ReadonlySet<T>;
 }
 
 function Chevron(): React.JSX.Element {
@@ -56,6 +59,7 @@ export function TopBarSelect<T extends string>({
   sections,
   label,
   ariaLabel,
+  extraActive,
 }: TopBarSelectProps<T>): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -114,12 +118,13 @@ export function TopBarSelect<T extends string>({
                   key={s.section ?? i}
                   section={s}
                   value={value}
+                  extraActive={extraActive}
                   pick={pick}
                   divider={i > 0}
                 />
               ))
             : (options ?? []).map((o) => (
-                <Item key={o.value} option={o} value={value} pick={pick} />
+                <Item key={o.value} option={o} value={value} extraActive={extraActive} pick={pick} />
               ))}
         </ul>
       )}
@@ -130,11 +135,13 @@ export function TopBarSelect<T extends string>({
 function Section<T extends string>({
   section,
   value,
+  extraActive,
   pick,
   divider,
 }: {
   section: SelectSection<T>;
   value: T;
+  extraActive?: ReadonlySet<T>;
   pick: (v: T) => void;
   divider: boolean;
 }): React.JSX.Element {
@@ -147,7 +154,7 @@ function Section<T extends string>({
         </li>
       )}
       {section.items.map((o) => (
-        <Item key={o.value} option={o} value={value} pick={pick} />
+        <Item key={o.value} option={o} value={value} extraActive={extraActive} pick={pick} />
       ))}
     </>
   );
@@ -156,13 +163,15 @@ function Section<T extends string>({
 function Item<T extends string>({
   option,
   value,
+  extraActive,
   pick,
 }: {
   option: SelectOption<T>;
   value: T;
+  extraActive?: ReadonlySet<T>;
   pick: (v: T) => void;
 }): React.JSX.Element {
-  const active = option.value === value;
+  const active = option.value === value || (extraActive?.has(option.value) ?? false);
   return (
     <li
       role="menuitem"

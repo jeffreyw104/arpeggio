@@ -210,10 +210,6 @@ textarea {
   flex: 1;
 }
 
-.top-bar-views {
-  display: flex;
-  gap: 0.25rem;
-}
 
 /* Play / Practice switch — two buttons; the active one is the accent pill
    (via the shared `.top-bar button[aria-pressed="true"]` rule). */

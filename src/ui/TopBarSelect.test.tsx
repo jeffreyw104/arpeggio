@@ -70,4 +70,17 @@ describe("TopBarSelect", () => {
     fireEvent.mouseDown(screen.getByRole("button", { name: "Outside" }));
     expect(screen.queryByRole("menuitem")).toBeNull();
   });
+
+  it("marks options in extraActive with aria-current", () => {
+    render(
+      <TopBarSelect
+        value="a"
+        options={[{ value: "a", label: "A" }, { value: "b", label: "B" }]}
+        extraActive={new Set(["b"])}
+        onChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /A/ }));
+    expect(screen.getByRole("menuitem", { name: /B/ })).toHaveAttribute("aria-current", "true");
+  });
 });

@@ -173,6 +173,31 @@ describe("TopBar", () => {
     expect(screen.getByText(/♩ =/)).toBeInTheDocument();
   });
 
+  it("MIDI Practice mode: layout pill opens menu with both sections", () => {
+    renderBar({ mode: "midi", practiceLayout: "lane", laneTheme: "dark" });
+    fireEvent.click(screen.getByRole("button", { name: /Layout: Reading lane/ }));
+    expect(screen.getByRole("menuitem", { name: /Reading lane/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Split/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Light/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Dark/ })).toBeInTheDocument();
+  });
+
+  it("picking a Lane theme from Split auto-switches to Reading lane", () => {
+    const onPracticeLayoutChange = vi.fn();
+    const onLaneThemeChange = vi.fn();
+    renderBar({
+      mode: "midi",
+      practiceLayout: "split",
+      laneTheme: "dark",
+      onPracticeLayoutChange,
+      onLaneThemeChange,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Layout: Split/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Light/ }));
+    expect(onLaneThemeChange).toHaveBeenCalledWith("paper");
+    expect(onPracticeLayoutChange).toHaveBeenCalledWith("lane");
+  });
+
   it("count-in: play button disabled during count-in then clock plays after", () => {
     vi.useFakeTimers();
     try {

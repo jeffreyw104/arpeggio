@@ -213,7 +213,7 @@ describe("PracticeView", () => {
     expect(screen.getByTestId("reading-lane")).toBeInTheDocument();
   });
 
-  it("TopBar layout buttons switch between reading-lane and split layouts (MusicXML only)", async () => {
+  it("TopBar layout pill switches between reading-lane and split layouts (MusicXML only)", async () => {
     // Layout toggle only applies to MusicXML sources; MIDI sources use the
     // SectionStrip instead and the layout buttons are hidden.
     const musicXmlScore = {
@@ -233,22 +233,21 @@ describe("PracticeView", () => {
     fireEvent.click(modeBtn);
     fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
 
-    // Default layout is "lane": Reading lane button aria-pressed=true, Split=false.
-    const laneBtn = screen.getByRole("button", { name: /reading lane/i });
-    const splitBtn = screen.getByRole("button", { name: /split/i });
-    expect(laneBtn).toHaveAttribute("aria-pressed", "true");
-    expect(splitBtn).toHaveAttribute("aria-pressed", "false");
+    // Default layout is "lane": the pill reads "Layout: Reading lane".
+    const layoutPill = screen.getByRole("button", { name: /Layout: Reading lane/i });
+    expect(layoutPill).toBeInTheDocument();
 
     // The content wrapper has layout-lane class.
     const contentWrapper = document.querySelector(".practice-content--midi");
     expect(contentWrapper).toHaveClass("layout-lane");
     expect(contentWrapper).not.toHaveClass("layout-split");
 
-    // Click Split to switch layout.
-    fireEvent.click(splitBtn);
+    // Open the menu and click Split to switch layout.
+    fireEvent.click(layoutPill);
+    fireEvent.click(screen.getByRole("menuitem", { name: /^Split$/i }));
 
-    expect(laneBtn).toHaveAttribute("aria-pressed", "false");
-    expect(splitBtn).toHaveAttribute("aria-pressed", "true");
+    // The pill now reads "Layout: Split".
+    expect(screen.getByRole("button", { name: /Layout: Split/i })).toBeInTheDocument();
     expect(contentWrapper).toHaveClass("layout-split");
     expect(contentWrapper).not.toHaveClass("layout-lane");
   });
