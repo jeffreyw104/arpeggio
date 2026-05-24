@@ -783,10 +783,6 @@ export function PracticeView({
             devices={midiDevices}
             selectedDeviceId={midiSession.selectedDeviceId}
             onSelectDevice={(id) => midiSession.selectDevice(id)}
-            handsIPlay={handsIPlay}
-            onHandsIPlayChange={setHandsIPlay}
-            waitEnabled={waitEnabled}
-            onWaitEnabledChange={setWaitEnabled}
             monitorOn={monitorOn}
             onMonitorOnChange={setMonitorOn}
             isMidiSource={isMidiSource}
