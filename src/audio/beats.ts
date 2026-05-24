@@ -1,4 +1,5 @@
-import type { Measure } from "../model/score";
+import type { Measure, TimeSignature } from "../model/score";
+import { timeSignatureAt } from "./timeSignatureAt";
 
 /** One position on the metric grid. */
 export interface MetronomeBeat {
@@ -11,22 +12,24 @@ export interface MetronomeBeat {
 }
 
 /**
- * The metronome/beat grid for a piece: for each measure, `beatsPerBar` beats
- * spread evenly across the measure's [start, end] span (so the downbeat lands
- * exactly on the barline and beats always fill the measure), each beat split
- * into `subdivision` ticks.
+ * The metronome/beat grid for a piece. For each measure, the active time
+ * signature (looked up by measure start time) determines how many beats fit
+ * in the measure; each beat is split into `subdivision` ticks. Beats are
+ * phase-locked to the measure's [start, end] span so downbeats land exactly
+ * on barlines.
  */
 export function metronomeBeats(
   measures: Measure[],
-  beatsPerBar: number,
+  timeSignatures: TimeSignature[],
   subdivision: number,
 ): MetronomeBeat[] {
-  const bpb = Math.max(1, Math.floor(beatsPerBar));
   const sub = Math.max(1, Math.floor(subdivision));
 
   const beats: MetronomeBeat[] = [];
   for (const m of measures) {
     if (m.end <= m.start) continue;
+    const sig = timeSignatureAt(timeSignatures, m.start);
+    const bpb = Math.max(1, Math.floor(sig.numerator));
     const beatLen = (m.end - m.start) / bpb;
     const tick = beatLen / sub;
     for (let b = 0; b < bpb; b++) {
@@ -44,15 +47,15 @@ export function metronomeBeats(
 /**
  * A 0-1 visual pulse of the beat at clock time `t`: 1 exactly on a beat,
  * decaying linearly to 0 over `decay` seconds. Beats come from the same
- * `measures` grid that drives the metronome and beat grid.
+ * segment-aware grid that drives the metronome.
  */
 export function beatPulse(
   measures: Measure[],
-  beatsPerBar: number,
+  timeSignatures: TimeSignature[],
   t: number,
   decay: number,
 ): number {
-  const beats = metronomeBeats(measures, beatsPerBar, 1);
+  const beats = metronomeBeats(measures, timeSignatures, 1);
   let last = -Infinity;
   for (const b of beats) {
     if (b.time <= t && b.time > last) last = b.time;
