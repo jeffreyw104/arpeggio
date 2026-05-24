@@ -55,6 +55,12 @@ E (Falldown View), F (Score View).
   gated to `layoutOrientation === "row"`, so it is cleared automatically on
   touch+narrow without needing `!important`. Desktop browsers, even resized
   narrow, never receive `.app--touch` so they are never affected.
+- 2026-05-25 — `SplitWarningToast` added (`src/responsive/SplitWarningToast.tsx`).
+  A one-shot fixed toast appears the first time a touch-device user selects Split
+  layout (Play "Both" or MIDI Practice "Split"). Tap or 6-second timeout dismisses
+  it; dismissal is persisted in `localStorage` under the key
+  `arpeggio:tablet:split-warning-seen` so it never reappears. Gated by
+  `isTouchDevice` — desktop users never see it.
 
 ## Keywords
 

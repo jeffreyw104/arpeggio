@@ -46,6 +46,7 @@ import {
 } from "../transport/tabSnapshot";
 import { SectionStrip } from "../section-strip/SectionStrip";
 import { ContextMenu } from "../section-strip/ContextMenu";
+import { SplitWarningToast } from "../responsive/SplitWarningToast";
 import { autoDetect } from "../section-strip/autoDetect";
 import { normalize, type SectionState } from "../model/sections";
 import {
@@ -574,6 +575,12 @@ export function PracticeView({
 
   const isMidi = mode === "midi";
 
+  // Show the split warning toast the first time a touch-device user selects
+  // a split/both layout. Gated by isTouchDevice so desktop users never see it.
+  const showSplitWarning =
+    isTouchDevice &&
+    ((isMidi && practiceLayout === "split") || (!isMidi && viewMode === "both"));
+
   // In play mode, visibility of each panel depends on viewMode.
   const showFalldownInPlay = viewMode !== "score";
   const showScoreInPlay = viewMode !== "falldown";
@@ -824,6 +831,7 @@ export function PracticeView({
       {!isMidiSource && score.qualityWarning && (
         <div className="quality-warning">{score.qualityWarning}</div>
       )}
+      <SplitWarningToast shouldShow={showSplitWarning} />
       {loopMenuPos && (
         <ContextMenu
           className="practice-loop-menu"
