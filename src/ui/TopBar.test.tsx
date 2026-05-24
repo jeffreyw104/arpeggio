@@ -82,7 +82,11 @@ describe("TopBar", () => {
 
   it("renders the Play/MIDI Practice switch", () => {
     const { props } = renderBar();
-    fireEvent.click(screen.getByRole("button", { name: "MIDI Practice" }));
+    const allPlayBtns = screen.getAllByRole("button", { name: /Play/ });
+    const modeBtn = allPlayBtns.find((btn) => btn.hasAttribute("aria-haspopup"));
+    expect(modeBtn).toBeInTheDocument();
+    fireEvent.click(modeBtn!);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
     expect(props.onModeChange).toHaveBeenCalledWith("midi");
   });
 
