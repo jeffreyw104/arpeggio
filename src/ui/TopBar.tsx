@@ -9,6 +9,7 @@ import { startCountIn, type CountInHandle } from "../practice/countIn";
 import type { MidiStatus } from "../midi/MidiInput";
 import { TopBarReadout } from "./TopBarReadout";
 import type { Hand } from "../model/score";
+import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
 
 interface TopBarProps {
   pieceName: string;
@@ -66,6 +67,30 @@ function formatTime(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
+/** Returns the display content for the MIDI status chip. */
+function midiStatusLabel(
+  status: MidiStatus | undefined,
+  deviceName: string | undefined,
+  isTouch: boolean,
+): React.ReactNode {
+  if (status === "connected") return <>&#9679; {deviceName ?? "MIDI"}</>;
+  if (status === "unsupported" && isTouch) return "Update iPadOS to 17.4+ for MIDI";
+  if (status === "denied" && isTouch) return "Allow MIDI in Safari Settings";
+  return <>&#9675; Connect keyboard</>;
+}
+
+/** Returns the aria-label string for the MIDI status chip. */
+function chipAriaLabel(
+  status: MidiStatus | undefined,
+  deviceName: string | undefined,
+  isTouch: boolean,
+): string {
+  if (status === "connected") return `MIDI connected: ${deviceName ?? "device"}`;
+  if (status === "unsupported" && isTouch) return "MIDI not supported; update iPadOS to 17.4 or newer";
+  if (status === "denied" && isTouch) return "MIDI access denied; allow in Safari Settings";
+  return "MIDI: Connect keyboard";
+}
+
 /**
  * The fixed top bar. Left: logo, Library, the Tools popover toggle, play/pause,
  * seek scrubber, time, and the Play/MIDI Practice toggle. Center: the
@@ -98,6 +123,8 @@ export function TopBar({
 }: TopBarProps): React.JSX.Element {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => transport.clock.onChange(forceUpdate), [transport]);
+
+  const isTouchDevice = useIsTouchDevice();
 
   const { clock } = transport;
   const { playing, position, duration } = clock;
@@ -223,17 +250,9 @@ export function TopBar({
       {mode === "midi" && midiStatus !== undefined && (
         <span
           className="midi-status-chip"
-          aria-label={
-            midiStatus === "connected"
-              ? `MIDI connected: ${midiDeviceName ?? "device"}`
-              : "MIDI: Connect keyboard"
-          }
+          aria-label={chipAriaLabel(midiStatus, midiDeviceName, isTouchDevice)}
         >
-          {midiStatus === "connected" ? (
-            <>&#9679; {midiDeviceName}</>
-          ) : (
-            <>&#9675; Connect keyboard</>
-          )}
+          {midiStatusLabel(midiStatus, midiDeviceName, isTouchDevice)}
         </span>
       )}
       {/* View controls vary by tab mode; hidden for MIDI source files */}

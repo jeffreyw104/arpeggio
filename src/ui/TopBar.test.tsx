@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, test, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { TopBar } from "./TopBar";
 import { Transport } from "../transport/transport";
 import type { Score } from "../model/score";
 import type { AudioEngine } from "../audio/engine";
+
+vi.mock("../responsive/useIsTouchDevice", () => ({
+  useIsTouchDevice: vi.fn(() => false), // default: desktop
+}));
 
 const score = {
   source: "midi",
@@ -240,5 +244,43 @@ describe("TopBar", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe("MIDI status chip — touch-specific copy", () => {
+    beforeEach(async () => {
+      // Ensure we start each sub-test with a clean mock state.
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(false);
+    });
+
+    test("on touch device, MIDI 'unsupported' status shows iPadOS hint", async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(true);
+
+      renderBar({ mode: "midi", midiStatus: "unsupported" });
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip?.textContent).toMatch(/iPadOS.*17\.4/i);
+    });
+
+    test("on touch device, MIDI 'denied' status shows Safari settings hint", async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(true);
+
+      renderBar({ mode: "midi", midiStatus: "denied" });
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip?.textContent).toMatch(/Safari Settings/i);
+    });
+
+    test("on desktop, MIDI 'unsupported' status shows generic copy", async () => {
+      const { useIsTouchDevice } = await import("../responsive/useIsTouchDevice");
+      vi.mocked(useIsTouchDevice).mockReturnValue(false);
+
+      renderBar({ mode: "midi", midiStatus: "unsupported" });
+      // Should NOT show the iPadOS hint on desktop
+      const chip = document.querySelector(".midi-status-chip");
+      expect(chip?.textContent).not.toMatch(/iPadOS.*17\.4/i);
+      // Should show the generic "Connect keyboard" text
+      expect(chip?.textContent).toMatch(/Connect keyboard/);
+    });
   });
 });
