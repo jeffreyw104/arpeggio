@@ -106,6 +106,14 @@ total), `npm run build`, `npm run e2e` (16 specs) all pass.
   teal #2f6e63, plum #7a3a4a, burnt amber #7a5a2e, indigo #4a3a6a. Hover line
   + playhead inverted (light line on dark, dark halo). Strip toolbar text color
   updated for dark; toolbar links became hover-only underlined.
+- 2026-05-25 — Touch tablets get long-press equivalents for bookmark-create
+  and context-menu actions on the SectionStrip via `useLongPress`
+  (`src/responsive/useLongPress.ts`). Wired in `SectionStrip`, `BookmarkPin`,
+  and `SectionBlock`; gated by `useIsTouchDevice()` so desktop
+  right-click / double-click paths run unchanged.
+  `.section-strip--touch` modifier class adds `-webkit-touch-callout: none`
+  / `user-select: none` to suppress iOS native callouts on interactive
+  strip elements.
 
 ## Locked design decisions
 

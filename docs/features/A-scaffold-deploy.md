@@ -36,6 +36,12 @@ None — this is the foundation.
   build emits manifest.webmanifest + service worker.
 - 2026-05-17 — Task 8: GitHub Actions CI (lint/typecheck/test/build).
 - 2026-05-17 — Task 9: vercel.json deploy config. Feature A complete.
+- 2026-05-25 — PWA polish for iPad: `apple-mobile-web-app-capable`,
+  `apple-mobile-web-app-status-bar-style`, `apple-touch-icon`, and
+  `viewport-fit=cover` added to `index.html`. Generated
+  `public/icons/apple-touch-icon.png` (180×180) from the existing SVG.
+  Safe-area-inset CSS rules added under `.app--touch` for the TopBar
+  and practice-content padding (env(safe-area-inset-*)).
 
 ## Keywords
 
