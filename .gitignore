@@ -11,6 +11,7 @@ dev-dist/
 # Subagent worktrees managed by the Claude Code harness.
 .claude/
 .claire/
+.worktrees/
 
 # Throwaway debug scripts and screenshots used during interactive sessions.
 tmp-*.mjs
