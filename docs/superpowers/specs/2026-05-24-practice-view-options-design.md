@@ -67,9 +67,10 @@ Lane theme:
 export type PracticeLayout = "lane" | "split" | "falldown" | "score";
 ```
 
-`practiceLayout` continues to persist in `StoredPracticeState` via the
-existing `applyPracticeState`/`capturePracticeState` round-trip. Legacy
-states that lack the new values keep working — the union widens only.
+`practiceLayout` is in-memory React state in `PracticeView` (line 131,
+`useState<PracticeLayout>("lane")`) — it is **not** persisted today.
+Widening the union is the only data change; no migration or
+backwards-compatibility shim is required.
 
 ### Rendering rule
 
@@ -114,8 +115,6 @@ Reading lane (Feature G 2026-05-24 changelog).
 - `PracticeView.test.tsx` — when `practiceLayout` is `"falldown"`, the
   falldown canvas is mounted and the score panel is hidden; reverse for
   `"score"`. Existing `lane`/`split` assertions stay green.
-- `practiceState` round-trip — saving + loading `"falldown"` and `"score"`
-  preserves the value.
 - Full gate: `npm run lint && npm run typecheck && npm test && npm run build`.
 
 Manual checklist:
@@ -127,7 +126,8 @@ Manual checklist:
 - [ ] Pick **Score only** — only the engraved score is visible; the falldown
       is gone.
 - [ ] Lane-theme picker still auto-switches to Reading lane.
-- [ ] Reload the page — the selection persists per piece.
+- [ ] Reload the page — the layout resets to "Reading lane" (default).
+      `practiceLayout` is in-memory state and is not persisted.
 
 ## Conventions
 
