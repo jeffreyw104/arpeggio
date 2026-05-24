@@ -1562,3 +1562,16 @@ textarea {
   font-family: inherit;
   text-align: left;
 }
+
+/* iPad / touch tablet — respect safe-area insets in installed-PWA fullscreen
+   mode (apple-mobile-web-app-capable). The .app--touch class is only set on
+   touch devices, so desktop browsers never trigger these rules. */
+.app--touch .top-bar {
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+.app--touch .practice-content {
+  padding-bottom: env(safe-area-inset-bottom);
+}
