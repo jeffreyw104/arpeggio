@@ -15,6 +15,8 @@ import {
   resizeBoundary,
 } from "./edits";
 import { newBookmarkId, normalize } from "../model/sections";
+import { useIsTouchDevice } from "../responsive/useIsTouchDevice";
+import { useLongPress } from "../responsive/useLongPress";
 
 const PALETTE = ["#3a5a78", "#2f6e63", "#7a3a4a", "#7a5a2e", "#4a3a6a"] as const;
 /** Within this fraction of duration of `autoEnd`, drag snaps back to it. */
@@ -266,6 +268,18 @@ export function SectionStrip({
     setHoverInfo(null);
   }
 
+  const isTouchDevice = useIsTouchDevice();
+
+  // Touch: long-press in empty strip area → create bookmark. Mirrors the
+  // existing right-click / double-click background handlers.
+  const bgLongPress = useLongPress((e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".section-strip__bookmark")) return;
+    if (target.closest(".section-strip__boundary-handle")) return;
+    if (target.closest(".section-strip__block")) return;
+    createBookmarkAtClientX(e.clientX);
+  });
+
   // Both right-click and double-click on the strip create a bookmark at the
   // cursor position and immediately open its name input. Bookmark pins handle
   // their own context menus / dbl-clicks and stop propagation so they never
@@ -319,13 +333,15 @@ export function SectionStrip({
     <div
       className={
         `section-strip section-strip--${position}` +
-        (editingKind ? " section-strip--editing" : "")
+        (editingKind ? " section-strip--editing" : "") +
+        (isTouchDevice ? " section-strip--touch" : "")
       }
     >
       <div
         className="section-strip__bookmarks"
         onContextMenu={bookmarkOnRightClickAtEvent}
         onDoubleClick={bookmarkOnDoubleClickAtEvent}
+        {...(isTouchDevice ? bgLongPress : {})}
       >
         {state.bookmarks.map((b) => (
           <BookmarkPin
@@ -333,11 +349,15 @@ export function SectionStrip({
             bookmark={b}
             duration={duration}
             isEditing={editingKind === "bookmark" && editingId === b.id}
+            isTouchDevice={isTouchDevice}
             onSeek={(t) => transport.clock.seek(t)}
             onStartRename={() => startRenameBookmark(b.id)}
             onRenameCommit={commitRename}
             onContextMenu={(e) =>
               setMenu({ kind: "bookmark", id: b.id, x: e.clientX, y: e.clientY })
+            }
+            onLongPress={(coords) =>
+              setMenu({ kind: "bookmark", id: b.id, x: coords.clientX, y: coords.clientY })
             }
           />
         ))}
@@ -352,6 +372,7 @@ export function SectionStrip({
         onMouseDown={sectionsMouseDown}
         onContextMenu={bookmarkOnRightClickAtEvent}
         onDoubleClick={bookmarkOnDoubleClickAtEvent}
+        {...(isTouchDevice ? bgLongPress : {})}
       >
         {state.sections.flatMap((s, i) => {
           const elements: React.ReactNode[] = [
@@ -362,6 +383,7 @@ export function SectionStrip({
               duration={duration}
               isEditing={editingKind === "section" && editingId === s.id}
               isActive={activeSectionId === s.id}
+              isTouchDevice={isTouchDevice}
               onClickAt={(pct) => handleSectionClick(s, pct)}
               onHoverMove={(pct) => {
                 if (activeSectionId === s.id) setHoverInfo(snapToMeasure(s, pct));
@@ -372,6 +394,9 @@ export function SectionStrip({
               onRenameCommit={commitRename}
               onContextMenu={(e) =>
                 setMenu({ kind: "section", id: s.id, x: e.clientX, y: e.clientY })
+              }
+              onLongPress={(coords) =>
+                setMenu({ kind: "section", id: s.id, x: coords.clientX, y: coords.clientY })
               }
             />,
           ];
@@ -566,11 +591,13 @@ interface SectionBlockProps {
   duration: number;
   isEditing: boolean;
   isActive: boolean;
+  isTouchDevice?: boolean;
   onClickAt: (pct: number) => void;
   onHoverMove: (pct: number) => void;
   onHoverLeave: () => void;
   onRenameCommit: (name: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onLongPress?: (coords: { clientX: number; clientY: number }) => void;
 }
 
 function SectionBlock({
@@ -579,12 +606,17 @@ function SectionBlock({
   duration,
   isEditing,
   isActive,
+  isTouchDevice = false,
   onClickAt,
   onHoverMove,
   onHoverLeave,
   onRenameCommit,
   onContextMenu,
+  onLongPress,
 }: SectionBlockProps): React.JSX.Element {
+  const longPress = useLongPress((e) => {
+    onLongPress?.({ clientX: e.clientX, clientY: e.clientY });
+  });
   const widthPct = duration > 0 ? ((section.end - section.start) / duration) * 100 : 0;
   const className =
     "section-strip__block" + (isActive ? " section-strip__block--active" : "");
@@ -593,6 +625,7 @@ function SectionBlock({
       className={className}
       style={{ flex: `${widthPct} 0 0`, background: color }}
       data-section-id={section.id}
+      {...(isTouchDevice ? longPress : {})}
       onClick={(e) => {
         if (isEditing) return;
         e.stopPropagation();
@@ -639,27 +672,35 @@ interface BookmarkPinProps {
   bookmark: Bookmark;
   duration: number;
   isEditing: boolean;
+  isTouchDevice?: boolean;
   onSeek: (time: number) => void;
   onStartRename: () => void;
   onRenameCommit: (name: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onLongPress?: (coords: { clientX: number; clientY: number }) => void;
 }
 
 function BookmarkPin({
   bookmark,
   duration,
   isEditing,
+  isTouchDevice = false,
   onSeek,
   onStartRename,
   onRenameCommit,
   onContextMenu,
+  onLongPress,
 }: BookmarkPinProps): React.JSX.Element {
+  const longPress = useLongPress((e) => {
+    onLongPress?.({ clientX: e.clientX, clientY: e.clientY });
+  });
   const leftPct = duration > 0 ? (bookmark.time / duration) * 100 : 0;
   return (
     <span
       className="section-strip__bookmark"
       style={{ left: `${leftPct}%` }}
       data-bookmark-id={bookmark.id}
+      {...(isTouchDevice ? longPress : {})}
       onClick={(e) => {
         if (isEditing) return;
         e.stopPropagation();

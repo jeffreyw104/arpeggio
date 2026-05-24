@@ -473,3 +473,15 @@
   min-height: 0;
 }
 .section-strip-wrapper--bottom { order: 3; }
+
+/* Touch device — suppress native long-press callout and text selection so
+   our custom long-press handler fires cleanly without the browser context
+   menu or selection chrome competing with it. */
+.section-strip--touch,
+.section-strip--touch .section-strip__bookmark,
+.section-strip--touch .section-strip__block,
+.section-strip--touch .section-strip__sections {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
