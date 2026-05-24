@@ -353,7 +353,7 @@
   font-size: 10px;
   cursor: pointer;
   color: rgba(230, 230, 234, 0.55);
-  text-decoration: underline;
+  text-decoration: none;
   text-underline-offset: 2px;
   flex-shrink: 0;
 }
@@ -365,6 +365,7 @@
 .section-strip__undo:not(:disabled):hover,
 .section-strip__help-toggle:hover {
   color: #e6e6ea;
+  text-decoration: underline;
 }
 .section-strip__help-toggle[aria-pressed="true"] {
   color: #e6e6ea;

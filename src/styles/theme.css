@@ -99,6 +99,7 @@ textarea {
   align-items: center;
   height: 2rem;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   border: 1px solid var(--glass-border);
