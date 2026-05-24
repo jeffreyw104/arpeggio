@@ -304,4 +304,11 @@ describe("Metronome", () => {
     m.update(0, 0);
     expect(m.timeSignature).toEqual({ numerator: 6, denominator: 8 });
   });
+
+  it("manualOverride is false on a fresh instance and true after setTimeSignature", () => {
+    const m = new Metronome(score);
+    expect(m.manualOverride).toBe(false);
+    m.setTimeSignature(3, 4);
+    expect(m.manualOverride).toBe(true);
+  });
 });

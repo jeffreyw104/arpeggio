@@ -83,7 +83,7 @@ export class FalldownRenderer {
     this.pianoHeight = Math.min(140, this.height * 0.22);
     this.hitLineY = this.height - this.pianoHeight;
     this.timeSignatures = transport.score.timeSignatures.length > 0
-      ? transport.score.timeSignatures
+      ? [...transport.score.timeSignatures]
       : [{ start: 0, numerator: 4, denominator: 4 }];
   }
 

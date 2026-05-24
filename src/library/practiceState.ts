@@ -9,7 +9,7 @@ import { captureTab, type TabSnapshot } from "../transport/tabSnapshot";
 export function capturePracticeState(
   transport: Transport,
   hands: HandState,
-  beat?: { numerator: number; denominator: number; subdivision: number },
+  beat?: { numerator?: number; denominator?: number; subdivision: number },
   session?: {
     mode: TabMode;
     tabs?: Record<TabMode, { bpm: number; loop: { start: number; end: number } | null }>;
@@ -25,8 +25,10 @@ export function capturePracticeState(
     leftVisibility: hands.visibility("left"),
     rightVisibility: hands.visibility("right"),
     ...(beat && {
-      numerator: beat.numerator,
-      denominator: beat.denominator,
+      ...(beat.numerator != null && beat.denominator != null && {
+        numerator: beat.numerator,
+        denominator: beat.denominator,
+      }),
       subdivision: beat.subdivision,
     }),
     ...(session && {

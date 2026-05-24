@@ -357,12 +357,14 @@ export function PracticeView({
       midiSession.dispose();
       scoreViewRef.current?.destroy();
       laneViewRef.current?.destroy();
-      const renderer = falldownRef.current;
-      const beat = renderer
+      const engine = engineRef.current;
+      const override = engine?.metronome.manualOverride
+        ? engine.metronome.timeSignature
+        : null;
+      const beat = engine
         ? {
-            numerator: renderer.timeSignatures[0]?.numerator ?? 4,
-            denominator: renderer.timeSignatures[0]?.denominator ?? 4,
-            subdivision: engineRef.current?.metronome.subdivision ?? 1,
+            ...(override && { numerator: override.numerator, denominator: override.denominator }),
+            subdivision: engine.metronome.subdivision,
           }
         : undefined;
       const snapshots = snapshotsRef.current;
@@ -449,12 +451,14 @@ export function PracticeView({
   // Persist sectionState whenever it changes (MIDI source only).
   useEffect(() => {
     if (!isMidiSource || !sectionState) return;
-    const renderer = falldownRef.current;
-    const beat = renderer
+    const engine = engineRef.current;
+    const override = engine?.metronome.manualOverride
+      ? engine.metronome.timeSignature
+      : null;
+    const beat = engine
       ? {
-          numerator: renderer.timeSignatures[0]?.numerator ?? 4,
-          denominator: renderer.timeSignatures[0]?.denominator ?? 4,
-          subdivision: engineRef.current?.metronome.subdivision ?? 1,
+          ...(override && { numerator: override.numerator, denominator: override.denominator }),
+          subdivision: engine.metronome.subdivision,
         }
       : undefined;
     const snapshots = snapshotsRef.current;

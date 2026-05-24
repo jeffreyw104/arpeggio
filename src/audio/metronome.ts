@@ -45,7 +45,9 @@ export class Metronome {
   private segments: TimeSignature[];
   /** True once the user has called `setTimeSignature`; `setScore` then keeps
    *  the override instead of adopting the new score's segments. */
-  private manualOverride = false;
+  private manualOverrideActive = false;
+  /** True when the user has called setTimeSignature to override the score's sigs. */
+  get manualOverride(): boolean { return this.manualOverrideActive; }
   private subdivisionValue: number;
   private beats: MetronomeBeat[] = [];
   private readonly listeners = new Set<ClickListener>();
@@ -88,7 +90,7 @@ export class Metronome {
    */
   setTimeSignature(numerator: number, denominator: number): void {
     this.segments = [{ start: 0, numerator, denominator }];
-    this.manualOverride = true;
+    this.manualOverrideActive = true;
     this.recompute();
     this.resync();
   }
@@ -102,7 +104,7 @@ export class Metronome {
    */
   setScore(score: Score): void {
     this.measures = score.measures;
-    if (!this.manualOverride) {
+    if (!this.manualOverrideActive) {
       this.segments = score.timeSignatures.length > 0
         ? score.timeSignatures
         : [DEFAULT_SIG];
