@@ -46,6 +46,15 @@ E (Falldown View), F (Score View).
   new CSS rule blocks `.practice-content--midi.layout-falldown` and
   `.layout-score` drive the visibility. Lane theme picker behavior is
   unchanged. `practiceLayout` remains in-memory state (not persisted).
+- 2026-05-25 — `PracticeView` gains touch + narrow-viewport detection via
+  `useIsTouchDevice` and `useIsNarrowViewport(1024)`. When both are true, a
+  `.practice-content--column` modifier class is added to the content wrapper
+  and the `.app--touch .practice-content--midi.layout-split.practice-content--column`
+  CSS rule flips the split layout to `flex-direction: column` with each panel
+  taking `height: 50%`. The inline `flexBasis` style for the falldown panel is
+  gated to `layoutOrientation === "row"`, so it is cleared automatically on
+  touch+narrow without needing `!important`. Desktop browsers, even resized
+  narrow, never receive `.app--touch` so they are never affected.
 
 ## Keywords
 
