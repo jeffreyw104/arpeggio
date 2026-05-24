@@ -31,4 +31,13 @@ describe("useIsTouchDevice", () => {
     const { result } = renderHook(() => useIsTouchDevice());
     expect(result.current).toBe(false);
   });
+
+  test("returns false at the threshold boundary (maxTouchPoints === 1)", () => {
+    Object.defineProperty(Navigator.prototype, "maxTouchPoints", {
+      value: 1,
+      configurable: true,
+    });
+    const { result } = renderHook(() => useIsTouchDevice());
+    expect(result.current).toBe(false);
+  });
 });
