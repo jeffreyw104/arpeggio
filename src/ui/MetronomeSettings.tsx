@@ -48,8 +48,8 @@ export function MetronomeSettings({
     const denominator = Number(match[2]);
     if (numerator < 1 || denominator < 1) return;
     // The renderer and audio engine are imperative objects written through to.
-    // eslint-disable-next-line react-hooks/immutability
     if (falldown) {
+      // eslint-disable-next-line react-hooks/immutability
       falldown.timeSignatures = [{ start: 0, numerator, denominator }];
     }
     if (audioEngine) {
