@@ -23,6 +23,12 @@ export interface LongPressHandlers {
  * Fire `onLongPress` after a pointer is held down for `thresholdMs` without
  * moving more than `moveTolerancePx` in any direction. Coordinates passed
  * to the callback are the original pointerdown coordinates.
+ *
+ * Note: the returned handlers object is recreated on every render. Spread
+ * it directly into JSX props (the common case) — React reconciles per-render
+ * handlers cleanly. If you cache the object (e.g., as `useEffect` deps), the
+ * effect must include the returned object in its dependency list to avoid
+ * stale closures.
  */
 export function useLongPress(
   onLongPress: (e: LongPressEvent) => void,
