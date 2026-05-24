@@ -251,4 +251,66 @@ describe("PracticeView", () => {
     expect(contentWrapper).toHaveClass("layout-split");
     expect(contentWrapper).not.toHaveClass("layout-lane");
   });
+
+  it("MIDI score-only layout applies layout-score modifier and horizontal-pages container", async () => {
+    const musicXmlScore = {
+      ...score,
+      source: "musicxml" as const,
+    };
+    const { container } = render(
+      <PracticeView
+        score={musicXmlScore}
+        pieceId="layout-score-test"
+        pieceName="moonlight.musicxml"
+        onExit={() => {}}
+      />,
+    );
+
+    // Switch to MIDI Practice tab.
+    const modeBtn = getModeSwitchButton();
+    fireEvent.click(modeBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
+
+    // Open Layout pill and pick "Score only".
+    const layoutPill = screen.getByRole("button", { name: /Layout:/i });
+    fireEvent.click(layoutPill);
+    fireEvent.click(screen.getByRole("menuitem", { name: /Score only/ }));
+
+    const content = container.querySelector(".practice-content");
+    expect(content?.classList.contains("layout-score")).toBe(true);
+    expect(container.querySelector(".score-container.horizontal-pages")).toBeInTheDocument();
+
+    // Score-zoom is visible in MIDI score-only.
+    expect(screen.getByRole("button", { name: /zoom in/i })).toBeInTheDocument();
+  });
+
+  it("MIDI falldown-only layout applies layout-falldown modifier and hides score-zoom", async () => {
+    const musicXmlScore = {
+      ...score,
+      source: "musicxml" as const,
+    };
+    const { container } = render(
+      <PracticeView
+        score={musicXmlScore}
+        pieceId="layout-falldown-test"
+        pieceName="moonlight.musicxml"
+        onExit={() => {}}
+      />,
+    );
+
+    // Switch to MIDI Practice tab.
+    const modeBtn = getModeSwitchButton();
+    fireEvent.click(modeBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: /MIDI Practice/ }));
+
+    // Open Layout pill and pick "Falldown only".
+    const layoutPill = screen.getByRole("button", { name: /Layout:/i });
+    fireEvent.click(layoutPill);
+    fireEvent.click(screen.getByRole("menuitem", { name: /Falldown only/ }));
+
+    const content = container.querySelector(".practice-content");
+    expect(content?.classList.contains("layout-falldown")).toBe(true);
+    // Score-zoom is hidden in falldown-only.
+    expect(screen.queryByRole("button", { name: /zoom in/i })).not.toBeInTheDocument();
+  });
 });
