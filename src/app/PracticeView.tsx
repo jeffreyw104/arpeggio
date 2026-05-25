@@ -65,6 +65,10 @@ interface PracticeViewProps {
 /** Initial score zoom — slightly out so a full page fits beside the falldown. */
 const DEFAULT_SCORE_ZOOM = 0.8;
 
+/** Initial score zoom on touch tablets — smaller so the whole page is
+ *  visible by default on iPad-sized viewports. The user can still zoom in. */
+const TOUCH_SCORE_ZOOM = 0.5;
+
 /**
  * The assembled practice screen: composes the transport, frame loop, falldown
  * renderer, audio engine, and engraved score view into a single playable view.
@@ -130,7 +134,15 @@ export function PracticeView({
   const [viewMode, setViewMode] = useState<ViewMode>("both");
   const [split, setSplit] = useState(0.58);
   const [scoreReady, setScoreReady] = useState(false);
-  const [scoreZoom, setScoreZoom] = useState(DEFAULT_SCORE_ZOOM);
+  const [scoreZoom, setScoreZoom] = useState(() => {
+    // Lazy initializer — picks a smaller default on touch tablets so the
+    // whole page is visible without manual zoom-out. Duplicates the same
+    // check as the useIsTouchDevice hook (which can't be read inside this
+    // initializer because the hook is called below).
+    const isTouchInit =
+      typeof navigator !== "undefined" && (navigator.maxTouchPoints ?? 0) > 1;
+    return isTouchInit ? TOUCH_SCORE_ZOOM : DEFAULT_SCORE_ZOOM;
+  });
   const [practiceLayout, setPracticeLayout] = useState<PracticeLayout>("lane");
   const [laneTheme, setLaneTheme] = useState<LaneTheme>("paper");
 

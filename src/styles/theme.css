@@ -39,6 +39,23 @@ body,
   height: 100%;
 }
 
+/* On touch devices, switch to dynamic viewport units and respect the
+   safe-area-insets on every side. This matters most when the app is
+   launched from the iPad home screen via Chrome — Chrome on iOS doesn't
+   give a fullscreen PWA (it opens the URL inside Chrome), so the chrome
+   bar overlaps the top of our content unless we push down. The
+   `env(safe-area-inset-*)` values resolve to 0 on desktop browsers, so
+   this rule is inert on non-touch devices. */
+.app--touch {
+  height: 100dvh;
+  min-height: 100vh; /* fallback for browsers without dvh support */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  box-sizing: border-box;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -1580,18 +1597,11 @@ textarea {
   text-align: left;
 }
 
-/* iPad / touch tablet — respect safe-area insets in installed-PWA fullscreen
-   mode (apple-mobile-web-app-capable) AND enforce the single-row TopBar
-   invariant. Both blocks gated by .app--touch so desktop is untouched. */
+/* iPad / touch tablet — enforce the single-row TopBar invariant. Safe-area
+   insets are absorbed by the `.app--touch` wrapper (see top of file), so
+   no per-element safe-area padding is needed here — it would double-apply. */
 .app--touch .top-bar {
-  padding-left: max(12px, env(safe-area-inset-left));
-  padding-right: max(12px, env(safe-area-inset-right));
-  padding-top: max(0px, env(safe-area-inset-top));
   flex-wrap: nowrap;
-}
-
-.app--touch .practice-content {
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Every TopBar control is fixed-width; the piece-name container is the
@@ -1618,12 +1628,32 @@ textarea {
   max-width: 24ch;
 }
 
-/* Hit-target floor: every interactive element in the TopBar gets a 44pt
-   minimum on touch devices (Apple HIG). */
+/* Hit-target floor on touch devices (Apple HIG ~44pt). Applied only to
+   button and chip elements — the scrubber (input[type="range"]) is handled
+   separately below because raising its min-height inflates the entire
+   native slider on iOS Safari. */
 .app--touch .top-bar button,
-.app--touch .top-bar input[type="range"],
 .app--touch .top-bar .midi-status-chip {
   min-height: 44px;
+}
+
+/* The play/pause button is a circle; the generic button min-height above
+   would stretch it into a pill. Keep it perfectly round at 44×44 on touch. */
+.app--touch .top-bar .hud-play-btn {
+  width: 44px;
+  height: 44px;
+}
+
+/* Scrubber: keep the visual track slim, but bump the thumb on touch so it's
+   draggable with a finger. The native input height stays at the original
+   4px (see .hud-scrubber) — we only override the thumb. */
+.app--touch .hud-scrubber::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+}
+.app--touch .hud-scrubber::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
 }
 
 /* Hide the "library" text label on touch devices — the back-arrow alone
