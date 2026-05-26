@@ -34,12 +34,24 @@ B (Import & Score Model), H (Practice Controls).
   `onupgradeneeded` block is unchanged — the existing PIECES/PRACTICE
   stores are re-asserted on the v1→v2 upgrade and no new stores are
   introduced.
+- 2026-05-26 — Visual revamp. The library now leads with a "Continue
+  practicing" hero card driven by a new optional `lastOpenedAt` field on
+  `StoredPiece` (`touchPiece(id)` is called on every entry into
+  `PracticeView`). Rows are denser, with file-type chips, relative-time
+  metadata, and accent pills for loop / sections / hand-mute. Rename and
+  Delete moved into a per-row kebab menu. A new shared `FormatCompare`
+  component is rendered inline in the empty state and inside a header
+  `ⓘ MIDI vs MusicXML` popover. CSS lives in `src/styles/theme.css`
+  (`--- Library browser ---` block, fully replaced). New `relativeTime`
+  utility for relative dates. No DB version bump.
 
 ## Keywords
 
 src/library/db.ts, src/library/practiceState.ts,
-src/library/LibraryBrowser.tsx, savePiece, getPiece, listPieces,
-capturePracticeState, applyPracticeState, IndexedDB, per-piece state, search.
+src/library/LibraryBrowser.tsx, src/library/relativeTime.ts,
+savePiece, getPiece, listPieces, touchPiece, lastOpenedAt,
+capturePracticeState, applyPracticeState, IndexedDB, per-piece state,
+search, Hero, Row, KebabMenu, FormatCompare, FormatInfoPill, EmptyState.
 
 ## Testing
 
@@ -61,3 +73,8 @@ Manual checklist:
       library; reopening the piece restores those settings.
 - [ ] The library persists across a full page reload; search filters the list;
       delete removes a piece.
+- [ ] After opening any saved piece, returning to the library shows it in
+      the hero with the "Continue practicing" eyebrow.
+- [ ] The `ⓘ MIDI vs MusicXML` header pill toggles a popover with the
+      comparison. The same comparison appears inline when the library is
+      empty.

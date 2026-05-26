@@ -68,7 +68,7 @@ test.describe("MIDI section navigator", () => {
     // Reload takes us back to the library screen; re-open the piece to verify
     // the renamed section was persisted via IndexedDB.
     await page.reload();
-    await page.getByText("clean.mid").click({ timeout: 15_000 });
+    await page.getByRole("button", { name: /Resume practice/i }).click({ timeout: 15_000 });
     await expect(
       page.locator(".section-strip__block").first(),
     ).toContainText("My Section", { timeout: 15_000 });
@@ -94,7 +94,7 @@ test.describe("MIDI section navigator", () => {
     // Reload takes us back to the library screen; re-open the piece to verify
     // the strip position was persisted via localStorage.
     await page.reload();
-    await page.getByText("clean.mid").click({ timeout: 15_000 });
+    await page.getByRole("button", { name: /Resume practice/i }).click({ timeout: 15_000 });
     await expect(page.locator(".section-strip--top")).toBeVisible({
       timeout: 15_000,
     });

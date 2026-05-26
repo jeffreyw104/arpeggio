@@ -12,6 +12,11 @@ export interface StoredPiece {
   name: string;
   data: ArrayBuffer;
   addedAt: number;
+  /** Wall-clock time of the most recent open. Optional — undefined for
+   *  records saved before this field existed, and for pieces that have
+   *  only been imported without ever being routed through App's open
+   *  handler. Used to drive the library hero and the row sort order. */
+  lastOpenedAt?: number;
 }
 
 /** Per-piece practice settings persisted across sessions. */
@@ -158,7 +163,11 @@ export async function listPieces(): Promise<StoredPiece[]> {
   const all = await withStore(PIECES, "readonly", (s) =>
     promisify(s.getAll() as IDBRequest<StoredPiece[]>),
   );
-  return all.sort((a, b) => b.addedAt - a.addedAt);
+  return all.sort((a, b) => {
+    const aKey = a.lastOpenedAt ?? a.addedAt;
+    const bKey = b.lastOpenedAt ?? b.addedAt;
+    return bKey - aKey;
+  });
 }
 
 /** A saved piece by id, or undefined. */
@@ -174,6 +183,15 @@ export async function renamePiece(id: string, name: string): Promise<void> {
     const piece = (await promisify(s.get(id))) as StoredPiece | undefined;
     if (!piece) return;
     await promisify(s.put({ ...piece, name }));
+  });
+}
+
+/** Record that a piece was opened. No-op if the piece doesn't exist. */
+export async function touchPiece(id: string): Promise<void> {
+  await withStore(PIECES, "readwrite", async (s) => {
+    const piece = (await promisify(s.get(id))) as StoredPiece | undefined;
+    if (!piece) return;
+    await promisify(s.put({ ...piece, lastOpenedAt: Date.now() }));
   });
 }
 

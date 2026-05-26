@@ -275,6 +275,14 @@ Plan 4: `docs/superpowers/plans/2026-05-20-plan-4-tappable-keys-qwerty-bugfixes.
 - **Library rename.** `renamePiece(id, name)` in `db.ts`; LibraryBrowser
   shows a Rename button on each row with inline edit (Enter saves, Escape
   cancels, blur commits).
+- **Library visual revamp (2026-05-26).** The library now leads with a
+  Continue Practicing hero (most recently opened piece) and a denser,
+  more informative row list. A new `lastOpenedAt` optional field on
+  `StoredPiece` drives the hero and the sort. The hero's `▶ Resume
+  practice` restores per-piece tempo / loop / mute state via the same
+  code path as opening any piece — there is no separate fresh-open mode.
+  The empty state and a header `ⓘ MIDI vs MusicXML` popover both render
+  a shared format-comparison component (`FormatCompare`).
 - **Score-loading HUD.** Centered frosted-glass pill with three bouncing
   accent-green dots reading "Rendering sheet music" while Verovio works on
   the score.
