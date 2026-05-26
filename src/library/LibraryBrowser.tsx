@@ -55,6 +55,21 @@ function FormatCompare({ variant }: FormatCompareProps) {
   );
 }
 
+function EmptyState() {
+  return (
+    <div className="lib-empty" data-testid="lib-empty">
+      <div className="lib-empty-head">
+        <div className="lib-empty-ico" aria-hidden="true">♪</div>
+        <h4>Your library is empty</h4>
+      </div>
+      <p className="lead">
+        Arpeggio accepts two formats — here's what each unlocks:
+      </p>
+      <FormatCompare variant="full" />
+    </div>
+  );
+}
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */
@@ -96,6 +111,18 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
     setEditingName("");
   }
 
+  if (pieces.length === 0) {
+    return (
+      <div className="library-browser">
+        <div className="lib-head">
+          <h2>Library</h2>
+          <div className="lib-head-right">0 pieces</div>
+        </div>
+        <EmptyState />
+      </div>
+    );
+  }
+
   return (
     <div className="library-browser">
       <input
@@ -104,10 +131,7 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search saved pieces"
       />
-      {pieces.length === 0 ? (
-        <p className="library-empty">No saved pieces yet.</p>
-      ) : (
-        <ul>
+      <ul>
           {filtered.map((p) => (
             <li key={p.id}>
               {editingId === p.id ? (
@@ -155,7 +179,6 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
             </li>
           ))}
         </ul>
-      )}
     </div>
   );
 }

@@ -10,6 +10,15 @@ beforeEach(async () => {
 });
 
 describe("LibraryBrowser", () => {
+  it("shows an empty-state card with the format comparison when no pieces are saved", async () => {
+    render(<LibraryBrowser onOpen={() => {}} />);
+    // Wait for IDB read.
+    await screen.findByTestId("lib-empty");
+    expect(screen.getByText(/Your library is empty/i)).toBeInTheDocument();
+    expect(screen.getByTestId("lib-compare-midi")).toBeInTheDocument();
+    expect(screen.getByTestId("lib-compare-xml")).toBeInTheDocument();
+  });
+
   it("lists saved pieces", async () => {
     await savePiece("Chopin Ballade.mid", bytes("x"));
     await savePiece("Moonlight.musicxml", bytes("y"));
@@ -67,9 +76,9 @@ describe("FormatCompare (via LibraryBrowser empty state)", () => {
     // Wait for the async listPieces effect to settle and the empty state to render.
     const midi = await screen.findByTestId("lib-compare-midi");
     const xml = screen.getByTestId("lib-compare-xml");
-    expect(within(midi).getByText(/MIDI/i)).toBeInTheDocument();
+    expect(within(midi).getAllByText(/MIDI/i).length).toBeGreaterThan(0);
     expect(within(midi).getByText(/falldown/i)).toBeInTheDocument();
-    expect(within(xml).getByText(/MUSICXML/i)).toBeInTheDocument();
-    expect(within(xml).getByText(/engraved/i)).toBeInTheDocument();
+    expect(within(xml).getAllByText(/MUSICXML/i).length).toBeGreaterThan(0);
+    expect(within(xml).getAllByText(/engraved/i).length).toBeGreaterThan(0);
   });
 });
