@@ -7,6 +7,7 @@ import {
   savePracticeState,
   getPracticeState,
   clearLibrary,
+  touchPiece,
 } from "./db";
 
 const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
@@ -65,5 +66,33 @@ describe("library db — practice state", () => {
   it("returns undefined when a piece has no saved state", async () => {
     const id = await savePiece("song.mid", bytes("x"));
     expect(await getPracticeState(id)).toBeUndefined();
+  });
+});
+
+describe("touchPiece + lastOpenedAt", () => {
+  it("touchPiece sets lastOpenedAt to a positive number", async () => {
+    const id = await savePiece("a.mid", new ArrayBuffer(4));
+    await touchPiece(id);
+    const pieces = await listPieces();
+    const found = pieces.find((p) => p.id === id);
+    expect(found?.lastOpenedAt).toBeGreaterThan(0);
+  });
+
+  it("touchPiece on a missing id is a no-op (no throw)", async () => {
+    await expect(touchPiece("nonexistent")).resolves.toBeUndefined();
+  });
+
+  it("listPieces sorts by lastOpenedAt desc, fallback addedAt", async () => {
+    const older = await savePiece("older.mid", new ArrayBuffer(4));
+    await new Promise((r) => setTimeout(r, 5));
+    const newer = await savePiece("newer.mid", new ArrayBuffer(4));
+    // Initially newer is first (by addedAt fallback).
+    let pieces = await listPieces();
+    expect(pieces[0].id).toBe(newer);
+    // Touch the older piece — it should jump to the top.
+    await new Promise((r) => setTimeout(r, 5));
+    await touchPiece(older);
+    pieces = await listPieces();
+    expect(pieces[0].id).toBe(older);
   });
 });
