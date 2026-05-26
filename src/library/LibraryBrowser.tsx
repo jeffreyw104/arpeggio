@@ -6,6 +6,55 @@ import {
   type StoredPiece,
 } from "./db";
 
+type FormatVariant = "full" | "compact";
+
+interface FormatCompareProps {
+  variant: FormatVariant;
+}
+
+function FormatCompare({ variant }: FormatCompareProps) {
+  return (
+    <div className="lib-compare">
+      <div className="lib-compare-col midi" data-testid="lib-compare-midi">
+        <span className="lib-compare-chip">MIDI</span>
+        {variant === "full" && (
+          <>
+            <h5>Best for playing along</h5>
+            <p className="desc">
+              .mid / .midi files. Often exported from a DAW or downloaded as a
+              performance.
+            </p>
+          </>
+        )}
+        <ul>
+          <li>Exact falldown view (note timing is the source of truth)</li>
+          <li>Auto-detected practice sections</li>
+          <li>Bookmarks &amp; section navigator</li>
+          <li className="x">Score notation is auto-generated &amp; approximate</li>
+        </ul>
+      </div>
+      <div className="lib-compare-col xml" data-testid="lib-compare-xml">
+        <span className="lib-compare-chip">MUSICXML</span>
+        {variant === "full" && (
+          <>
+            <h5>Best for reading the score</h5>
+            <p className="desc">
+              .xml / .musicxml files. Authored notation from sheet-music
+              software.
+            </p>
+          </>
+        )}
+        <ul>
+          <li>Original engraved sheet music (verbatim)</li>
+          <li>Accurate rhythms, articulations, accidentals</li>
+          <li>Slim measure scrubber</li>
+          <li className="x">No section navigator (uses engraved score instead)</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */

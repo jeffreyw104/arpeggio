@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { LibraryBrowser } from "./LibraryBrowser";
 import { savePiece, clearLibrary } from "./db";
 
@@ -57,5 +57,19 @@ describe("LibraryBrowser", () => {
         screen.queryByText("Chopin Ballade.mid"),
       ).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe("FormatCompare (via LibraryBrowser empty state)", () => {
+  it("renders both MIDI and MUSICXML columns with their bullet content", async () => {
+    render(<LibraryBrowser onOpen={() => {}} />);
+    // Empty state is the default — IDB starts empty in the test setup.
+    // Wait for the async listPieces effect to settle and the empty state to render.
+    const midi = await screen.findByTestId("lib-compare-midi");
+    const xml = screen.getByTestId("lib-compare-xml");
+    expect(within(midi).getByText(/MIDI/i)).toBeInTheDocument();
+    expect(within(midi).getByText(/falldown/i)).toBeInTheDocument();
+    expect(within(xml).getByText(/MUSICXML/i)).toBeInTheDocument();
+    expect(within(xml).getByText(/engraved/i)).toBeInTheDocument();
   });
 });
