@@ -309,6 +309,69 @@ function Row({ piece, practiceState, onOpen, onRenameCommit, onDelete }: RowProp
   );
 }
 
+interface HeroProps {
+  piece: StoredPiece;
+  practiceState: StoredPracticeState | undefined;
+  onResume: () => void;
+}
+
+function Hero({ piece, practiceState, onResume }: HeroProps) {
+  const format = useMemo(
+    () => detectType(piece.name, new Uint8Array(piece.data.slice(0, 2048))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [piece.id, piece.name, piece.data],
+  );
+  const fmt = formatLabel(format);
+  const lastOpened = piece.lastOpenedAt;
+  const eyebrow = lastOpened != null ? "Continue practicing" : "Most recent";
+  const relative =
+    lastOpened != null
+      ? `last opened ${formatRelative(lastOpened)}`
+      : `added ${formatRelative(piece.addedAt)}`;
+
+  const muted =
+    practiceState?.leftMuted && practiceState?.rightMuted
+      ? "L+R muted"
+      : practiceState?.leftMuted
+        ? "L muted"
+        : practiceState?.rightMuted
+          ? "R muted"
+          : null;
+  const hasLoop = practiceState?.loop != null;
+  const sectionsCount = practiceState?.sectionState?.sections.length ?? 0;
+  const bpm = practiceState?.bpm;
+
+  return (
+    <section className="lib-hero" data-testid="library-hero">
+      <div className="lib-hero-grid">
+        <div>
+          <div className="lib-hero-eyebrow">{eyebrow}</div>
+          <h3>{piece.name}</h3>
+          <div className="lib-hero-meta">
+            <span>{fmt}</span>
+            <span>·</span>
+            <span>{relative}</span>
+            {typeof bpm === "number" && (
+              <>
+                <span>·</span>
+                <span>♩ <span className="v">{bpm}</span></span>
+              </>
+            )}
+            {hasLoop && <span className="lib-pill">loop</span>}
+            {sectionsCount > 0 && (
+              <span className="lib-pill">{sectionsCount} sections</span>
+            )}
+            {muted && <span className="lib-pill">{muted}</span>}
+          </div>
+        </div>
+        <button type="button" className="lib-hero-cta" onClick={onResume}>
+          ▶ Resume practice
+        </button>
+      </div>
+    </section>
+  );
+}
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */
@@ -348,9 +411,6 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
     };
   }, [pieces]);
 
-  const needle = query.trim().toLowerCase();
-  const filtered = pieces.filter((p) => p.name.toLowerCase().includes(needle));
-
   if (pieces.length === 0) {
     return (
       <div className="library-browser">
@@ -363,6 +423,16 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
     );
   }
 
+  const heroPiece = pieces[0];                  // already sorted by recent activity
+  const restPieces = pieces.slice(1);
+
+  // Filter rule: when query is non-empty, search across ALL pieces (hero included).
+  // When query is empty, only rows below the hero are shown.
+  const needle = query.trim().toLowerCase();
+  const filtered = needle.length > 0
+    ? pieces.filter((p) => p.name.toLowerCase().includes(needle))
+    : restPieces;
+
   return (
     <div className="library-browser">
       <div className="lib-head">
@@ -372,30 +442,44 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
           <span>{pieces.length} piece{pieces.length === 1 ? "" : "s"} saved</span>
         </div>
       </div>
-      <input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search saved pieces"
+
+      <Hero
+        piece={heroPiece}
+        practiceState={practiceById.get(heroPiece.id)}
+        onResume={() => onOpen(heroPiece.id)}
       />
-      <ul className="lib-rows">
-        {filtered.map((p) => (
-          <Row
-            key={p.id}
-            piece={p}
-            practiceState={practiceById.get(p.id)}
-            onOpen={() => onOpen(p.id)}
-            onRenameCommit={async (next) => {
-              await renamePiece(p.id, next);
-              await refresh();
-            }}
-            onDelete={async () => {
-              await deletePiece(p.id);
-              await refresh();
-            }}
+
+      {restPieces.length > 0 && (
+        <>
+          <div className="lib-list-label">
+            <span>All other pieces · {restPieces.length}</span>
+          </div>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
           />
-        ))}
-      </ul>
+          <ul className="lib-rows">
+            {filtered.map((p) => (
+              <Row
+                key={p.id}
+                piece={p}
+                practiceState={practiceById.get(p.id)}
+                onOpen={() => onOpen(p.id)}
+                onRenameCommit={async (next) => {
+                  await renamePiece(p.id, next);
+                  await refresh();
+                }}
+                onDelete={async () => {
+                  await deletePiece(p.id);
+                  await refresh();
+                }}
+              />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

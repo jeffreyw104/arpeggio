@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { LibraryBrowser } from "./LibraryBrowser";
 import { __KebabMenu_test_only as KebabMenu } from "./LibraryBrowser";
-import { savePiece, listPieces, clearLibrary } from "./db";
+import { savePiece, listPieces, clearLibrary, touchPiece } from "./db";
 
 const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
 
@@ -25,15 +25,13 @@ describe("LibraryBrowser", () => {
     await new Promise((r) => setTimeout(r, 5));
     await savePiece("Moonlight.musicxml", bytes("y"));
     render(<LibraryBrowser onOpen={() => {}} />);
-    // NOTE: the hero doesn't exist yet at this task (Task 10 adds it).
-    // For this task, both pieces will still render as rows. We'll FIX this
-    // assertion in Task 10 when the hero is wired in. For now, assert what
-    // Task 9 actually produces: both pieces appear as rows.
-    await screen.findAllByTestId("lib-row");
+    await screen.findByTestId("library-hero");
+    expect(
+      within(screen.getByTestId("library-hero")).getByText("Moonlight.musicxml"),
+    ).toBeInTheDocument();
     const rows = screen.getAllByTestId("lib-row");
-    expect(rows).toHaveLength(2);
-    expect(within(rows[0]).getByText("Moonlight.musicxml")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("Chopin Ballade.mid")).toBeInTheDocument();
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText("Chopin Ballade.mid")).toBeInTheDocument();
   });
 
   it("filters the list by the search box", async () => {
@@ -41,13 +39,16 @@ describe("LibraryBrowser", () => {
     await new Promise((r) => setTimeout(r, 5));
     await savePiece("Moonlight.musicxml", bytes("y"));
     render(<LibraryBrowser onOpen={() => {}} />);
-    await screen.findAllByTestId("lib-row");
+    await screen.findByTestId("library-hero");
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "moon" },
     });
+    // Moonlight is the hero; with a matching search it also appears as a row.
     const rows = screen.getAllByTestId("lib-row");
     expect(rows).toHaveLength(1);
     expect(within(rows[0]).getByText("Moonlight.musicxml")).toBeInTheDocument();
+    // Chopin is filtered out of the row list.
+    expect(within(rows[0]).queryByText("Chopin Ballade.mid")).toBeNull();
   });
 
   it("shows the chip with MIDI label for .mid files and XML for .musicxml files", async () => {
@@ -57,14 +58,21 @@ describe("LibraryBrowser", () => {
     const xml = new TextEncoder().encode(
       "<?xml version='1.0'?><score-partwise></score-partwise>",
     ).buffer;
+    // Save MIDI first (older), then XML (newer → hero).
     await savePiece("a.mid", midi);
+    await new Promise((r) => setTimeout(r, 5));
     await savePiece("b.musicxml", xml);
     render(<LibraryBrowser onOpen={() => {}} />);
-    await screen.findAllByTestId("lib-row");
+    // a.mid is in the row list; its chip should say MIDI.
+    await screen.findByTestId("library-hero");
     const chips = screen.getAllByTestId("lib-chip");
     const labels = chips.map((c) => c.textContent);
     expect(labels).toContain("MIDI");
-    expect(labels).toContain("XML");
+    // The hero shows the XML format as text, not a chip.
+    expect(screen.getByTestId("library-hero")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("library-hero")).getByText("MusicXML"),
+    ).toBeInTheDocument();
   });
 
   it("calls onOpen with the piece id when a row's name is clicked", async () => {
@@ -178,6 +186,78 @@ describe("FormatInfoPill", () => {
     expect(screen.getByTestId("lib-info-popover")).toBeInTheDocument();
     fireEvent.mouseDown(document.body);
     expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+  });
+});
+
+describe("Hero", () => {
+  async function seed(name: string, touched?: boolean) {
+    const midi = new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6]).buffer;
+    const id = await savePiece(name, midi);
+    if (touched) await touchPiece(id);
+    return id;
+  }
+
+  it("shows the most recently opened piece in the hero with the 'Continue practicing' eyebrow", async () => {
+    await seed("older.mid");
+    await new Promise((r) => setTimeout(r, 5));
+    await seed("newer.mid");
+    await new Promise((r) => setTimeout(r, 5));
+    await seed("touched.mid", true);
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findByTestId("library-hero");
+    const hero = screen.getByTestId("library-hero");
+    expect(within(hero).getByText(/touched\.mid/)).toBeInTheDocument();
+    expect(within(hero).getByText(/Continue practicing/i)).toBeInTheDocument();
+  });
+
+  it("falls back to 'MOST RECENT' eyebrow when no piece has been opened", async () => {
+    await seed("a.mid");
+    await new Promise((r) => setTimeout(r, 5));
+    await seed("b.mid");
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findByTestId("library-hero");
+    const hero = screen.getByTestId("library-hero");
+    expect(within(hero).getByText(/b\.mid/)).toBeInTheDocument();
+    expect(within(hero).getByText(/Most recent/i)).toBeInTheDocument();
+  });
+
+  it("excludes the hero piece from the list when search is empty", async () => {
+    await seed("a.mid", true);
+    await new Promise((r) => setTimeout(r, 5));
+    await seed("b.mid", true);
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findByTestId("library-hero");
+    // hero shows b.mid (latest); the list should not also contain b.mid as a row
+    const rows = screen.queryAllByTestId("lib-row");
+    expect(rows).toHaveLength(1);
+    const hero = screen.getByTestId("library-hero");
+    const heroHeading = within(hero).getByRole("heading", { level: 3 }).textContent;
+    rows.forEach((row) => {
+      expect(within(row).queryByText(heroHeading ?? "")).toBeNull();
+    });
+  });
+
+  it("includes the hero piece in the list when the search query matches it", async () => {
+    await seed("chopin.mid", true);
+    await new Promise((r) => setTimeout(r, 5));
+    await seed("bach.mid");
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findByTestId("library-hero");
+    fireEvent.change(screen.getByPlaceholderText(/search/i), {
+      target: { value: "bach" },
+    });
+    const rows = screen.getAllByTestId("lib-row");
+    expect(rows.length).toBe(1);
+    expect(within(rows[0]).getByText(/bach\.mid/)).toBeInTheDocument();
+  });
+
+  it("fires onOpen with the hero piece id when 'Resume practice' is clicked", async () => {
+    const onOpen = vi.fn();
+    const id = await seed("hero.mid", true);
+    render(<LibraryBrowser onOpen={onOpen} />);
+    await screen.findByTestId("library-hero");
+    fireEvent.click(screen.getByRole("button", { name: /Resume practice/i }));
+    expect(onOpen).toHaveBeenCalledWith(id);
   });
 });
 
