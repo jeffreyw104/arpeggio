@@ -1742,6 +1742,57 @@ textarea {
   color: var(--text-dim);
 }
 
+/* "Where to find them" — per-format source list shown only in the full
+   empty-state variant. Sits below the pros/cons list, separated by a
+   hairline rule. Bullets here use a different marker than the pros so
+   they read as a separate group, and links are tinted with the
+   column's accent color (green for MIDI, warm for XML). */
+.library-browser .lib-compare-sources {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.library-browser .lib-compare-sources-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.library-browser .lib-compare-sources ul {
+  font-size: 12px;
+}
+.library-browser .lib-compare-sources li {
+  color: var(--text-dim);
+  padding: 3px 0;
+}
+.library-browser .lib-compare-sources li::before {
+  content: "›";
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.library-browser .lib-compare-sources a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border);
+}
+.library-browser .lib-compare-col.midi .lib-compare-sources a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent-glow);
+}
+.library-browser .lib-compare-col.xml .lib-compare-sources a:hover {
+  color: var(--warm);
+  border-bottom-color: var(--warm-glow);
+}
+.library-browser .lib-compare-sources code {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
 .hud-transport-row {
   display: flex;
   flex-wrap: wrap;
