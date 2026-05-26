@@ -39,8 +39,36 @@ function FormatCompare({ variant }: FormatCompareProps) {
           <li>Exact falldown view (note timing is the source of truth)</li>
           <li>Auto-detected practice sections</li>
           <li>Bookmarks &amp; section navigator</li>
-          <li className="x">Score notation is auto-generated &amp; approximate</li>
+          <li className="x">No engraved sheet music to read</li>
         </ul>
+        {variant === "full" && (
+          <div className="lib-compare-sources">
+            <div className="lib-compare-sources-label">Where to find them</div>
+            <ul>
+              <li>
+                <a
+                  href="https://musescore.com/sheetmusic?type=non-official&amp;parts=1&amp;instruments=2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  MuseScore.com
+                </a>{" "}
+                — download as <code>.mid</code>
+              </li>
+              <li>
+                <a
+                  href="https://bitmidi.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  BitMidi.com
+                </a>{" "}
+                — large free MIDI catalog
+              </li>
+              <li>Export from a DAW (Logic, Ableton, GarageBand…)</li>
+            </ul>
+          </div>
+        )}
       </div>
       <div className="lib-compare-col xml" data-testid="lib-compare-xml">
         <span className="lib-compare-chip">MUSICXML</span>
@@ -57,8 +85,37 @@ function FormatCompare({ variant }: FormatCompareProps) {
           <li>Original engraved sheet music (verbatim)</li>
           <li>Accurate rhythms, articulations, accidentals</li>
           <li>Slim measure scrubber</li>
-          <li className="x">No section navigator (uses engraved score instead)</li>
         </ul>
+        {variant === "full" && (
+          <div className="lib-compare-sources">
+            <div className="lib-compare-sources-label">Where to find them</div>
+            <ul>
+              <li>
+                <a
+                  href="https://musescore.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  MuseScore.com
+                </a>{" "}
+                — download as <code>.mxl</code>
+              </li>
+              <li>
+                <a
+                  href="https://www.musicxml.com/music-in-musicxml/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  musicxml.com
+                </a>{" "}
+                — directory of MusicXML sources
+              </li>
+              <li>
+                Export from MuseScore, Sibelius, Finale, or Dorico
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

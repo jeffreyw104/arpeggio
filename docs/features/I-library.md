@@ -60,6 +60,17 @@ B (Import & Score Model), H (Practice Controls).
   `useLayoutEffect` and toggles a `lib-menu--up` modifier that
   switches `top: 44px` for `bottom: 44px`. Runs before paint so the
   user never sees the off-screen position.
+- 2026-05-26 — Empty-state `FormatCompare` (full variant only) gains
+  a "Where to find them" block under each column with external links
+  to score sources — MIDI: MuseScore.com, BitMidi.com, DAW export;
+  MusicXML: MuseScore.com, musicxml.com, notation-software export.
+  Also rebalanced the pros/cons: MIDI bullets now read 3 pros + 1 con
+  ("No engraved sheet music to read"); the prior MIDI con line
+  ("Score notation is auto-generated") was removed because Arpeggio
+  no longer renders an auto-generated score for MIDI. MusicXML
+  bullets dropped the "No section navigator" con and now show 3 pros
+  only. New `.lib-compare-sources` styles in `theme.css` (separator
+  rule, dotted-underline links tinted to column accent).
 
 ## Keywords
 
