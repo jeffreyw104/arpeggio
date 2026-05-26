@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   listPieces,
   deletePiece,
@@ -70,6 +70,48 @@ function EmptyState() {
   );
 }
 
+function FormatInfoPill() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    function onDown(e: MouseEvent) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="lib-info-wrap" ref={wrapRef}>
+      <button
+        type="button"
+        className="lib-info-pill"
+        data-testid="lib-info-pill"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="dot">ⓘ</span> MIDI vs MusicXML
+      </button>
+      {open && (
+        <div className="lib-info-popover" data-testid="lib-info-popover" role="dialog">
+          <p className="pop-label">What each format unlocks</p>
+          <FormatCompare variant="compact" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */
@@ -125,6 +167,13 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
 
   return (
     <div className="library-browser">
+      <div className="lib-head">
+        <h2>Library</h2>
+        <div className="lib-head-right">
+          <FormatInfoPill />
+          <span>{pieces.length} piece{pieces.length === 1 ? "" : "s"} saved</span>
+        </div>
+      </div>
       <input
         type="search"
         value={query}

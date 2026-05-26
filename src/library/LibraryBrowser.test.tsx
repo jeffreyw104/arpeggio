@@ -82,3 +82,41 @@ describe("FormatCompare (via LibraryBrowser empty state)", () => {
     expect(within(xml).getAllByText(/engraved/i).length).toBeGreaterThan(0);
   });
 });
+
+describe("FormatInfoPill", () => {
+  async function renderWithOnePiece() {
+    await savePiece("seed.mid", new ArrayBuffer(4));
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findByTestId("lib-info-pill");
+  }
+
+  it("renders the pill once there is at least one piece", async () => {
+    await renderWithOnePiece();
+    expect(screen.getByTestId("lib-info-pill")).toBeInTheDocument();
+  });
+
+  it("toggles the popover open and closed on pill click", async () => {
+    await renderWithOnePiece();
+    expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("lib-info-pill"));
+    expect(screen.getByTestId("lib-info-popover")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("lib-info-pill"));
+    expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+  });
+
+  it("closes the popover on Escape", async () => {
+    await renderWithOnePiece();
+    fireEvent.click(screen.getByTestId("lib-info-pill"));
+    expect(screen.getByTestId("lib-info-popover")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+  });
+
+  it("closes the popover on outside click", async () => {
+    await renderWithOnePiece();
+    fireEvent.click(screen.getByTestId("lib-info-pill"));
+    expect(screen.getByTestId("lib-info-popover")).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+  });
+});
