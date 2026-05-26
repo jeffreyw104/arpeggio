@@ -112,6 +112,47 @@ function FormatInfoPill() {
   );
 }
 
+interface KebabMenuProps {
+  onOpen: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function KebabMenu({ onOpen, onRename, onDelete, onClose }: KebabMenuProps) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="lib-menu" role="menu">
+      <button type="button" className="lib-menu-item" role="menuitem" onClick={onOpen}>
+        Open
+      </button>
+      <button type="button" className="lib-menu-item" role="menuitem" onClick={onRename}>
+        Rename
+      </button>
+      <div className="lib-menu-sep" />
+      <button
+        type="button"
+        className="lib-menu-item danger"
+        role="menuitem"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    </div>
+  );
+}
+
+// Test-only re-export. Keeps KebabMenu internal to the module while
+// allowing direct unit tests of its keyboard / click behavior.
+export const __KebabMenu_test_only = KebabMenu;
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */

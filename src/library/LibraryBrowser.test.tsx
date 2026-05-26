@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { LibraryBrowser } from "./LibraryBrowser";
+import { __KebabMenu_test_only as KebabMenu } from "./LibraryBrowser";
 import { savePiece, clearLibrary } from "./db";
 
 const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
@@ -118,5 +119,63 @@ describe("FormatInfoPill", () => {
     expect(screen.getByTestId("lib-info-popover")).toBeInTheDocument();
     fireEvent.mouseDown(document.body);
     expect(screen.queryByTestId("lib-info-popover")).not.toBeInTheDocument();
+  });
+});
+
+describe("KebabMenu", () => {
+  it("fires onOpen when 'Open' clicked", () => {
+    const onOpen = vi.fn();
+    render(
+      <KebabMenu
+        onOpen={onOpen}
+        onRename={() => {}}
+        onDelete={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("Open"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires onRename when 'Rename' clicked", () => {
+    const onRename = vi.fn();
+    render(
+      <KebabMenu
+        onOpen={() => {}}
+        onRename={onRename}
+        onDelete={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("Rename"));
+    expect(onRename).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires onDelete when 'Delete' clicked", () => {
+    const onDelete = vi.fn();
+    render(
+      <KebabMenu
+        onOpen={() => {}}
+        onRename={() => {}}
+        onDelete={onDelete}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText("Delete"));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires onClose on Escape", () => {
+    const onClose = vi.fn();
+    render(
+      <KebabMenu
+        onOpen={() => {}}
+        onRename={() => {}}
+        onDelete={() => {}}
+        onClose={onClose}
+      />,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
