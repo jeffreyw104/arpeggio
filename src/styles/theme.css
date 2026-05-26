@@ -27,6 +27,7 @@
   --border-soft: #1f1f25;
   --warm: #d9a55a;
   --warm-soft: rgba(217, 165, 90, 0.18);
+  --warm-glow: rgba(217, 165, 90, 0.4);
 }
 
 * {
@@ -1194,7 +1195,7 @@ textarea {
 }
 .library-browser .lib-info-pill:hover {
   color: var(--accent);
-  border-color: rgba(68, 170, 136, 0.4);
+  border-color: var(--accent-glow);
 }
 .library-browser .lib-info-popover {
   position: absolute;
@@ -1551,10 +1552,10 @@ textarea {
   background: linear-gradient(180deg, #1a1a20, var(--panel));
 }
 .library-browser .lib-compare-col.midi {
-  border-color: rgba(68, 170, 136, 0.4);
+  border-color: var(--accent-glow);
 }
 .library-browser .lib-compare-col.xml {
-  border-color: rgba(217, 165, 90, 0.4);
+  border-color: var(--warm-glow);
 }
 .library-browser .lib-compare-chip {
   display: inline-flex;
