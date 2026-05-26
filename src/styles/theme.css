@@ -1047,6 +1047,19 @@ textarea {
   color: var(--text);
 }
 
+/* The app icon sits above the wordmark to form a stacked lockup at the
+   top of the landing card. Negative bottom margin tightens the gap to the
+   wordmark below the card's 16px flex gap, so the icon and "Arpeggio"
+   read as one unit rather than two stacked items. */
+.import-view .import-logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: -4px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
 .import-view .import-lead {
   margin: 0;
   color: var(--text-dim);
@@ -1234,6 +1247,14 @@ textarea {
 }
 
 /* --- Library browser --- */
+
+/* The library/landing page sits one shade lighter than the rest of the app
+   so the hero, rows, and chrome read as a distinct surface against the
+   darker practice view. Matches the graphite tone used in the app logo. */
+.landing {
+  min-height: 100vh;
+  background: #181820;
+}
 
 .library-browser {
   max-width: 1100px;

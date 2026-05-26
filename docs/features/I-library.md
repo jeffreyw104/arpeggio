@@ -44,6 +44,16 @@ B (Import & Score Model), H (Practice Controls).
   `ⓘ MIDI vs MusicXML` popover. CSS lives in `src/styles/theme.css`
   (`--- Library browser ---` block, fully replaced). New `relativeTime`
   utility for relative dates. No DB version bump.
+- 2026-05-26 — Library/landing page now sits on a graphite `#181820`
+  surface (was inheriting the app `--bg` of `#0b0b0d`) so it reads as a
+  distinct space from the practice view. Added to `.landing` in
+  `theme.css` with `min-height: 100vh`. Same graphite tone is used as
+  the logo background — see Feature A.
+- 2026-05-26 — The app icon (`/icons/icon.svg`) is now rendered above
+  the "Arpeggio" wordmark inside the landing import card via an
+  `<img class="import-logo">` element, forming a stacked
+  logo + wordmark lockup at the top of the page. 72×72 with a subtle
+  drop shadow; `margin-bottom: -4px` tightens the gap to the wordmark.
 
 ## Keywords
 

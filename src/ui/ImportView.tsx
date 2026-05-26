@@ -37,6 +37,13 @@ export function ImportView({ onLoaded }: ImportViewProps) {
       }}
     >
       <div className="import-card">
+        <img
+          className="import-logo"
+          src="/icons/icon.svg"
+          alt=""
+          width="72"
+          height="72"
+        />
         <h1>Arpeggio</h1>
         <p className="import-lead">
           Drop a MIDI or MusicXML file here, or pick one to begin.

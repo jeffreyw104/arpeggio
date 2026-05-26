@@ -23,8 +23,8 @@ export default defineConfig({
         name: "Arpeggio",
         short_name: "Arpeggio",
         description: "Piano practice tool — falldown notes and interactive sheet music.",
-        theme_color: "#15151a",
-        background_color: "#15151a",
+        theme_color: "#181820",
+        background_color: "#181820",
         display: "standalone",
         icons: [
           {
