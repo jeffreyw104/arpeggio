@@ -1577,6 +1577,13 @@ textarea {
   min-width: 140px;
   z-index: 10;
 }
+/* Flipped position for rows near the bottom of the viewport — the menu
+   opens above the kebab instead of below, so it stays on-screen. The
+   component measures itself on mount and toggles this modifier. */
+.library-browser .lib-menu--up {
+  top: auto;
+  bottom: 44px;
+}
 .library-browser .lib-menu-item {
   display: block;
   width: 100%;
