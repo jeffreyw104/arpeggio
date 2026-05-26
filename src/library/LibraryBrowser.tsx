@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   listPieces,
   deletePiece,
@@ -122,6 +129,9 @@ interface KebabMenuProps {
 }
 
 function KebabMenu({ onOpen, onRename, onDelete, onClose }: KebabMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [flipUp, setFlipUp] = useState(false);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -130,8 +140,24 @@ function KebabMenu({ onOpen, onRename, onDelete, onClose }: KebabMenuProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // If the menu would overflow the bottom of the viewport (last few rows in
+  // a tall library), flip it to anchor above the kebab instead. Runs before
+  // paint so the user never sees the off-screen position.
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 8) {
+      setFlipUp(true);
+    }
+  }, []);
+
   return (
-    <div className="lib-menu" role="menu">
+    <div
+      ref={menuRef}
+      className={`lib-menu${flipUp ? " lib-menu--up" : ""}`}
+      role="menu"
+    >
       <button type="button" className="lib-menu-item" role="menuitem" onClick={onOpen}>
         Open
       </button>

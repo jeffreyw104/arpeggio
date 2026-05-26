@@ -54,6 +54,12 @@ B (Import & Score Model), H (Practice Controls).
   `<img class="import-logo">` element, forming a stacked
   logo + wordmark lockup at the top of the page. 72×72 with a subtle
   drop shadow; `margin-bottom: -4px` tightens the gap to the wordmark.
+- 2026-05-26 — Row kebab menu now flips above the kebab when it would
+  otherwise overflow the bottom of the viewport (last few rows in a
+  tall library). `KebabMenu` measures its own bounding rect in a
+  `useLayoutEffect` and toggles a `lib-menu--up` modifier that
+  switches `top: 44px` for `bottom: 44px`. Runs before paint so the
+  user never sees the off-screen position.
 
 ## Keywords
 
