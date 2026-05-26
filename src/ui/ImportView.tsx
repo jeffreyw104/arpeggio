@@ -36,19 +36,30 @@ export function ImportView({ onLoaded }: ImportViewProps) {
         if (f) handleFile(f);
       }}
     >
-      <h1>Arpeggio</h1>
-      <p>Drop a MIDI or MusicXML file here, or pick one to begin.</p>
-      <label htmlFor="file-input">Choose a file…</label>
-      <input
-        id="file-input"
-        type="file"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
-        }}
-      />
-      {loading && <p>Loading…</p>}
-      {error !== null && <div role="alert">{error}</div>}
+      <div className="import-card">
+        <h1>Arpeggio</h1>
+        <p className="import-lead">
+          Drop a MIDI or MusicXML file here, or pick one to begin.
+        </p>
+        <label htmlFor="file-input" className="import-cta">
+          Choose a file…
+        </label>
+        <input
+          id="file-input"
+          className="import-file-input"
+          type="file"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+        {loading && <p className="import-status">Loading…</p>}
+        {error !== null && (
+          <div className="import-error" role="alert">
+            {error}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

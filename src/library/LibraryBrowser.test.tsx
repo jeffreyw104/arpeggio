@@ -20,7 +20,7 @@ describe("LibraryBrowser", () => {
     expect(screen.getByTestId("lib-compare-xml")).toBeInTheDocument();
   });
 
-  it("renders both saved pieces — newer in the hero, older in the list", async () => {
+  it("renders both saved pieces — newer in the hero, all pieces in the list", async () => {
     await savePiece("Chopin Ballade.mid", bytes("x"));
     await new Promise((r) => setTimeout(r, 5));
     await savePiece("Moonlight.musicxml", bytes("y"));
@@ -29,9 +29,11 @@ describe("LibraryBrowser", () => {
     expect(
       within(screen.getByTestId("library-hero")).getByText("Moonlight.musicxml"),
     ).toBeInTheDocument();
+    // Both pieces appear as rows (the hero is also included in the list).
     const rows = screen.getAllByTestId("lib-row");
-    expect(rows).toHaveLength(1);
-    expect(within(rows[0]).getByText("Chopin Ballade.mid")).toBeInTheDocument();
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText("Moonlight.musicxml")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Chopin Ballade.mid")).toBeInTheDocument();
   });
 
   it("filters the list by the search box", async () => {
@@ -221,20 +223,17 @@ describe("Hero", () => {
     expect(within(hero).getByText(/Most recent/i)).toBeInTheDocument();
   });
 
-  it("excludes the hero piece from the list when search is empty", async () => {
+  it("includes every piece in the list — including the hero piece itself", async () => {
     await seed("a.mid", true);
     await new Promise((r) => setTimeout(r, 5));
     await seed("b.mid", true);
     render(<LibraryBrowser onOpen={() => {}} />);
     await screen.findByTestId("library-hero");
-    // hero shows b.mid (latest); the list should not also contain b.mid as a row
-    const rows = screen.queryAllByTestId("lib-row");
-    expect(rows).toHaveLength(1);
-    const hero = screen.getByTestId("library-hero");
-    const heroHeading = within(hero).getByRole("heading", { level: 3 }).textContent;
-    rows.forEach((row) => {
-      expect(within(row).queryByText(heroHeading ?? "")).toBeNull();
-    });
+    // Both pieces appear as rows; the hero (b.mid) is also the first row.
+    const rows = screen.getAllByTestId("lib-row");
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText("b.mid")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("a.mid")).toBeInTheDocument();
   });
 
   it("includes the hero piece in the list when the search query matches it", async () => {
