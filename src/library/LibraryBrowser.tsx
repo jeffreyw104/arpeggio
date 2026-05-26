@@ -283,7 +283,7 @@ function Row({ piece, practiceState, onOpen, onRenameCommit, onDelete }: RowProp
         type="button"
         className="lib-kebab"
         data-testid="lib-kebab"
-        aria-label="More actions"
+        aria-label={`Actions for ${piece.name}`}
         onClick={() => setMenuOpen((m) => !m)}
       >
         ⋯

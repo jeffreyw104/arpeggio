@@ -80,7 +80,9 @@ describe("LibraryBrowser", () => {
       within(r).queryByText(/target\.mid/) !== null,
     );
     if (!targetRow) throw new Error("target row not found");
-    fireEvent.click(within(targetRow).getByRole("button", { name: /target\.mid/ }));
+    // Use the name button specifically — exact-match avoids matching the kebab.
+    const nameBtn = within(targetRow).getByRole("button", { name: "target.mid" });
+    fireEvent.click(nameBtn);
     expect(onOpen).toHaveBeenCalledWith(targetId);
   });
 
