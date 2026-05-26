@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { LibraryBrowser } from "./LibraryBrowser";
 import { __KebabMenu_test_only as KebabMenu } from "./LibraryBrowser";
-import { savePiece, clearLibrary } from "./db";
+import { savePiece, listPieces, clearLibrary } from "./db";
 
 const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
 
@@ -20,53 +20,110 @@ describe("LibraryBrowser", () => {
     expect(screen.getByTestId("lib-compare-xml")).toBeInTheDocument();
   });
 
-  it("lists saved pieces", async () => {
+  it("renders both saved pieces — newer in the hero, older in the list", async () => {
     await savePiece("Chopin Ballade.mid", bytes("x"));
+    await new Promise((r) => setTimeout(r, 5));
     await savePiece("Moonlight.musicxml", bytes("y"));
     render(<LibraryBrowser onOpen={() => {}} />);
-    await waitFor(() =>
-      expect(screen.getByText("Chopin Ballade.mid")).toBeInTheDocument(),
-    );
-    expect(screen.getByText("Moonlight.musicxml")).toBeInTheDocument();
+    // NOTE: the hero doesn't exist yet at this task (Task 10 adds it).
+    // For this task, both pieces will still render as rows. We'll FIX this
+    // assertion in Task 10 when the hero is wired in. For now, assert what
+    // Task 9 actually produces: both pieces appear as rows.
+    await screen.findAllByTestId("lib-row");
+    const rows = screen.getAllByTestId("lib-row");
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText("Moonlight.musicxml")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Chopin Ballade.mid")).toBeInTheDocument();
   });
 
   it("filters the list by the search box", async () => {
     await savePiece("Chopin Ballade.mid", bytes("x"));
+    await new Promise((r) => setTimeout(r, 5));
     await savePiece("Moonlight.musicxml", bytes("y"));
     render(<LibraryBrowser onOpen={() => {}} />);
-    await waitFor(() =>
-      expect(screen.getByText("Chopin Ballade.mid")).toBeInTheDocument(),
-    );
+    await screen.findAllByTestId("lib-row");
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "moon" },
     });
-    expect(screen.queryByText("Chopin Ballade.mid")).not.toBeInTheDocument();
-    expect(screen.getByText("Moonlight.musicxml")).toBeInTheDocument();
+    const rows = screen.getAllByTestId("lib-row");
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText("Moonlight.musicxml")).toBeInTheDocument();
   });
 
-  it("calls onOpen with the piece id when a piece is clicked", async () => {
-    const id = await savePiece("Chopin Ballade.mid", bytes("x"));
-    const onOpen = vi.fn();
-    render(<LibraryBrowser onOpen={onOpen} />);
-    await waitFor(() =>
-      expect(screen.getByText("Chopin Ballade.mid")).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByText("Chopin Ballade.mid"));
-    expect(onOpen).toHaveBeenCalledWith(id);
-  });
-
-  it("removes a piece when its delete button is clicked", async () => {
-    await savePiece("Chopin Ballade.mid", bytes("x"));
+  it("shows the chip with MIDI label for .mid files and XML for .musicxml files", async () => {
+    // MThd MIDI header bytes
+    const midi = new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6]).buffer;
+    // simple MusicXML
+    const xml = new TextEncoder().encode(
+      "<?xml version='1.0'?><score-partwise></score-partwise>",
+    ).buffer;
+    await savePiece("a.mid", midi);
+    await savePiece("b.musicxml", xml);
     render(<LibraryBrowser onOpen={() => {}} />);
-    await waitFor(() =>
-      expect(screen.getByText("Chopin Ballade.mid")).toBeInTheDocument(),
+    await screen.findAllByTestId("lib-row");
+    const chips = screen.getAllByTestId("lib-chip");
+    const labels = chips.map((c) => c.textContent);
+    expect(labels).toContain("MIDI");
+    expect(labels).toContain("XML");
+  });
+
+  it("calls onOpen with the piece id when a row's name is clicked", async () => {
+    const onOpen = vi.fn();
+    const targetId = await savePiece("target.mid", new ArrayBuffer(4));
+    await new Promise((r) => setTimeout(r, 5));
+    await savePiece("hero.mid", new ArrayBuffer(4));
+    render(<LibraryBrowser onOpen={onOpen} />);
+    await screen.findAllByTestId("lib-row");
+    // find the row containing "target.mid"
+    const rows = screen.getAllByTestId("lib-row");
+    const targetRow = rows.find((r) =>
+      within(r).queryByText(/target\.mid/) !== null,
     );
-    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Chopin Ballade.mid"),
-      ).not.toBeInTheDocument(),
+    if (!targetRow) throw new Error("target row not found");
+    fireEvent.click(within(targetRow).getByRole("button", { name: /target\.mid/ }));
+    expect(onOpen).toHaveBeenCalledWith(targetId);
+  });
+
+  it("renames a piece via the kebab menu", async () => {
+    await savePiece("target.mid", new ArrayBuffer(4));
+    await new Promise((r) => setTimeout(r, 5));
+    await savePiece("hero.mid", new ArrayBuffer(4));
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findAllByTestId("lib-row");
+    const rows = screen.getAllByTestId("lib-row");
+    const targetRow = rows.find((r) =>
+      within(r).queryByText(/target\.mid/) !== null,
     );
+    if (!targetRow) throw new Error("target row not found");
+    fireEvent.click(within(targetRow).getByTestId("lib-kebab"));
+    fireEvent.click(screen.getByText("Rename"));
+    const input = screen.getByLabelText("New name");
+    fireEvent.change(input, { target: { value: "newname.mid" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(async () => {
+      const pieces = await listPieces();
+      const renamed = pieces.find((p) => p.name === "newname.mid");
+      expect(renamed).toBeDefined();
+    });
+  });
+
+  it("deletes a piece via the kebab menu", async () => {
+    await savePiece("target.mid", new ArrayBuffer(4));
+    await new Promise((r) => setTimeout(r, 5));
+    await savePiece("hero.mid", new ArrayBuffer(4));
+    render(<LibraryBrowser onOpen={() => {}} />);
+    await screen.findAllByTestId("lib-row");
+    const rows = screen.getAllByTestId("lib-row");
+    const targetRow = rows.find((r) =>
+      within(r).queryByText(/target\.mid/) !== null,
+    );
+    if (!targetRow) throw new Error("target row not found");
+    fireEvent.click(within(targetRow).getByTestId("lib-kebab"));
+    fireEvent.click(screen.getByText("Delete"));
+    await waitFor(async () => {
+      const pieces = await listPieces();
+      expect(pieces.find((p) => p.name === "target.mid")).toBeUndefined();
+    });
   });
 });
 

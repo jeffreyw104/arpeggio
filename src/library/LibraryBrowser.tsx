@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   listPieces,
   deletePiece,
   renamePiece,
+  getPracticeState,
   type StoredPiece,
+  type StoredPracticeState,
 } from "./db";
+import { detectType } from "../import/detectType";
+import { formatRelative } from "./relativeTime";
 
 type FormatVariant = "full" | "compact";
 
@@ -153,6 +157,158 @@ function KebabMenu({ onOpen, onRename, onDelete, onClose }: KebabMenuProps) {
 // allowing direct unit tests of its keyboard / click behavior.
 export const __KebabMenu_test_only = KebabMenu;
 
+function chipFor(format: ReturnType<typeof detectType>): { label: string; cls: string } {
+  if (format === "midi") return { label: "MIDI", cls: "lib-chip lib-chip-midi" };
+  if (format === "musicxml" || format === "mxl")
+    return { label: "XML", cls: "lib-chip lib-chip-xml" };
+  return { label: "?", cls: "lib-chip" };
+}
+
+function formatLabel(format: ReturnType<typeof detectType>): string {
+  if (format === "midi") return "MIDI";
+  if (format === "mxl") return "MusicXML (.mxl)";
+  return "MusicXML";
+}
+
+interface RowProps {
+  piece: StoredPiece;
+  practiceState: StoredPracticeState | undefined;
+  onOpen: () => void;
+  onRenameCommit: (next: string) => Promise<void>;
+  onDelete: () => Promise<void>;
+}
+
+function Row({ piece, practiceState, onOpen, onRenameCommit, onDelete }: RowProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(piece.name);
+  const menuRef = useRef<HTMLLIElement | null>(null);
+
+  const format = useMemo(
+    () => detectType(piece.name, new Uint8Array(piece.data.slice(0, 2048))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [piece.id, piece.name, piece.data],
+  );
+  const chip = chipFor(format);
+  const fmt = formatLabel(format);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDown(e: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [menuOpen]);
+
+  const muted =
+    practiceState?.leftMuted && practiceState?.rightMuted
+      ? "L+R muted"
+      : practiceState?.leftMuted
+        ? "L muted"
+        : practiceState?.rightMuted
+          ? "R muted"
+          : null;
+
+  const hasLoop = practiceState?.loop != null;
+  const sectionsCount = practiceState?.sectionState?.sections.length ?? 0;
+  const bpm = practiceState?.bpm;
+
+  async function commitRename() {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== piece.name) {
+      await onRenameCommit(trimmed);
+    }
+    setEditing(false);
+  }
+
+  return (
+    <li
+      className={`lib-row${menuOpen ? " is-menu-open" : ""}`}
+      data-testid="lib-row"
+      ref={menuRef}
+    >
+      <span className={chip.cls} data-testid="lib-chip">{chip.label}</span>
+      <div>
+        {editing ? (
+          <input
+            type="text"
+            className="lib-rename-input"
+            aria-label="New name"
+            autoFocus
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void commitRename();
+              else if (e.key === "Escape") {
+                setEditName(piece.name);
+                setEditing(false);
+              }
+            }}
+            onBlur={() => void commitRename()}
+          />
+        ) : (
+          <>
+            <button type="button" className="lib-name" onClick={onOpen}>
+              {piece.name}
+            </button>
+            <div className="lib-subline">
+              <span>{fmt}</span>
+              <span className="sep">·</span>
+              <span>added {formatRelative(piece.addedAt)}</span>
+              {muted && (
+                <>
+                  <span className="sep">·</span>
+                  <span className="lib-mute">{muted}</span>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="lib-stats">
+        {hasLoop && <span className="lib-pill">loop</span>}
+        {sectionsCount > 0 && (
+          <span className="lib-pill">{sectionsCount} sec</span>
+        )}
+        {typeof bpm === "number" && (
+          <>
+            <span>♩</span>
+            <span className="v">{bpm}</span>
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        className="lib-kebab"
+        data-testid="lib-kebab"
+        aria-label="More actions"
+        onClick={() => setMenuOpen((m) => !m)}
+      >
+        ⋯
+      </button>
+      {menuOpen && (
+        <KebabMenu
+          onOpen={() => {
+            setMenuOpen(false);
+            onOpen();
+          }}
+          onRename={() => {
+            setMenuOpen(false);
+            setEditing(true);
+          }}
+          onDelete={() => {
+            setMenuOpen(false);
+            void onDelete();
+          }}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
+    </li>
+  );
+}
+
 /** Props for {@link LibraryBrowser}. */
 interface LibraryBrowserProps {
   /** Called with the piece id when a saved piece is opened. */
@@ -163,8 +319,9 @@ interface LibraryBrowserProps {
 export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
   const [pieces, setPieces] = useState<StoredPiece[]>([]);
   const [query, setQuery] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
+  const [practiceById, setPracticeById] = useState<Map<string, StoredPracticeState>>(
+    () => new Map(),
+  );
 
   const refresh = useCallback(() => listPieces().then(setPieces), []);
 
@@ -172,27 +329,27 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const entries = await Promise.all(
+        pieces.map(async (p) => [p.id, await getPracticeState(p.id)] as const),
+      );
+      if (cancelled) return;
+      const next = new Map<string, StoredPracticeState>();
+      for (const [id, state] of entries) {
+        if (state) next.set(id, state);
+      }
+      setPracticeById(next);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [pieces]);
+
   const needle = query.trim().toLowerCase();
   const filtered = pieces.filter((p) => p.name.toLowerCase().includes(needle));
-
-  function startRename(p: StoredPiece) {
-    setEditingId(p.id);
-    setEditingName(p.name);
-  }
-
-  async function commitRename() {
-    if (!editingId) return;
-    const trimmed = editingName.trim();
-    if (trimmed) await renamePiece(editingId, trimmed);
-    setEditingId(null);
-    setEditingName("");
-    await refresh();
-  }
-
-  function cancelRename() {
-    setEditingId(null);
-    setEditingName("");
-  }
 
   if (pieces.length === 0) {
     return (
@@ -221,54 +378,24 @@ export function LibraryBrowser({ onOpen }: LibraryBrowserProps) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search saved pieces"
       />
-      <ul>
-          {filtered.map((p) => (
-            <li key={p.id}>
-              {editingId === p.id ? (
-                <input
-                  type="text"
-                  className="library-rename-input"
-                  aria-label="New name"
-                  value={editingName}
-                  autoFocus
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void commitRename();
-                    else if (e.key === "Escape") cancelRename();
-                  }}
-                  onBlur={() => void commitRename()}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="library-name"
-                  onClick={() => onOpen(p.id)}
-                >
-                  {p.name}
-                </button>
-              )}
-              <button
-                type="button"
-                className="library-rename"
-                aria-label={`Rename ${p.name}`}
-                onClick={() => startRename(p)}
-              >
-                Rename
-              </button>
-              <button
-                type="button"
-                className="library-delete"
-                aria-label={`Delete ${p.name}`}
-                onClick={async () => {
-                  await deletePiece(p.id);
-                  await refresh();
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+      <ul className="lib-rows">
+        {filtered.map((p) => (
+          <Row
+            key={p.id}
+            piece={p}
+            practiceState={practiceById.get(p.id)}
+            onOpen={() => onOpen(p.id)}
+            onRenameCommit={async (next) => {
+              await renamePiece(p.id, next);
+              await refresh();
+            }}
+            onDelete={async () => {
+              await deletePiece(p.id);
+              await refresh();
+            }}
+          />
+        ))}
+      </ul>
     </div>
   );
 }
