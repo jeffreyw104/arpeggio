@@ -36,6 +36,15 @@ None — this is the foundation.
   build emits manifest.webmanifest + service worker.
 - 2026-05-17 — Task 8: GitHub Actions CI (lint/typecheck/test/build).
 - 2026-05-17 — Task 9: vercel.json deploy config. Feature A complete.
+- 2026-05-26 — Logo redesign. `public/icons/icon.svg` replaced — was a
+  green letter `A` on a near-black rounded square; now a rounded square
+  graphite (`#181820`) background with a four-key stepped-arpeggio
+  gradient (pale `#cfe9dd` → deep `#2f8a6c`). Added the missing
+  `<link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />` to
+  `index.html` (the SVG was already shipped via `VitePWA.includeAssets`
+  but never wired as the browser tab favicon). PWA manifest
+  `theme_color` / `background_color` moved from `#15151a` to `#181820`
+  to match.
 
 ## Keywords
 
