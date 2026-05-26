@@ -56,7 +56,7 @@ Option C from the brainstorm — hero + dense list. Final mockup is at `.superpo
 │  ┌──────────────────────────────────────────────┐  │
 │  │ CONTINUE PRACTICING                            │  │   ← hero card
 │  │ Chopin · Nocturne Op.9 No.2                    │  │
-│  │ MIDI · last opened 3d ago · ♩ 64 · loop 16–32  │  │
+│  │ MIDI · last opened 3d ago · ♩ 64 · [loop]      │  │
 │  │                              [ ▶ Resume ]       │  │
 │  └──────────────────────────────────────────────┘  │
 │                                                      │
@@ -84,7 +84,7 @@ A single panel directly under the page title.
 | Padding | `22px 26px` |
 | Eyebrow | `CONTINUE PRACTICING` — 10px / letter-spacing 0.14em / color `var(--accent)` / uppercase / weight 600. Prefixed by a 6px round dot in `var(--accent)` with `box-shadow: 0 0 8px var(--accent-glow)` (a quiet "live" indicator, no animation). |
 | Title | The piece name. 24px / weight 600 / letter-spacing -0.015em / `var(--text)`. Truncates with `text-overflow: ellipsis` on a single line. |
-| Meta-row | A flex-wrap row below the title at 13px / `var(--dim)`: `<format> · last opened <relative> · ♩ <bpm>` followed by zero-or-more accent pills (`loop bars <a>–<b>`, `<n> sections`, `L muted`, `R muted`, etc.) |
+| Meta-row | A flex-wrap row below the title at 13px / `var(--dim)`: `<format> · last opened <relative> · ♩ <bpm>` followed by zero-or-more accent pills (`loop`, `<n> sections`, `L muted`, `R muted`). The loop pill carries no range — the practice state stores loop in seconds and converting to measure numbers needs the score's `measureMap`, which is not loaded at library-render time. The detail is visible once the piece is opened. |
 | Decorative glow | An absolutely positioned 200×200 `radial-gradient` blob in the top-right corner (`var(--accent-glow)`, opacity 0.45, overflow-hidden by the card). Pointer-events: none. |
 | CTA | `▶ Resume practice` — primary button: `background: var(--accent)`, dark text, `padding: 11px 24px`, `border-radius: 8px`, weight 600, inset highlight (`box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset`), drop glow (`0 4px 12px var(--accent-glow)`). Click → `onOpen(piece.id)`, same handler the row uses today. |
 
@@ -266,7 +266,7 @@ Hero meta-row data:
 - Format label: from `detectType` ("MIDI" or "MusicXML").
 - Last-opened relative time: `formatRelative(piece.lastOpenedAt ?? piece.addedAt)` — a small helper (`src/library/relativeTime.ts`) returning strings like `today`, `yesterday`, `3 days ago`, `1 week ago`, `2 weeks ago`, `1 month ago`. Single new utility, ~30 LOC, has its own test file.
 - Last tempo: `practiceState?.bpm` (loaded via `getPracticeState(piece.id)`).
-- Loop pill: rendered iff `practiceState?.loop != null`, label `loop bars <start>–<end>` (start/end are already 1-indexed measures in the practice state model).
+- Loop pill: rendered iff `practiceState?.loop != null`, label `loop` (no range — see §2's note on `measureMap` availability).
 - Sections pill: rendered iff `practiceState?.sectionState?.sections.length > 0`, label `<n> sections`.
 - Hand-mute spans: rendered iff `leftMuted` or `rightMuted` — same rules as the existing `applyPracticeState`.
 
